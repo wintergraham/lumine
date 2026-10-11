@@ -1,45 +1,64 @@
 # Lumine
 
-A retained Rust GUI framework for **Linux, macOS and Windows**, focused on fine-grained updates, bounded rendering resources, and low idle CPU usage. It has a platform-independent core, a wgpu renderer, and a desktop host with native input, clipboard, IME, accessibility, and multiple windows.
+Lumine is a retained native UI engine written in Rust. It combines reactive components, GPU rendering, native desktop integration and a built-in motion system for Linux, macOS and Windows.
+
+Lumine is an independent fork of [zgui](https://github.com/senxd/zgui) and powers the native interface in [Ask](https://github.com/wintergraham/ask). Ask is its first application. The engine has its own workspace, examples and validation tools, and can run independently of Ask.
+
+Components mount once. Signals update their retained targets, while the engine tracks layout, paint and composition work separately. Rendering resources are bounded, and idle motion schedules no frames.
+
+## What is included
+
+- Reactive signals, batching, scoped state and services, keyed views, ownership and cancellation.
+- Flex and grid layout, percentage sizing, absolute positioning, clipping and virtual lists.
+- A retained wgpu renderer with damage tracking, shaped text, images, vector paths, borders, shadows, transforms, shaders and backdrop blur.
+- Native input, pointer capture, focus navigation, text editing, IME, clipboard, undo/redo and accessibility.
+- Desktop windows, display scaling, menus, dialogs, file drops and platform services.
+- Controls including buttons, fields, checkboxes, sliders, scroll views, popovers and menus.
+
+## Built-in motion
+
+Motion runs against the same retained scene and reactive state as the rest of the UI. It includes:
+
+- Tweens, custom Bézier easing and interruptible springs that preserve velocity when retargeted.
+- Typed keyframes, coordinated timelines, playback controls and grouped completion.
+- Presence and exit transitions that retain a view until its animation finishes.
+- Layout projection and shared layout IDs for animated resizing, reordering and remounting.
+- Drag/snap interactions, measured scroll progress and named motion states.
+- Reduced-motion policy, visibility-aware effect scheduling and an on-demand inspector.
+
+Active motion values share a scheduler and batch their updates. Translation, scale, rotation and opacity use paint transforms; animating width or height still requires layout work. Continuous decorative effects have a separate scheduler with a configurable budget.
+
+See the [motion guide](docs/motion.md) and [motion measurements](docs/motion-performance.md).
+
+## Run an example
+
+Clone the repository and run the component example:
 
 ```sh
-cargo run --release -p lumine-desktop --example components
-cargo run --release -p lumine-desktop --example form
-cargo run --release -p lumine-desktop --example wrapped_editor
-cargo run --release -p lumine-desktop --example line_height
-cargo run --release -p lumine-desktop --example letter_spacing
-cargo run --release -p lumine-desktop --example percent_sizes
-cargo run --release -p lumine-desktop --example overlays
-cargo run --release -p lumine-desktop --example menus
-cargo run --release -p lumine-desktop --example submenus
-LUMINE_MODE=both LUMINE_SECONDS=10 cargo run --release -p lumine-desktop --example component_workload
-cargo run --release -p lumine-desktop --example gallery
-cargo run --release -p lumine-desktop --example workbench
-cargo run --release -p lumine-desktop --example windows
-cargo run --release -p lumine-desktop --example effects
-cargo run --release -p lumine-desktop --example layout
-cargo run --release -p lumine-desktop --example rich_text
-cargo run --release -p lumine-desktop --example paint_styles
-cargo run --release -p lumine-desktop --example canvas
-cargo run --release -p lumine-desktop --example svg_transform
-cargo run --release -p lumine-desktop --example animated_image
-cargo run --release -p lumine-desktop --example cursors
-cargo run --release -p lumine-desktop --example drag_drop
-cargo run --release -p lumine-desktop --example dynamic_menus
-cargo run --release -p lumine-desktop --example platform_services
+git clone https://github.com/wintergraham/lumine.git
+cd lumine
+cargo run --locked -p lumine-desktop --example components
 ```
 
-Linux builds need the native development libraries for fontconfig, xkbcommon and
-D-Bus, plus `pkg-config` (for example `libfontconfig1-dev libxkbcommon-dev
-libdbus-1-dev pkg-config` on Debian/Ubuntu). File dialogs use the desktop's XDG
-portal; prompts use `zenity`. macOS builds use the system frameworks and Xcode
-command-line tools. Windows builds use the stable MSVC Rust toolchain and Visual
-Studio Build Tools with the C++ workload and Windows SDK; no GTK installation is
-needed. See [Windows support](docs/windows.md) for validation and limitations,
-and [native services](docs/platform-services.md) for backend
-behavior and cancellation guarantees.
+Explore motion, rendering effects and the control gallery:
 
-Applications describe components and children. They mount once; reactive properties update only their retained targets:
+```sh
+cargo run --locked -p lumine-desktop --example motion
+cargo run --locked -p lumine-desktop --example effects
+cargo run --locked -p lumine-desktop --example gallery
+```
+
+More examples live in [crates/lumine-desktop/examples](crates/lumine-desktop/examples), including editors, layout, menus, multiple windows and platform services.
+
+### Platform prerequisites
+
+- **macOS:** Xcode command-line tools and the system frameworks.
+- **Windows:** the stable MSVC Rust toolchain and Visual Studio Build Tools with the C++ workload and Windows SDK. See [Windows support](docs/windows.md).
+- **Linux:** fontconfig, xkbcommon and D-Bus development libraries, plus `pkg-config`. On Debian/Ubuntu, install `libfontconfig1-dev`, `libxkbcommon-dev`, `libdbus-1-dev` and `pkg-config`. File dialogs use the desktop's XDG portal; prompts use `zenity`.
+
+Use a Rust toolchain that supports edition 2024. Native examples require a desktop session and a supported graphics adapter.
+
+## A small application
 
 ```rust,no_run
 use lumine::compose::prelude::*;
@@ -67,49 +86,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-Components resolve typed services with `cx.service::<Model>()`, initialize local state with `cx.state`, and capture caller-owned lexical providers in `cx.slot`. Rows, columns, buttons and slots take child views; `text_input` and `text_area` bind editable values with fluent styles and inherited typography; application components do not manipulate scene parent IDs. `provide`/`provide_with`, keyed children and conditional regions preserve ownership across fine-grained updates. See the [exact model example](crates/lumine/examples/model.rs), [component architecture](docs/composition.md), and [fluent styling](docs/styling.md).
+Read the [application guide](docs/application.md), [component model](docs/composition.md) and [styling guide](docs/styling.md) for state, services, children and ownership.
 
-The framework includes:
+## Workspace
 
-- Tracked signals, equal-write suppression, batching, scoped providers, stable reactive collection rows, keyed views, explicit ownership, cancellation, bounded background workers and wake-driven async tasks.
-- [Shared motion values](docs/motion.md), named/custom Bezier easings, analytical springs, reduced-motion policy and retained exits, with batched display-paced updates and no idle frame requests.
-- Cached row/column/overlay layout, grid placement/spans, wrapping/reversed flex, basis and alignment, percentage constraints/spacing, auto margins, absolute insets, aspect ratios and independent overflow policies.
-- Shaped rich text with inline links/decorations, font features/fallbacks, custom fonts, alignment, ellipsis and line clamping; bounded glyph/image caches and persistent damage rendering.
-- Retained vector paths, gradient/pattern fills, independent border edges/corners, multiple shadows, device-scale SVG/tint/transforms, async image caching and visibility-aware GIF playback. Transparency, edge fades, backdrop blur and explicit cached compositor layers compose with these views.
-- Typed internal drag/drop with retained previews, grouped external file drops, inherited/reactive cursors, pointer capture, bubbling/capture event routing, focus navigation and trapping, keyboard activation, Unicode selection/editing, IME preedit, clipboard, and bounded undo/redo.
-- Buttons, checkboxes, sliders, progress indicators, labels, text inputs, scroll views, keyed fixed/variable-height virtual lists, dialogs, popovers and menus.
-- Winit window lifecycle, GPU presentation, display scaling, multiple windows, typed contextual actions/key sequences, native file dialogs/prompts, application menus, URL routing and AccessKit semantics/actions.
+| Crate | Responsibility |
+| --- | --- |
+| [`lumine`](crates/lumine) | Reactive runtime, retained scene, layout, components, controls, input and motion. |
+| [`lumine-gpu`](crates/lumine-gpu) | GPU rendering, text shaping, images, shaders and rendering diagnostics. |
+| [`lumine-desktop`](crates/lumine-desktop) | Native windows, presentation, platform services and desktop examples. |
+| [`lumine-workload`](comparisons/workload) | Shared deterministic workloads for framework comparisons. |
 
-Read [components and slots](docs/composition.md), [styling](docs/styling.md), [application development](docs/application.md), [architecture and template lowering](docs/architecture.md), and the [GPUI capability acceptance matrix](docs/gpui-parity.md). The proposed template language remains independent of the idiomatic Rust API; no parser is imposed on Rust applications.
+The workspace also contains dependency patches in `vendor`, benchmark adapters in `comparisons`, and validation scripts in `scripts`.
 
-## Performance comparison
+## Relationship to Ask
 
-The same deterministic streaming-text and 100,000-row virtual-list UI is implemented in lumine, GPUI and QuickGUI. Only viewport rows are mounted. All adapters have locked dependencies and share the workload source.
+Lumine owns reusable rendering, input, layout and motion behavior. Ask owns its screens, visual theme, browser workflows and agent behavior, and consumes a pinned Lumine revision.
 
-```sh
-LUMINE_MODE=both LUMINE_SECONDS=10 cargo run --release -p lumine-desktop --example component_workload
-LUMINE_MODE=idle LUMINE_SECONDS=0 cargo run --release -p lumine-desktop --example component_workload
-```
+Electron-related changes will be developed and tested in Ask before reusable parts move into Lumine. This repository currently provides the Rust engine and native desktop host. Electron and native React integrations are future work for Lumine.
 
-The component workload uses the native GPU host and owned declarative views. `LUMINE_MODE` accepts `idle`, `stream`, `scroll`, or `both`; zero seconds keeps the window open.
+## Documentation and status
 
-A heavier scene, `heavy_workload` (with a GPUI adapter), is a 1280×800 live dashboard where most content changes every tick: 30 cards with scrolling sparklines, stat tiles, a scrolling 100,000-row status table and a streaming log. On an M5 Max, lumine used 45–47% less CPU than GPUI with live data and 70% less while scrolling, and 25–33 MiB more memory ([results](docs/results/latest-macos-heavy-2026-09-27-92fd6a4/README.md); `python3 scripts/run_macos_comparison.py --scene heavy`). The older `lumine-demo` executable remains available for low-level renderer diagnostics, including `LUMINE_RENDERER=software` and display-free `--headless` checks.
+Lumine is under active development. Platform support and individual capabilities have different levels of validation; a successful build does not establish full native compatibility.
 
-See [benchmark commands and methodology](docs/benchmarking.md). The
-[parity-expansion comparison](docs/results/gpui-parity-workers4/README.md) records
-36 matched trials and 10,808 audited samples on Mesa llvmpipe. Active trials
-delivered 59.6–59.95 model updates per requested second. lumine's active CPU medians
-were 28.5–53.6% below GPUI and 9.3–41.9% below QuickGUI in this condition. Mean RSS
-medians were 103.35 MiB idle and 108.16–108.39 MiB active; scrolling RSS was nearly
-tied with GPUI. Idle CPU tied QuickGUI at zero sampled ticks. Full repeat ranges,
-raw samples, matched screenshots, source archives, executable hashes and plots
-are retained. `LP_NUM_THREADS=4` applies per Mesa pool; QuickGUI initialized two
-pools. Unrelated host activity was present, with no concurrent builds observed.
-These are **software-GPU measurements, not hardware-GPU rankings, presentation
-cadence, or proof of minimum resource use**. Earlier series remain separately
-archived in the [result inventory](docs/results/README.md).
+- [Architecture](docs/architecture.md), [layout](docs/layout.md) and [application development](docs/application.md).
+- [Text](docs/rich-text.md), [paint styles](docs/paint-styles.md), [canvas](docs/canvas.md), [images and shaders](docs/images-and-animation.md).
+- [Native services](docs/platform-services.md), [macOS surfaces](docs/native-surfaces.md) and [Windows support](docs/windows.md).
+- [Capability matrix](docs/gpui-parity.md), [validation status](docs/validation.md) and [remaining work](docs/ROADMAP.md).
 
-## Validation and current boundaries
+Known limitations include incomplete macOS native-interaction qualification and stale IME preedit under very rapid input on the tested Sway/Fcitx Wayland stack. Core-only text measurement uses an approximate fallback until a native text measurer is installed. See the linked validation records for the affected configurations.
+
+## Performance and validation
+
+The repository retains measured comparisons against GPUI and QuickGUI, including streaming text, virtual lists and a dashboard workload. These records were carried over from the fork before the Lumine rename. Results apply to their recorded machines, workloads and revisions.
+
+Start with the [benchmark methodology](docs/benchmarking.md), [result inventory](docs/results/README.md), [macOS dashboard results](docs/results/latest-macos-heavy-2026-09-27-92fd6a4/README.md) and [Linux comparison](docs/results/gpui-parity-workers4/README.md). CPU work, GPU work, presented frames and memory usage are separate measurements.
+
+The workspace's full validation commands are:
 
 ```sh
 cargo test --workspace --all-targets --locked
@@ -118,14 +131,10 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo fmt --all -- --check
 ```
 
-GPU tests require a Vulkan or Metal adapter, including software Vulkan for CI. The [integrated Linux evidence](docs/platform-validation/gpui-parity-integration/README.md) records 712 workspace tests, 31 doctests, two separately run native lifecycle tests, formatting and strict Linux/macOS-target Clippy. The [macOS continuation evidence](docs/platform-validation/macos-continuation/README.md) adds real Apple M5 Max Metal/CoreVideo pixels and lifetimes, native window probes, AppKit dialogs/menus, bidirectional TextEdit clipboard exchange, native dead-key commit/focus-reset checks, accessibility actions and Retina layout/painting. It preserves observed failures and repairs. **macOS qualification remains partial:** Pinyin candidate-based IME, several native interaction details and hardware performance comparison remain unverified; passing compilation or automated tests alone does not close these gates.
-
-On the tested Sway/Fcitx Wayland stack, very rapid input can leave preedit stale; the same failure reproduces in an independent winit program. Unicode commits succeeded in these tests. See the [protocol evidence and open compatibility issue](docs/validation.md#wayland-burst-input-serial-diagnosis).
-
-Development remains active. The [capability matrix](docs/gpui-parity.md) tracks implementation and target-platform evidence separately. See [layout](docs/layout.md), [rich text](docs/rich-text.md), [canvas drawing](docs/canvas.md), [paint styles](docs/paint-styles.md), [SVG transforms](docs/affine-images.md), [media loading/playback](docs/images-and-animation.md), [actions](docs/actions.md), and [native services](docs/platform-services.md), and [macOS CoreVideo surfaces](docs/native-surfaces.md). Backdrop blur reconstructs the affected backdrop when its dependency region changes. Core-only text measurement uses a fallback until a native shaper is installed. See the [GPU renderer's precise resource limits](crates/lumine-gpu/README.md) and [completion plan](docs/ROADMAP.md) for unresolved work; the project does not claim that every GUI feature is finished or that minimum possible CPU/RAM use has been proved.
-
-References: [GPUI](https://gpui.rs/), [zui](https://github.com/zeronsh/zui), [QuickGUI](https://github.com/egoist/quickgui), [React](https://github.com/react/react). Their designs informed this framework. lumine uses direct dependency subscriptions instead of rerunning whole component functions. Font and dependency licenses are retained alongside their assets and manifests.
+GPU tests require a Vulkan or Metal adapter. Native interaction checks require the corresponding desktop environment. Existing [Linux evidence](docs/platform-validation/gpui-parity-integration/README.md) and [macOS evidence](docs/platform-validation/macos-continuation/README.md) document both results and remaining gaps.
 
 ## Licensing and provenance
 
-Lumine provides no repository-wide license for fork-specific additions or modifications. Required upstream, dependency and font notices are retained. See [third-party notices](third-party/README.md).
+Lumine has no repository-wide license for fork-specific additions or modifications. The inherited zgui MIT copyright and permission notice is preserved verbatim in [third-party/zgui-LICENSE.txt](third-party/zgui-LICENSE.txt). Dependency and font notices remain alongside their sources and assets.
+
+See [third-party notices](third-party/README.md) for the imported revision and retained notices.
