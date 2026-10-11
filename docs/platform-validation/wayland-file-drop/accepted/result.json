@@ -2,8 +2,8 @@
   "result": "pass",
   "backend": "native Wayland",
   "files": [
-    "/tmp/zgui-wayland-files-accepted/first.txt",
-    "/tmp/zgui-wayland-files-accepted/second file.txt"
+    "/tmp/lumine-wayland-files-accepted/first.txt",
+    "/tmp/lumine-wayland-files-accepted/second file.txt"
   ],
   "grouped_drop_count": 1,
   "leave_cancellation": true,

@@ -1,6 +1,6 @@
 # Live native Wayland DPI transitions
 
-One running zgui window survives output scale **1 → 2 → 1** in an owned Sway
+One running lumine window survives output scale **1 → 2 → 1** in an owned Sway
 session. The client connects through Wayland with `DISPLAY` removed. Sway uses
 its X11 backend inside a private Xvfb/Openbox display; physical pointer and
 keyboard events enter through that display. Every process and IPC socket belongs
@@ -24,8 +24,8 @@ Reproduce from the repository root (requires Sway, Xvfb, Openbox, xdotool,
 xwininfo, grim and Python Pillow):
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo build -p zgui-desktop --example dpi_transition
-python3 scripts/dpi_transition_smoke.py /tmp/zgui-target/debug/examples/dpi_transition --output docs/platform-validation/dpi-transition
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo build -p lumine-desktop --example dpi_transition
+python3 scripts/dpi_transition_smoke.py /tmp/lumine-target/debug/examples/dpi_transition --output docs/platform-validation/dpi-transition
 ```
 
 Sway's runtime output command is implemented in its

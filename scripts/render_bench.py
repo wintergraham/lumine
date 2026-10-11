@@ -1,4 +1,4 @@
-"""Build once, then profile standard zgui workloads or an application's ignored lib test."""
+"""Build once, then profile standard lumine workloads or an application's ignored lib test."""
 import argparse
 import hashlib
 import json
@@ -67,7 +67,7 @@ def main():
     source, renderer_source = source_hash(project), source_hash(ROOT)
     build = ["cargo", "test" if args.test else "build", "--locked", "--manifest-path", str(manifest),
              "--target-dir", str(target), "--profile", args.profile]
-    selection = ["--lib", "--no-run"] if args.test else ["-p", "zgui-desktop", "--example", "render_bench"]
+    selection = ["--lib", "--no-run"] if args.test else ["-p", "lumine-desktop", "--example", "render_bench"]
     built = command(build + selection + ["--message-format=json"])
     artifacts = [json.loads(line) for line in built.splitlines() if line.startswith("{")]
     if args.test:
@@ -99,16 +99,16 @@ def main():
             library_dirs.append(str(directory if directory.is_absolute() else project / directory))
     library_key = "PATH" if os.name == "nt" else ("DYLD_FALLBACK_LIBRARY_PATH" if sys.platform == "darwin" else "LD_LIBRARY_PATH")
     env[library_key] = os.pathsep.join(dict.fromkeys(library_dirs + [env.get(library_key, "")]))
-    for key in ("ASK_BENCH_OUTPUT", "ZGUI_BENCH_OUTPUT", "ZGUI_BENCH_RAW", "ZGUI_BENCH_ONLY", "ZGUI_BENCH_TRACE", "ZGUI_BENCH_SPLIT_SHADING", "ZGUI_BENCH_PHASE_CACHE", "ZGUI_BENCH_OPAQUE_INTERIORS"):
+    for key in ("ASK_BENCH_OUTPUT", "LUMINE_BENCH_OUTPUT", "LUMINE_BENCH_RAW", "LUMINE_BENCH_ONLY", "LUMINE_BENCH_TRACE", "LUMINE_BENCH_SPLIT_SHADING", "LUMINE_BENCH_PHASE_CACHE", "LUMINE_BENCH_OPAQUE_INTERIORS"):
         env.pop(key, None)
-    env.update(ZGUI_BENCH_FRAMES=str(args.frames), ZGUI_BENCH_WARMUP=str(args.warmup),
-        ZGUI_BENCH_HZ=str(args.hz), ZGUI_BENCH_IN_FLIGHT=str(args.in_flight), ZGUI_BENCH_ROWS=str(args.rows), ZGUI_BENCH_SIZES=args.sizes)
-    if args.raw: env["ZGUI_BENCH_RAW"] = "1"
-    if args.only: env["ZGUI_BENCH_ONLY"] = args.only
-    if args.trace: env["ZGUI_BENCH_TRACE"] = str(args.trace.resolve())
-    if args.split_shading: env["ZGUI_BENCH_SPLIT_SHADING"] = args.split_shading
-    if args.phase_cache: env["ZGUI_BENCH_PHASE_CACHE"] = args.phase_cache
-    if args.opaque_interiors: env["ZGUI_BENCH_OPAQUE_INTERIORS"] = args.opaque_interiors
+    env.update(LUMINE_BENCH_FRAMES=str(args.frames), LUMINE_BENCH_WARMUP=str(args.warmup),
+        LUMINE_BENCH_HZ=str(args.hz), LUMINE_BENCH_IN_FLIGHT=str(args.in_flight), LUMINE_BENCH_ROWS=str(args.rows), LUMINE_BENCH_SIZES=args.sizes)
+    if args.raw: env["LUMINE_BENCH_RAW"] = "1"
+    if args.only: env["LUMINE_BENCH_ONLY"] = args.only
+    if args.trace: env["LUMINE_BENCH_TRACE"] = str(args.trace.resolve())
+    if args.split_shading: env["LUMINE_BENCH_SPLIT_SHADING"] = args.split_shading
+    if args.phase_cache: env["LUMINE_BENCH_PHASE_CACHE"] = args.phase_cache
+    if args.opaque_interiors: env["LUMINE_BENCH_OPAQUE_INTERIORS"] = args.opaque_interiors
     try:
         with output.open("x", encoding="utf-8") as sink:
             for trial in range(1, args.repeats + 1):

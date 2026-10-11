@@ -65,7 +65,7 @@
       "cargo",
       "build",
       "-p",
-      "zgui-desktop",
+      "lumine-desktop",
       "--example",
       "variable_virtual_list",
       "--example",

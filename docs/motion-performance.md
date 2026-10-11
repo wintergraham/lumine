@@ -33,10 +33,10 @@ operations and are evidence to batch bursts, not a before/after speedup claim.
 Immediate policy subscriptions are retained so a pause before the executor's
 first poll still freezes the correct delay and phase.
 
-Reproduce from the zgui workspace:
+Reproduce from the lumine workspace:
 
 ```sh
-cargo test -p zgui --release motion_release_benchmark --lib -- --ignored --nocapture
+cargo test -p lumine --release motion_release_benchmark --lib -- --ignored --nocapture
 ```
 
 Idle, all-paused, disposed, and delay-only work is covered by deterministic
@@ -62,7 +62,7 @@ layout, shader dispatches, blur, text and native presentation. The scalar benchm
 above is a different workload, so these numbers are not a claimed speedup ratio.
 
 ```sh
-cargo test -p zgui --release compiled_timeline_release_benchmark --lib -- --ignored --nocapture
+cargo test -p lumine --release compiled_timeline_release_benchmark --lib -- --ignored --nocapture
 ```
 
 Regression tests verify that projected layout motion changes only paint after its

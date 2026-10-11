@@ -3,7 +3,7 @@
     "cargo",
     "build",
     "-p",
-    "zgui-desktop",
+    "lumine-desktop",
     "--locked",
     "--example",
     "paint_styles",

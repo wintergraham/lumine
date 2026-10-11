@@ -1,0 +1,66 @@
+[
+  {
+    "tid": 2776814,
+    "comm": "component_workl"
+  },
+  {
+    "tid": 2776824,
+    "comm": "component_workl"
+  },
+  {
+    "tid": 2776826,
+    "comm": "blocking-1"
+  },
+  {
+    "tid": 2777094,
+    "comm": "component_workl"
+  },
+  {
+    "tid": 2777097,
+    "comm": "llvmpipe-0"
+  },
+  {
+    "tid": 2777098,
+    "comm": "llvmpipe-1"
+  },
+  {
+    "tid": 2777099,
+    "comm": "llvmpipe-2"
+  },
+  {
+    "tid": 2777100,
+    "comm": "llvmpipe-3"
+  },
+  {
+    "tid": 2777101,
+    "comm": "component_workl"
+  },
+  {
+    "tid": 2777102,
+    "comm": "component_workl"
+  },
+  {
+    "tid": 2777103,
+    "comm": "component_workl"
+  },
+  {
+    "tid": 2777104,
+    "comm": "component_workl"
+  },
+  {
+    "tid": 2777167,
+    "comm": "compone:disk$0"
+  },
+  {
+    "tid": 2777537,
+    "comm": "WSI swapchain q"
+  },
+  {
+    "tid": 2777538,
+    "comm": "WSI swapchain e"
+  },
+  {
+    "tid": 2777572,
+    "comm": "lumine-timers"
+  }
+]

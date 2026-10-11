@@ -7,7 +7,7 @@
     "cargo",
     "build",
     "-p",
-    "zgui-desktop",
+    "lumine-desktop",
     "--example",
     "line_height",
     "--example",
@@ -20,9 +20,9 @@
       "run": [
         "python3",
         "scripts/line_height_smoke.py",
-        "/tmp/zgui-target/debug/examples/line_height",
+        "/tmp/lumine-target/debug/examples/line_height",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/editor-shaping/line_height"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/editor-shaping/line_height"
       ]
     },
     "wrapped_editor": {
@@ -30,17 +30,17 @@
       "run": [
         "python3",
         "scripts/wrapped_editor_smoke.py",
-        "/tmp/zgui-target/debug/examples/wrapped_editor",
+        "/tmp/lumine-target/debug/examples/wrapped_editor",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/editor-shaping/wrapped_editor"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/editor-shaping/wrapped_editor"
       ]
     }
   },
   "environment": {
-    "CARGO_TARGET_DIR": "/tmp/zgui-target",
+    "CARGO_TARGET_DIR": "/tmp/lumine-target",
     "CARGO_PROFILE_DEV_DEBUG": "0",
     "CARGO_INCREMENTAL": "0",
-    "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader"
+    "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader"
   },
   "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
   "backend": "X11 / Openbox / Xvfb / Mesa llvmpipe"

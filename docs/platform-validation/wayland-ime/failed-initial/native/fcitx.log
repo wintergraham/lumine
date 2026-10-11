@@ -120,7 +120,7 @@ I2026-09-22 17:15:03.343411 virtualkeyboard.cpp:218] VirtualKeyboard new owner:
 [2179030.761] {Default Queue} wl_keyboard#19.keymap(1, fd 22, 34206)
 [2179030.786] {Default Queue} wl_keyboard#19.repeat_info(25, 600)
 [2179889.371] {Default Queue} zwlr_foreign_toplevel_manager_v1#7.toplevel(new id zwlr_foreign_toplevel_handle_v1#4278190080)
-[2179889.539] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.title("zgui native IME")
+[2179889.539] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.title("lumine native IME")
 [2179889.574] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.state(array[4])
 [2179889.606] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.state(array[8])
 [2179889.736] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.done()

@@ -45,7 +45,7 @@ unsafe impl GlobalAlloc for CountedAllocator {
 }
 #[global_allocator]
 static ALLOCATOR: CountedAllocator = CountedAllocator;
-use zgui::text_edit::TextEditor;
+use lumine::text_edit::TextEditor;
 
 fn resident_kib(field: &str) -> Option<usize> {
     std::fs::read_to_string("/proc/self/status")

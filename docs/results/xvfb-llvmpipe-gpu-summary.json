@@ -2,7 +2,7 @@
   "source_csv": "docs/results/xvfb-llvmpipe-gpu.csv",
   "groups": [
     {
-      "framework": "zgui",
+      "framework": "lumine",
       "mode": "idle",
       "repeats": 2,
       "cpu_percent_one_core": {
@@ -92,7 +92,7 @@
       }
     },
     {
-      "framework": "zgui",
+      "framework": "lumine",
       "mode": "stream",
       "repeats": 2,
       "cpu_percent_one_core": {
@@ -182,7 +182,7 @@
       }
     },
     {
-      "framework": "zgui",
+      "framework": "lumine",
       "mode": "scroll",
       "repeats": 2,
       "cpu_percent_one_core": {
@@ -272,7 +272,7 @@
       }
     },
     {
-      "framework": "zgui",
+      "framework": "lumine",
       "mode": "both",
       "repeats": 2,
       "cpu_percent_one_core": {

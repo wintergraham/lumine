@@ -1,7 +1,7 @@
-575ad2320000-575ad261f000 r--p 00000000 00:2c 47919142                   /tmp/zgui-gpui-parity-workers4-bin/zgui-compare-gpui
-575ad261f000-575ad30bd000 r-xp 002fe000 00:2c 47919142                   /tmp/zgui-gpui-parity-workers4-bin/zgui-compare-gpui
-575ad30bd000-575ad312c000 r--p 00d9b000 00:2c 47919142                   /tmp/zgui-gpui-parity-workers4-bin/zgui-compare-gpui
-575ad312c000-575ad312f000 rw-p 00e09000 00:2c 47919142                   /tmp/zgui-gpui-parity-workers4-bin/zgui-compare-gpui
+575ad2320000-575ad261f000 r--p 00000000 00:2c 47919142                   /tmp/lumine-gpui-parity-workers4-bin/lumine-compare-gpui
+575ad261f000-575ad30bd000 r-xp 002fe000 00:2c 47919142                   /tmp/lumine-gpui-parity-workers4-bin/lumine-compare-gpui
+575ad30bd000-575ad312c000 r--p 00d9b000 00:2c 47919142                   /tmp/lumine-gpui-parity-workers4-bin/lumine-compare-gpui
+575ad312c000-575ad312f000 rw-p 00e09000 00:2c 47919142                   /tmp/lumine-gpui-parity-workers4-bin/lumine-compare-gpui
 575ad803f000-575adaeb2000 rw-p 00000000 00:00 0                          [heap]
 7d5a16000000-7d5a18000000 rw-s 0128d000 00:01 360134                     /memfd:allocation fd (deleted)
 7d5a18000000-7d5a18021000 rw-p 00000000 00:00 0 
@@ -252,11 +252,11 @@
 7d5ac8161000-7d5ac8162000 r--p 00000000 00:00 0 
 7d5ac8162000-7d5ac8163000 r-xp 00000000 00:00 0 
 7d5ac8163000-7d5ac8164000 r--p 00000000 00:00 0 
-7d5ac8164000-7d5ac816c000 r--p 00000000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-7d5ac816c000-7d5ac81b9000 r-xp 00008000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-7d5ac81b9000-7d5ac81ec000 r--p 00055000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-7d5ac81ec000-7d5ac81ed000 r--p 00088000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-7d5ac81ed000-7d5ac81ee000 rw-p 00089000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7d5ac8164000-7d5ac816c000 r--p 00000000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7d5ac816c000-7d5ac81b9000 r-xp 00008000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7d5ac81b9000-7d5ac81ec000 r--p 00055000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7d5ac81ec000-7d5ac81ed000 r--p 00088000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7d5ac81ed000-7d5ac81ee000 rw-p 00089000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
 7d5ac81ee000-7d5aca600000 rw-p 00000000 00:00 0 
 7d5aca600000-7d5aca628000 r--p 00000000 09:03 1311892                    /usr/lib/x86_64-linux-gnu/libc.so.6
 7d5aca628000-7d5aca7c0000 r-xp 00028000 09:03 1311892                    /usr/lib/x86_64-linux-gnu/libc.so.6

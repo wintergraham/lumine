@@ -7,7 +7,7 @@
    Compiling objc2-metal v0.3.2
    Compiling objc2-core-graphics v0.3.2
    Compiling objc2-core-video v0.3.2
-   Compiling zgui v0.1.0 (/Users/wing/Documents/GitHub/zgui/crates/zgui)
+   Compiling lumine v0.1.0 (/Users/wing/Documents/GitHub/lumine/crates/lumine)
     Finished `test` profile [unoptimized + debuginfo] target(s) in 3.97s
      Running tests/editor_paging.rs (target/debug/deps/editor_paging-c7291f6987b220ff)
 

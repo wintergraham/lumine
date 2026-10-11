@@ -124,7 +124,7 @@ D2026-09-22 20:02:32.134175 waylandimserverv2.cpp:113] INIT IM V2
 [3637867.703] {Default Queue} wl_keyboard#19.keymap(1, fd 25, 34206)
 [3637867.713] {Default Queue} wl_keyboard#19.repeat_info(25, 600)
 [3637919.841] {Default Queue} zwlr_foreign_toplevel_manager_v1#7.toplevel(new id zwlr_foreign_toplevel_handle_v1#4278190080)
-[3637919.869] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.title("zgui direct winit IME probe")
+[3637919.869] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.title("lumine direct winit IME probe")
 [3637919.876] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.state(array[4])
 [3637919.881] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.state(array[8])
 [3637919.888] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.done()

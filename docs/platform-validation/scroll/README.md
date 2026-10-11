@@ -2,8 +2,8 @@ Native declarative scroll validation
 ===================================
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p zgui-desktop --example scroll
-python3 scripts/scroll_smoke.py /tmp/zgui-target/debug/examples/scroll --output docs/platform-validation/scroll
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p lumine-desktop --example scroll
+python3 scripts/scroll_smoke.py /tmp/lumine-target/debug/examples/scroll --output docs/platform-validation/scroll
 ```
 
 The owned Xvfb/Openbox session exercises native wheel input and ordinary retained

@@ -2,8 +2,8 @@ Native overlay scrollbar validation
 ===================================
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p zgui-desktop --example scrollbars
-python3 scripts/scrollbars_smoke.py /tmp/zgui-target/debug/examples/scrollbars --output docs/platform-validation/scrollbars
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p lumine-desktop --example scrollbars
+python3 scripts/scrollbars_smoke.py /tmp/lumine-target/debug/examples/scrollbars --output docs/platform-validation/scrollbars
 ```
 
 The script owns an Xvfb/Openbox session. It clicks the vertical track to page

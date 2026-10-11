@@ -1,8 +1,8 @@
 {
-  "renderer": "zgui wgpu Vulkan via Mesa llvmpipe LLVM 21.1.8",
+  "renderer": "lumine wgpu Vulkan via Mesa llvmpipe LLVM 21.1.8",
   "build_profile": "release optimized, Cargo workspace defaults",
   "configuration": "shared GPU context and lazy growable glyph atlas",
-  "zgui_binary_sha256": "f2ad6a0279b5764611d83f2efbb0fc024562b02660573a9a3744856776cd352d",
+  "lumine_binary_sha256": "f2ad6a0279b5764611d83f2efbb0fc024562b02660573a9a3744856776cd352d",
   "shared_per_context": [
     "Instance",
     "Adapter",
@@ -24,7 +24,7 @@
   "other_budgets": "unchanged from xvfb-llvmpipe-gpu-renderer-profile.json",
   "notes": [
     "One benchmark window is used. Shared context primarily benefits multiwindow applications; this series does not measure that benefit.",
-    "Actual retained atlas, shaped-text, and vertex-buffer bytes are printed in each zgui application JSON report.",
+    "Actual retained atlas, shaped-text, and vertex-buffer bytes are printed in each lumine application JSON report.",
     "Allocation counters exclude font database and driver allocations and therefore cannot be equated with process RSS.",
     "Frame workload and draw paths match the baseline; additional terminal JSON counters are read once when reporting."
   ]

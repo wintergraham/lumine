@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate zgui on isolated X11 HiDPI and headless Weston Wayland desktops.
+"""Validate lumine on isolated X11 HiDPI and headless Weston Wayland desktops.
 
 Uses already-built gallery/windows examples. Each private compositor is stopped
 on exit. This checks native behavior, not hardware GPU performance.
@@ -70,8 +70,8 @@ def wayland(args, output):
         if not shutil.which(tool):
             raise RuntimeError(f"missing native validation tool: {tool}")
     compositor = gallery = None
-    with tempfile.TemporaryDirectory(prefix="zgui-wayland-") as runtime:
-        env = dict(os.environ, XDG_RUNTIME_DIR=runtime, WAYLAND_DISPLAY="zgui-test",
+    with tempfile.TemporaryDirectory(prefix="lumine-wayland-") as runtime:
+        env = dict(os.environ, XDG_RUNTIME_DIR=runtime, WAYLAND_DISPLAY="lumine-test",
                    DBUS_SESSION_BUS_ADDRESS="unix:path=/nonexistent")
         env.pop("DISPLAY", None)
         env.pop("WINIT_X11_SCALE_FACTOR", None)
@@ -79,14 +79,14 @@ def wayland(args, output):
             try:
                 compositor = subprocess.Popen(["weston", "--backend=headless", "--renderer=pixman",
                     "--width=1280", "--height=960", "--idle-time=0", "--no-config", "--debug",
-                    "--socket=zgui-test", f"--log={output / 'weston.log'}"], env=env,
+                    "--socket=lumine-test", f"--log={output / 'weston.log'}"], env=env,
                     stdout=log, stderr=log)
                 deadline = time.monotonic() + 10
-                while not pathlib.Path(runtime, "zgui-test").exists():
+                while not pathlib.Path(runtime, "lumine-test").exists():
                     if compositor.poll() is not None or time.monotonic() > deadline:
                         raise RuntimeError("Weston failed to create its Wayland socket")
                     time.sleep(.05)
-                gallery_env = dict(env, ZGUI_SECONDS="5", ZGUI_SNAPSHOT="1")
+                gallery_env = dict(env, LUMINE_SECONDS="5", LUMINE_SNAPSHOT="1")
                 gallery = subprocess.Popen([str(args.gallery)], env=gallery_env,
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
                 time.sleep(2)
@@ -132,7 +132,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("gallery", type=pathlib.Path)
     parser.add_argument("--windows", type=pathlib.Path)
-    parser.add_argument("--output", type=pathlib.Path, default=pathlib.Path("/tmp/zgui-platform-validation"))
+    parser.add_argument("--output", type=pathlib.Path, default=pathlib.Path("/tmp/lumine-platform-validation"))
     parser.add_argument("--backend", choices=("all", "x11", "wayland"), default="all")
     args = parser.parse_args()
     args.gallery = args.gallery.resolve()

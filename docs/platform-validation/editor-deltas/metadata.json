@@ -4,7 +4,7 @@
     "cargo",
     "build",
     "-p",
-    "zgui-desktop",
+    "lumine-desktop",
     "--example",
     "read_only",
     "--example",
@@ -18,9 +18,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/read_only_smoke.py",
-        "/tmp/zgui-target/debug/examples/read_only",
+        "/tmp/lumine-target/debug/examples/read_only",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/editor-deltas/read_only"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/editor-deltas/read_only"
       ],
       "binary_sha256": "766874b9213d6d9fd67dff63f1c1a1ed84ea94dcddf13de2dceef36cdaaa4778"
     },
@@ -28,9 +28,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/model_text_smoke.py",
-        "/tmp/zgui-target/debug/examples/model_text",
+        "/tmp/lumine-target/debug/examples/model_text",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/editor-deltas/model_text"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/editor-deltas/model_text"
       ],
       "binary_sha256": "a1e2ff65ac5ec25b7f9218f0969896a7d50dd494fd5290db1f0a2b830b25c2d2"
     },
@@ -38,9 +38,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/external_ime_smoke.py",
-        "/tmp/zgui-target/debug/examples/external_ime",
+        "/tmp/lumine-target/debug/examples/external_ime",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/editor-deltas/external_ime"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/editor-deltas/external_ime"
       ],
       "binary_sha256": "0bc8fc10220907a4324ad6c99cbcd9abc0c9edfc82728d76afc616bf71a21791"
     }
@@ -50,10 +50,10 @@
   "source_unchanged": true,
   "backend": "owned Xvfb/Openbox, private services, Mesa llvmpipe Vulkan",
   "environment": {
-    "CARGO_TARGET_DIR": "/tmp/zgui-target",
+    "CARGO_TARGET_DIR": "/tmp/lumine-target",
     "CARGO_PROFILE_DEV_DEBUG": "0",
     "CARGO_INCREMENTAL": "0",
-    "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader",
+    "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader",
     "CARGO_BUILD_JOBS": "1"
   },
   "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"

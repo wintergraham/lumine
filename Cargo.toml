@@ -1,12 +1,11 @@
 [workspace]
-members = ["crates/zgui", "crates/zgui-desktop", "crates/zgui-gpu", "comparisons/workload"]
+members = ["crates/lumine", "crates/lumine-desktop", "crates/lumine-gpu", "comparisons/workload"]
 exclude = ["comparisons/gpui", "comparisons/quickgui"]
 resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-license = "MIT"
 
 [profile.release]
 lto = "thin"
@@ -19,7 +18,7 @@ codegen-units = 1
 # wgpu-hal with a Metal backend patch: command buffers are created lazily and
 # empty ones are never committed. Upstream opens several per submission; each
 # costs a commit, a completion callback and Core Animation frame-pacing IPC.
-# See vendor/wgpu-hal/ZGUI_PATCH.md.
+# See vendor/wgpu-hal/LUMINE_PATCH.md.
 [patch.crates-io]
 wgpu-hal = { path = "vendor/wgpu-hal" }
 cosmic-text = { path = "vendor/cosmic-text" }

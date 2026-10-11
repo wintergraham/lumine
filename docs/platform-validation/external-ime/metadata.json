@@ -4,7 +4,7 @@
     "cargo",
     "build",
     "-p",
-    "zgui-desktop",
+    "lumine-desktop",
     "--example",
     "atspi",
     "--example",
@@ -18,9 +18,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/external_ime_smoke.py",
-        "/tmp/zgui-target/debug/examples/external_ime",
+        "/tmp/lumine-target/debug/examples/external_ime",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/external-ime/external_ime"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/external-ime/external_ime"
       ],
       "binary_sha256": "ddc64e4a780014494444cbe7897d148d5693f919ab358f253bcaac216a10b388"
     },
@@ -28,9 +28,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/atspi_smoke.py",
-        "/tmp/zgui-target/debug/examples/atspi",
+        "/tmp/lumine-target/debug/examples/atspi",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/external-ime/atspi"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/external-ime/atspi"
       ],
       "binary_sha256": "b7b9d776538b8978fead17c634421a1e8defa7a5dfefd4d4cc230b39dc596c94"
     },
@@ -38,9 +38,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/native_ime_smoke.py",
-        "/tmp/zgui-target/debug/examples/native_ime",
+        "/tmp/lumine-target/debug/examples/native_ime",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/external-ime/native_ime"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/external-ime/native_ime"
       ],
       "binary_sha256": "c70b1d1c040e8d569730c02972ba1ff04661669764e865c30ade33bfb3bc4ddc"
     }
@@ -50,10 +50,10 @@
   "source_unchanged": true,
   "backend": "owned Xvfb/Openbox, private services, Mesa llvmpipe Vulkan",
   "environment": {
-    "CARGO_TARGET_DIR": "/tmp/zgui-target",
+    "CARGO_TARGET_DIR": "/tmp/lumine-target",
     "CARGO_PROFILE_DEV_DEBUG": "0",
     "CARGO_INCREMENTAL": "0",
-    "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader"
+    "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader"
   },
   "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
 }

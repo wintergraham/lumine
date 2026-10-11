@@ -2,8 +2,8 @@ Native focus reveal validation
 ==============================
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p zgui-desktop --example focus_scroll
-python3 scripts/focus_scroll_smoke.py /tmp/zgui-target/debug/examples/focus_scroll --output docs/platform-validation/focus-scroll
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p lumine-desktop --example focus_scroll
+python3 scripts/focus_scroll_smoke.py /tmp/lumine-target/debug/examples/focus_scroll --output docs/platform-validation/focus-scroll
 ```
 
 The script owns an Xvfb/Openbox session and performs native keyboard/wheel input:

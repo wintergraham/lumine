@@ -1,4 +1,4 @@
 
-thread 'main' (1715079) panicked at crates/zgui-desktop/src/main.rs:622:14:
+thread 'main' (1715079) panicked at crates/lumine-desktop/src/main.rs:622:14:
 event loop: Os(OsError { line: 788, file: "/home/ubuntu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/winit-0.30.13/src/platform_impl/linux/mod.rs", error: XNotSupported(XOpenDisplayFailed) })
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

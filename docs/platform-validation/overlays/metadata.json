@@ -14,7 +14,7 @@
     "overlays": "31b621b101135b308af3cc32553be9bd1860476bcd379fee06beb89f55053d1f",
     "form": "5afdcca4e710822566819f3b0a72e8ef3cb085ca18ade45d25c6467f2b2cbc10"
   },
-  "loader_library": "/tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345",
+  "loader_library": "/tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345",
   "loader_sha256": "e5b140601552d2d6c2a416cd63d0072b1a0a8995c24f89c2888ff68fa0b39de2",
   "loader_commit": "363f465abadab0a8dcfc5c85d2c691e9b0b788d6",
   "loader_build_script": "scripts/build_vulkan_loader.sh",

@@ -5,7 +5,7 @@ MINIMUM WindowBounds { position: Some((220, 180)), size: (300, 220) } error=None
 CONTROLS_READY
 AFTER_DRAG WindowBounds { position: Some((300, 235)), size: (300, 220) } error=None
 ROOT_CLOSED
-APPLICATION OpenUrls(["zgui-test:hello", "https://example.invalid/path"])
+APPLICATION OpenUrls(["lumine-test:hello", "https://example.invalid/path"])
 APPLICATION Reopen
 REOPENED
-APPLICATION OpenUrls(["zgui-test:quit"])
+APPLICATION OpenUrls(["lumine-test:quit"])

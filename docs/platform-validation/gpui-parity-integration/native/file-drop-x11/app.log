@@ -1,2 +1,2 @@
-FILE_DROP ["/tmp/zgui-parity-native/file-drop-x11/first.txt", "/tmp/zgui-parity-native/file-drop-x11/second file.txt"]
+FILE_DROP ["/tmp/lumine-parity-native/file-drop-x11/first.txt", "/tmp/lumine-parity-native/file-drop-x11/second file.txt"]
 FILE_CANCEL

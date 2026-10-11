@@ -13,26 +13,26 @@
   },
   "binaries": {
     "gpui": {
-      "path": "/tmp/zgui-latest-linux-2026-09-26-ca22316-bin/zgui-compare-gpui",
+      "path": "/tmp/lumine-latest-linux-2026-09-26-ca22316-bin/lumine-compare-gpui",
       "sha256": "3f1a317aeda4169b11f6cf224545df05252747e08f8a612a3e3bec09ad336282",
       "bytes": 17801944,
       "build_exit_code": 0
     },
     "quickgui": {
-      "path": "/tmp/zgui-latest-linux-2026-09-26-ca22316-bin/zgui-compare-quickgui",
+      "path": "/tmp/lumine-latest-linux-2026-09-26-ca22316-bin/lumine-compare-quickgui",
       "sha256": "50bfe6c2d06858529297c229953f99a547c62dca7689974e604abebe7e2dd5e1",
       "bytes": 25245568,
       "build_exit_code": 0
     }
   },
   "build_commands": {
-    "zgui": [
+    "lumine": [
       "cargo",
       "build",
       "--release",
       "--locked",
       "-p",
-      "zgui-desktop",
+      "lumine-desktop",
       "--example",
       "component_workload"
     ],

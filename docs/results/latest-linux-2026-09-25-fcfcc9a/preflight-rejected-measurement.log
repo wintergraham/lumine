@@ -1,7 +1,7 @@
 Traceback (most recent call last):
-  File "/home/ubuntu/GitHub/zgui/docs/results/latest-linux-2026-09-25-fcfcc9a/run.py", line 151, in <module>
+  File "/home/ubuntu/GitHub/lumine/docs/results/latest-linux-2026-09-25-fcfcc9a/run.py", line 151, in <module>
     main()
     ~~~~^^
-  File "/home/ubuntu/GitHub/zgui/docs/results/latest-linux-2026-09-25-fcfcc9a/run.py", line 69, in main
+  File "/home/ubuntu/GitHub/lumine/docs/results/latest-linux-2026-09-25-fcfcc9a/run.py", line 69, in main
     raise RuntimeError('builds must be paused before sampling: ' + repr(busy))
 RuntimeError: builds must be paused before sampling: ['2454624 cargo', '2514446 cargo', '2618462 cargo', '2686640 rustc', '2698569 rustc', '2702385 rustc', '2715720 rustc', '2716476 rustc', '2720050 rustc']

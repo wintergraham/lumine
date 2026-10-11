@@ -2,8 +2,8 @@
 from pathlib import Path
 import hashlib,json,os,subprocess,shutil,datetime
 ROOT=Path(__file__).resolve().parents[3]; OUT=Path(__file__).resolve().parent
-DEST=Path('/tmp/zgui-latest-linux-2026-09-25-rerun-bin');DEST.mkdir(exist_ok=True)
-if (OUT/'zgui-build-manifest.json').exists() or (OUT/'current.csv').exists():raise RuntimeError('refusing to overwrite frozen or measured evidence')
+DEST=Path('/tmp/lumine-latest-linux-2026-09-25-rerun-bin');DEST.mkdir(exist_ok=True)
+if (OUT/'lumine-build-manifest.json').exists() or (OUT/'current.csv').exists():raise RuntimeError('refusing to overwrite frozen or measured evidence')
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 def inventory():
  files=[ROOT/'Cargo.toml',ROOT/'Cargo.lock',ROOT/'README.md']
@@ -15,10 +15,10 @@ before=inventory();(OUT/'prebuild-source.json').write_text(json.dumps(before,ind
 base=dict(os.environ,CARGO_PROFILE_DEV_DEBUG='0',CARGO_INCREMENTAL='0',CARGO_BUILD_JOBS='1')
 records={};commands={}
 for name,target,manifest,binary in [
- ('zgui','/tmp/zgui-target',None,'examples/component_workload'),
- ('gpui','/tmp/zgui-gpui-target','comparisons/gpui/Cargo.toml','zgui-compare-gpui'),
- ('quickgui','/tmp/zgui-quickgui-target','comparisons/quickgui/Cargo.toml','zgui-compare-quickgui')]:
- cmd=['cargo','build','--release','--locked']+(['--manifest-path',manifest] if manifest else ['-p','zgui-desktop','--example','component_workload'])
+ ('lumine','/tmp/lumine-target',None,'examples/component_workload'),
+ ('gpui','/tmp/lumine-gpui-target','comparisons/gpui/Cargo.toml','lumine-compare-gpui'),
+ ('quickgui','/tmp/lumine-quickgui-target','comparisons/quickgui/Cargo.toml','lumine-compare-quickgui')]:
+ cmd=['cargo','build','--release','--locked']+(['--manifest-path',manifest] if manifest else ['-p','lumine-desktop','--example','component_workload'])
  env=dict(base,CARGO_TARGET_DIR=target)
  with (OUT/f'build-{name}.log').open('w') as log:subprocess.run(cmd,cwd=ROOT,env=env,stdout=log,stderr=subprocess.STDOUT,check=True)
  assert inventory()==before,'source changed during build'

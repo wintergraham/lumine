@@ -36,7 +36,7 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.6824200Z Complete job name: linux-gpu
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.7927350Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.7936741Z ##[group]Run actions/checkout@v4
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.7937562Z with:
-linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.7938048Z   repository: zeronsh/zgui
+linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.7938048Z   repository: zeronsh/lumine
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.7942548Z   token: ***
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.7943025Z   ssh-strict: true
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.7943494Z   ssh-user: git
@@ -51,18 +51,18 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.7948077Z   submodules: false
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.7948554Z   set-safe-directory: true
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.7949094Z   allow-unsafe-pr-checkout: false
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.7949999Z ##[endgroup]
-linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9170538Z Syncing repository: zeronsh/zgui
+linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9170538Z Syncing repository: zeronsh/lumine
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9173389Z ##[group]Getting Git version info
-linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9174562Z Working directory is '/home/runner/work/zgui/zgui'
+linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9174562Z Working directory is '/home/runner/work/lumine/lumine'
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9186748Z [command]/usr/bin/git version
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9336246Z git version 2.55.0
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9344839Z ##[endgroup]
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9360651Z Temporarily overriding HOME='/home/runner/work/_temp/54574b7a-2a6e-4603-9cba-225eae137855' before making global git config changes
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9364194Z Adding repository directory to the temporary git global config as a safe directory
-linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9368326Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/zgui/zgui
-linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9526328Z Deleting the contents of '/home/runner/work/zgui/zgui'
+linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9368326Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/lumine/lumine
+linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9526328Z Deleting the contents of '/home/runner/work/lumine/lumine'
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9528891Z ##[group]Initializing the repository
-linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9530931Z [command]/usr/bin/git init /home/runner/work/zgui/zgui
+linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9530931Z [command]/usr/bin/git init /home/runner/work/lumine/lumine
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9666750Z hint: Using 'master' as the name for the initial branch. This default branch name
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9669336Z hint: will change to "main" in Git 3.0. To configure the initial branch name
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9680439Z hint: to use in all of your new repositories, which will suppress this warning,
@@ -76,8 +76,8 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9701906Z hint:
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9703273Z hint: 	git branch -m <name>
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9710594Z hint:
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9712310Z hint: Disable this message with "git config set advice.defaultBranchName false"
-linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9715158Z Initialized empty Git repository in /home/runner/work/zgui/zgui/.git/
-linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9720990Z [command]/usr/bin/git remote add origin https://github.com/zeronsh/zgui
+linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9715158Z Initialized empty Git repository in /home/runner/work/lumine/lumine/.git/
+linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9720990Z [command]/usr/bin/git remote add origin https://github.com/zeronsh/lumine
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9727997Z ##[endgroup]
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9729306Z ##[group]Disabling automatic garbage collection
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:09.9799008Z [command]/usr/bin/git config --local gc.auto 0
@@ -93,7 +93,7 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:02:10.1084282Z [command]/usr/bin/git config
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:10.1130623Z ##[endgroup]
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:10.1133042Z ##[group]Fetching the repository
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:10.1143803Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e51589408079f831c8b9ee433388e2edf46432a7:refs/remotes/origin/main
-linux-gpu	UNKNOWN STEP	2026-09-22T23:02:12.4828499Z From https://github.com/zeronsh/zgui
+linux-gpu	UNKNOWN STEP	2026-09-22T23:02:12.4828499Z From https://github.com/zeronsh/lumine
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:12.4830957Z  * [new ref]         e51589408079f831c8b9ee433388e2edf46432a7 -> origin/main
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:12.4834954Z ##[endgroup]
 linux-gpu	UNKNOWN STEP	2026-09-22T23:02:12.4836507Z ##[group]Determining the checkout info
@@ -2443,14 +2443,14 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4247148Z ##[group]Cache Configuration
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4248091Z Cache Provider:
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4254891Z     github
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4255405Z Workspaces:
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4256179Z     /home/runner/work/zgui/zgui
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4256179Z     /home/runner/work/lumine/lumine
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4257066Z Cache Paths:
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4257619Z     /home/runner/.cargo/bin
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4258225Z     /home/runner/.cargo/.crates.toml
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4258986Z     /home/runner/.cargo/.crates2.json
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4259821Z     /home/runner/.cargo/registry
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4260768Z     /home/runner/.cargo/git
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4261757Z     /home/runner/work/zgui/zgui/target
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4261757Z     /home/runner/work/lumine/lumine/target
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4262412Z Restore Key:
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4262986Z     v0-rust-linux-gpu-Linux-x64-6ff13d87
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4263517Z Cache Key:
@@ -2464,18 +2464,18 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4269894Z   - CARGO_HOME
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4270805Z   - CARGO_INCREMENTAL
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4271402Z   - CARGO_TERM_COLOR
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4271979Z .. Lockfiles considered:
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4273543Z   - /home/runner/work/zgui/zgui/Cargo.lock
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4274336Z   - /home/runner/work/zgui/zgui/comparisons/workload/Cargo.toml
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4275219Z   - /home/runner/work/zgui/zgui/crates/zgui-desktop/Cargo.toml
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4276304Z   - /home/runner/work/zgui/zgui/crates/zgui-gpu/Cargo.toml
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4277093Z   - /home/runner/work/zgui/zgui/crates/zgui/Cargo.toml
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4273543Z   - /home/runner/work/lumine/lumine/Cargo.lock
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4274336Z   - /home/runner/work/lumine/lumine/comparisons/workload/Cargo.toml
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4275219Z   - /home/runner/work/lumine/lumine/crates/lumine-desktop/Cargo.toml
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4276304Z   - /home/runner/work/lumine/lumine/crates/lumine-gpu/Cargo.toml
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4277093Z   - /home/runner/work/lumine/lumine/crates/lumine/Cargo.toml
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4278089Z ##[endgroup]
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4278426Z 
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.4278669Z ... Restoring cache ...
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.6232677Z No cache found.
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.6357159Z ##[group]Run scripts/build_vulkan_loader.sh "$RUNNER_TEMP/zgui-vulkan-loader"
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.6358038Z ^[[36;1mscripts/build_vulkan_loader.sh "$RUNNER_TEMP/zgui-vulkan-loader"^[[0m
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.6358682Z ^[[36;1mprintf 'LD_LIBRARY_PATH=%s/build/loader\n' "$RUNNER_TEMP/zgui-vulkan-loader" >> "$GITHUB_ENV"^[[0m
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.6357159Z ##[group]Run scripts/build_vulkan_loader.sh "$RUNNER_TEMP/lumine-vulkan-loader"
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.6358038Z ^[[36;1mscripts/build_vulkan_loader.sh "$RUNNER_TEMP/lumine-vulkan-loader"^[[0m
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.6358682Z ^[[36;1mprintf 'LD_LIBRARY_PATH=%s/build/loader\n' "$RUNNER_TEMP/lumine-vulkan-loader" >> "$GITHUB_ENV"^[[0m
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.6401577Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.6401931Z env:
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:18.6402134Z   CARGO_HOME: /home/runner/.cargo
@@ -2497,79 +2497,79 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.3845204Z -- Detecting CXX compile fea
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.3853522Z -- Detecting CXX compile features - done
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4250672Z -- Configuring done (1.7s)
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4333611Z -- Generating done (0.0s)
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4338043Z -- Build files have been written to: /home/runner/work/_temp/zgui-vulkan-loader/headers-build
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4338043Z -- Build files have been written to: /home/runner/work/_temp/lumine-vulkan-loader/headers-build
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4472685Z -- Install configuration: ""
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4560805Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vk_video
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4563537Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_av1std_decode.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4566080Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vk_video/vulkan_video_codecs_common.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4568349Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_av1std_encode.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4570692Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_h264std_encode.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4572989Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_vp9std_decode.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4575138Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_h265std_encode.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4577338Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_h264std_decode.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4579459Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_h265std.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4581223Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_vp9std.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4582999Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_av1std.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4584830Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_h265std_decode.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4586938Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_h264std.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4588511Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4590045Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_handles.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4610638Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_screen.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4612258Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_macos.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4613896Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4629888Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_to_string.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4639478Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_android.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4641058Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_raii.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4662809Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_vi.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4664388Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_xlib.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4666393Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4668101Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_funcs.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4694274Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan.cppm
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4696501Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_hash.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4710439Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_metal.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4712024Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vk_platform.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4713649Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_ggp.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4715433Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_directfb.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4717511Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_structs.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4806095Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_shared.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4807883Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_video.cppm
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4809619Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_enums.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4820144Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_beta.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4821751Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_xlib_xrandr.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4823431Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_win32.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4825324Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_wayland.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4827358Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_ios.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4829245Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_ohos.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4831218Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_video.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4836999Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vk_layer.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4838820Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_xcb.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4840623Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_fuchsia.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4842913Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_format_traits.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4850369Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_core.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4867448Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_static_assertions.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4879560Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_extension_inspection.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4883418Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vulkan_hpp_macros.hpp
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4885230Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/include/vulkan/vk_icd.h
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4888240Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4890465Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/generator.py
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4893227Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/vk.xml
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4929343Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/reg.py
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4932105Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/vkconventions.py
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4933907Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/spec_tools
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4935812Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/spec_tools/util.py
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4937713Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/spec_tools/conventions.py
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4939491Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/validusage.json
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5074752Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/vulkan_object.py
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5076997Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/parse_dependency.py
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5078803Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/cgenerator.py
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5080874Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/base_generator.py
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5083602Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/apiconventions.py
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5085293Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/video.xml
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5090113Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/profiles
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5091862Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/profiles/VP_KHR_roadmap.json
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5094108Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/vulkan/registry/stripAPI.py
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5098448Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/cmake/VulkanHeaders/VulkanHeadersConfig.cmake
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5101004Z -- Installing: /home/runner/work/_temp/zgui-vulkan-loader/headers-install/share/cmake/VulkanHeaders/VulkanHeadersConfigVersion.cmake
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4560805Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vk_video
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4563537Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_av1std_decode.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4566080Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vk_video/vulkan_video_codecs_common.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4568349Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_av1std_encode.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4570692Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_h264std_encode.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4572989Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_vp9std_decode.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4575138Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_h265std_encode.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4577338Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_h264std_decode.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4579459Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_h265std.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4581223Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_vp9std.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4582999Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_av1std.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4584830Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_h265std_decode.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4586938Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vk_video/vulkan_video_codec_h264std.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4588511Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4590045Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_handles.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4610638Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_screen.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4612258Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_macos.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4613896Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4629888Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_to_string.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4639478Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_android.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4641058Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_raii.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4662809Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_vi.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4664388Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_xlib.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4666393Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4668101Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_funcs.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4694274Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan.cppm
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4696501Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_hash.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4710439Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_metal.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4712024Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vk_platform.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4713649Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_ggp.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4715433Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_directfb.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4717511Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_structs.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4806095Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_shared.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4807883Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_video.cppm
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4809619Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_enums.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4820144Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_beta.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4821751Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_xlib_xrandr.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4823431Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_win32.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4825324Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_wayland.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4827358Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_ios.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4829245Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_ohos.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4831218Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_video.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4836999Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vk_layer.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4838820Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_xcb.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4840623Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_fuchsia.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4842913Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_format_traits.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4850369Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_core.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4867448Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_static_assertions.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4879560Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_extension_inspection.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4883418Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vulkan_hpp_macros.hpp
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4885230Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/include/vulkan/vk_icd.h
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4888240Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4890465Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/generator.py
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4893227Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/vk.xml
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4929343Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/reg.py
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4932105Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/vkconventions.py
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4933907Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/spec_tools
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4935812Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/spec_tools/util.py
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4937713Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/spec_tools/conventions.py
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.4939491Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/validusage.json
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5074752Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/vulkan_object.py
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5076997Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/parse_dependency.py
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5078803Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/cgenerator.py
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5080874Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/base_generator.py
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5083602Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/apiconventions.py
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5085293Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/video.xml
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5090113Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/profiles
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5091862Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/profiles/VP_KHR_roadmap.json
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5094108Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/vulkan/registry/stripAPI.py
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5098448Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/cmake/VulkanHeaders/VulkanHeadersConfig.cmake
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5101004Z -- Installing: /home/runner/work/_temp/lumine-vulkan-loader/headers-install/share/cmake/VulkanHeaders/VulkanHeadersConfigVersion.cmake
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5563733Z -- The C compiler identification is GNU 13.3.0
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.5646453Z -- Detecting C compiler ABI info
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:24.6154579Z -- Detecting C compiler ABI info - done
@@ -2595,7 +2595,7 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:03:30.9399907Z -- Looking for cet.h - found
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:31.0480856Z -- Found PkgConfig: /usr/bin/pkg-config (found version "1.8.1")
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:31.0491219Z -- Configuring done (6.5s)
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:31.0641055Z -- Generating done (0.0s)
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:31.0647336Z -- Build files have been written to: /home/runner/work/_temp/zgui-vulkan-loader/build
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:31.0647336Z -- Build files have been written to: /home/runner/work/_temp/lumine-vulkan-loader/build
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:31.0843025Z [  4%] Building C object loader/CMakeFiles/asm_offset.dir/asm_offset.c.o
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:31.2958348Z [  9%] Linking C executable asm_offset
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:31.3179683Z [  9%] Built target asm_offset
@@ -2621,18 +2621,18 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:03:35.7171089Z [ 90%] Building C object loa
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:35.9589617Z [ 95%] Building ASM object loader/CMakeFiles/vulkan.dir/unknown_ext_chain_gas_x86.S.o
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.8389550Z [100%] Linking C shared library libvulkan.so
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9127620Z [100%] Built target vulkan
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9218711Z c8815c32d7400b042dde9363c6e97f30a5e643d9bdf2ed81ed4c9faa869c3c15  /home/runner/work/_temp/zgui-vulkan-loader/build/loader/libvulkan.so.1.4.345
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9220559Z Private loader directory: /home/runner/work/_temp/zgui-vulkan-loader/build/loader
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9218711Z c8815c32d7400b042dde9363c6e97f30a5e643d9bdf2ed81ed4c9faa869c3c15  /home/runner/work/_temp/lumine-vulkan-loader/build/loader/libvulkan.so.1.4.345
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9220559Z Private loader directory: /home/runner/work/_temp/lumine-vulkan-loader/build/loader
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9270183Z ##[group]Run set -o pipefail
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9270724Z ^[[36;1mset -o pipefail^[[0m
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9271471Z ^[[36;1mcargo test -p zgui-gpu --locked 2>&1 | tee "$RUNNER_TEMP/zgui-vulkan-tests.log"^[[0m
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9271471Z ^[[36;1mcargo test -p lumine-gpu --locked 2>&1 | tee "$RUNNER_TEMP/lumine-vulkan-tests.log"^[[0m
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9332936Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9333631Z env:
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9333979Z   CARGO_HOME: /home/runner/.cargo
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9334445Z   CARGO_INCREMENTAL: 0
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9334843Z   CARGO_TERM_COLOR: always
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9335253Z   CACHE_ON_FAILURE: false
-linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9336214Z   LD_LIBRARY_PATH: /home/runner/work/_temp/zgui-vulkan-loader/build/loader
+linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9336214Z   LD_LIBRARY_PATH: /home/runner/work/_temp/lumine-vulkan-loader/build/loader
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9336948Z   XDG_RUNTIME_DIR: /tmp
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:39.9337356Z ##[endgroup]
 linux-gpu	UNKNOWN STEP	2026-09-22T23:03:40.0225011Z ^[[1m^[[92m    Updating^[[0m crates.io index
@@ -3010,11 +3010,11 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:05:37.8887856Z ^[[1m^[[92m   Compiling^[[0m
 linux-gpu	UNKNOWN STEP	2026-09-22T23:05:40.6486936Z ^[[1m^[[92m   Compiling^[[0m image v0.25.10
 linux-gpu	UNKNOWN STEP	2026-09-22T23:05:46.8056025Z ^[[1m^[[92m   Compiling^[[0m gif v0.14.2
 linux-gpu	UNKNOWN STEP	2026-09-22T23:05:47.2723668Z ^[[1m^[[92m   Compiling^[[0m resvg v0.46.0
-linux-gpu	UNKNOWN STEP	2026-09-22T23:05:47.9166795Z ^[[1m^[[92m   Compiling^[[0m zgui v0.1.0 (/home/runner/work/zgui/zgui/crates/zgui)
+linux-gpu	UNKNOWN STEP	2026-09-22T23:05:47.9166795Z ^[[1m^[[92m   Compiling^[[0m lumine v0.1.0 (/home/runner/work/lumine/lumine/crates/lumine)
 linux-gpu	UNKNOWN STEP	2026-09-22T23:05:48.1567777Z ^[[1m^[[92m   Compiling^[[0m pollster v0.4.0
-linux-gpu	UNKNOWN STEP	2026-09-22T23:05:49.9307466Z ^[[1m^[[92m   Compiling^[[0m zgui-gpu v0.1.0 (/home/runner/work/zgui/zgui/crates/zgui-gpu)
+linux-gpu	UNKNOWN STEP	2026-09-22T23:05:49.9307466Z ^[[1m^[[92m   Compiling^[[0m lumine-gpu v0.1.0 (/home/runner/work/lumine/lumine/crates/lumine-gpu)
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:09.3562516Z ^[[1m^[[92m    Finished^[[0m `test` profile [unoptimized + debuginfo] target(s) in 2m 29s
-linux-gpu	UNKNOWN STEP	2026-09-22T23:06:09.4499853Z ^[[1m^[[92m     Running^[[0m unittests src/lib.rs (target/debug/deps/zgui_gpu-070cce12ab3c4578)
+linux-gpu	UNKNOWN STEP	2026-09-22T23:06:09.4499853Z ^[[1m^[[92m     Running^[[0m unittests src/lib.rs (target/debug/deps/lumine_gpu-070cce12ab3c4578)
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:09.4537782Z 
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:09.4538577Z running 36 tests
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:09.4549844Z test blur_damage_tests::chained_filters_expand_to_fixed_point_independent_of_order ... ok
@@ -3177,21 +3177,21 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:06:30.9215681Z test svg_resizes_at_device_s
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:30.9216546Z 
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:30.9225965Z test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:30.9238414Z 
-linux-gpu	UNKNOWN STEP	2026-09-22T23:06:30.9239058Z ^[[1m^[[92m   Doc-tests^[[0m zgui_gpu
+linux-gpu	UNKNOWN STEP	2026-09-22T23:06:30.9239058Z ^[[1m^[[92m   Doc-tests^[[0m lumine_gpu
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0426904Z 
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0434342Z running 0 tests
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0435009Z 
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0436348Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0437567Z 
-linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0684023Z ##[group]Run cargo build -p zgui-desktop --examples --locked
-linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0684816Z ^[[36;1mcargo build -p zgui-desktop --examples --locked^[[0m
+linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0684023Z ##[group]Run cargo build -p lumine-desktop --examples --locked
+linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0684816Z ^[[36;1mcargo build -p lumine-desktop --examples --locked^[[0m
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0817093Z shell: /usr/bin/bash -e {0}
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0817525Z env:
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0817855Z   CARGO_HOME: /home/runner/.cargo
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0818307Z   CARGO_INCREMENTAL: 0
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0818746Z   CARGO_TERM_COLOR: always
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0819152Z   CACHE_ON_FAILURE: false
-linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0819744Z   LD_LIBRARY_PATH: /home/runner/work/_temp/zgui-vulkan-loader/build/loader
+linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0819744Z   LD_LIBRARY_PATH: /home/runner/work/_temp/lumine-vulkan-loader/build/loader
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.0820408Z ##[endgroup]
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.2624032Z ^[[1m^[[92m Downloading^[[0m crates ...
 linux-gpu	UNKNOWN STEP	2026-09-22T23:06:31.3668651Z ^[[1m^[[92m  Downloaded^[[0m accesskit_atspi_common v0.19.1
@@ -3423,7 +3423,7 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:08:36.6937029Z ^[[1m^[[92m   Compiling^[[0m
 linux-gpu	UNKNOWN STEP	2026-09-22T23:08:37.1356134Z ^[[1m^[[92m   Compiling^[[0m wgpu v29.0.4
 linux-gpu	UNKNOWN STEP	2026-09-22T23:08:37.7217138Z ^[[1m^[[92m   Compiling^[[0m dbus v0.9.12
 linux-gpu	UNKNOWN STEP	2026-09-22T23:08:41.4207236Z ^[[1m^[[92m   Compiling^[[0m accesskit_unix v0.22.1
-linux-gpu	UNKNOWN STEP	2026-09-22T23:08:42.6307784Z ^[[1m^[[92m   Compiling^[[0m zgui-gpu v0.1.0 (/home/runner/work/zgui/zgui/crates/zgui-gpu)
+linux-gpu	UNKNOWN STEP	2026-09-22T23:08:42.6307784Z ^[[1m^[[92m   Compiling^[[0m lumine-gpu v0.1.0 (/home/runner/work/lumine/lumine/crates/lumine-gpu)
 linux-gpu	UNKNOWN STEP	2026-09-22T23:08:45.9407114Z ^[[1m^[[92m   Compiling^[[0m accesskit_winit v0.33.2
 linux-gpu	UNKNOWN STEP	2026-09-22T23:08:46.1885759Z ^[[1m^[[92m   Compiling^[[0m dbus-crossroads v0.5.3
 linux-gpu	UNKNOWN STEP	2026-09-22T23:08:47.6977774Z ^[[1m^[[92m   Compiling^[[0m softbuffer v0.4.8
@@ -3431,12 +3431,12 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:08:48.1147219Z ^[[1m^[[92m   Compiling^[[0m
 linux-gpu	UNKNOWN STEP	2026-09-22T23:08:48.3967144Z ^[[1m^[[92m   Compiling^[[0m open v5.4.4
 linux-gpu	UNKNOWN STEP	2026-09-22T23:08:49.8717653Z ^[[1m^[[92m   Compiling^[[0m arboard v3.6.1
 linux-gpu	UNKNOWN STEP	2026-09-22T23:08:49.9327882Z ^[[1m^[[92m   Compiling^[[0m fontdue v0.9.4
-linux-gpu	UNKNOWN STEP	2026-09-22T23:08:50.5317828Z ^[[1m^[[92m   Compiling^[[0m zgui-workload v0.1.0 (/home/runner/work/zgui/zgui/comparisons/workload)
-linux-gpu	UNKNOWN STEP	2026-09-22T23:08:50.6818748Z ^[[1m^[[92m   Compiling^[[0m zgui-desktop v0.1.0 (/home/runner/work/zgui/zgui/crates/zgui-desktop)
+linux-gpu	UNKNOWN STEP	2026-09-22T23:08:50.5317828Z ^[[1m^[[92m   Compiling^[[0m lumine-workload v0.1.0 (/home/runner/work/lumine/lumine/comparisons/workload)
+linux-gpu	UNKNOWN STEP	2026-09-22T23:08:50.6818748Z ^[[1m^[[92m   Compiling^[[0m lumine-desktop v0.1.0 (/home/runner/work/lumine/lumine/crates/lumine-desktop)
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:00.4201211Z ##[warning]You are running out of disk space. The runner will stop working when the machine runs out of disk space. Free space left: 0 MB
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:00.8072359Z ^[[1m^[[91merror^[[0m^[[1m: linking with `cc` failed: exit status: 1^[[0m
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:00.8073113Z   ^[[1m^[[94m|^[[0m
-linux-gpu	UNKNOWN STEP	2026-09-22T23:10:00.8208556Z   ^[[1m^[[94m= ^[[0m^[[1mnote^[[0m:  "cc" "-m64" "/home/runner/work/zgui/zgui/target/debug/examples/rustcYiUXQG/symbols.o" "<17 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "/home/runner/work/zgui/zgui/target/debug/deps/{libzgui_desktop-d136964af83f5a54,libaccesskit_winit-ef9f819a27159bdc,libaccesskit_unix-129f5dac3bd0290d,libfutures_util-82940b767e426760,libfutures_task-9dc53e607663f6e3,libatspi-3633eee433fe91de,libatspi_proxies-18b494748797989b,libaccesskit_atspi_common-406ed73ffdbb88de,libphf-e6e2998c3782f176,libphf_shared-e943811de2934947,libatspi_common-42861ee474f396da,libzbus-a2cd4431c02fab90,libblocking-1eb86527f392e465,libpiper-d48a3b06544bf125,libatomic_waker-ceab3fbea5b1afba,libhex-cc798f5084951f61,libasync_executor-aafae170e5f9c7f6,libasync_process-9149b3606d87f1ea,libasync_signal-daffe8a5c7dd4a21,libsignal_hook_registry-e6597a800d115898,liberrno-a2092d20a8ab5329,libasync_lock-1dfaa9655c9aae28,libasync_task-3ec3ad0b392ce3e2,libasync_channel-a7660a958bfaa348,libordered_stream-f16f31c80f2a4ef9,libasync_broadcast-c14977737c82a761,libevent_listener_strategy-411ef6f9b275323b,libevent_listener-7815e517a0ba18a7,libasync_io-d44bde07740d3b1b,libslab-36edee2323b5a692,libconcurrent_queue-f9765680c1772f1f,libcrossbeam_utils-180eaa0b20113661,libfutures_lite-4d5ceaa7e47bf0f4,libfutures_core-b2e86d4a91990c16,libparking-50ff5b1922700d6d,libfutures_io-377533f4ed8b9027,libzbus_names-80ceeb028c814db1,libaccesskit_consumer-cb586f25af8170be,libzvariant-7a3e3d1bf9c3fa41,libenumflags2-f35857a1eddf8a1f,libendi-5ae2ea15d3427eab,libzcheapstr-48395d61ccdabd6c,libzvariant_utils-7ca56ef41e24f745,libwinnow-bc9b4fe98d34bfc6,libsyn-0adcb32918fcd9f7,libquote-e9f7a704eda414f1,libproc_macro2-febdcc881b006d03}.rlib" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib/{libproc_macro-*,librustc_literal_escaper-*}.rlib" "/home/runner/work/zgui/zgui/target/debug/deps/{libserde-534e2ccb129a737a,libsoftbuffer-f7244b3504ab2b28,libfastrand-b1d99d6a4c55a922,libtiny_xlib-896bc87d594b1fd4,libctor-09c9d58e200735cb,libdrm-598ca310280a7f0b,libdrm_ffi-9984e0cd917474f2,libdrm_sys-7b5df39c9d3896da,liblinux_raw_sys-dc1f80ca9a71d11d,libdrm_fourcc-5894833b92bddc20,libopen-33f4102d3287db0c,libis_wsl-84eabe9bc2c58894,libis_docker-980f0a7325cce3eb,librfd-3171d8a159d38049,libdbus_crossroads-b7ab1d624685100c,libsmithay_clipboard-2a0b5cee0cff6271,libsmithay_client_toolkit-f38c308261e89241,libwayland_protocols_misc-33a0317633182f9a,libwayland_protocols_experimental-baaea06b3ff38416,libcalloop_wayland_source-2f78298bd1127726,libcalloop-5710c816d3646f7b,libarboard-ecf8f59fae05056f,libzgui_gpu-1ec4ce793f185f8e,libgif-6161a4ff2d6279cc,libweezl-34a0638648c99250,libimage-4b998019c7de8ee6,libbyteorder_lite-95a52d1597daf675,libmoxcms-1af7289ca27c7af6,libpxfm-f62cc0e5b194c90a,libpng-b3c77be8b5cbcd9f,libzune_jpeg-8217f7942b1e2788,libzune_core-a7e924049f32d39e,libpollster-7526635499bffe00,libresvg-9a01ed3fabd7c05f,librgb-c0e37ec1653150b1,libusvg-9aab1d3bfe0f7a1c,libbase64-61acbe23ca84db72,libimagesize-53dcfa411980ca6f,libdata_url-8264d373ca96eb4f,libxmlwriter-a5d8a7928d9b9682,libsimplecss-2ab5ec225983696c,libroxmltree-9b1ae87382a63aec,libmemchr-ed4bd6a2f7da223f,libsvgtypes-d6f26b0bd9783e09,libkurbo-3876149b5c8c94af,libpolycool-9628feb2aeb9393d,libsiphasher-3e27cc8edfbb8a3c,libwgpu-442a3979a9968bed,libstatic_assertions-f8684a4518278bac,libwgpu_core-5d3404b322d46071,libwgpu_hal-b83d7913e91be1d0,librenderdoc_sys-464f84291bd16588,libgpu_allocator-07d2c13552b9c8d5,libpresser-63576251248e5463,libkhronos_egl-0a1cc478ead729d1,libprofiling-df9ea980dbe89cca,libwgpu_naga_bridge-9ae7ea95972cee92,libordered_float-45a968c59eba57a1,libgpu_descriptor-88fa2773d42bc733,libgpu_descriptor_types-24eb814f7f894ec7,libash-a350eebc61161aaf,libnaga-60b874cb1a36badf,liblibm-4e13895d1a1c14ae,libhexf_parse-cf1ddeffcbb220b7,libunicode_ident-092dd8320acc1894,libbit_set-43da5d41abbd9e8a,libbit_vec-74de2b16c43fa2c3,libhalf-4ec81ba0f23bc1fd,libcodespan_reporting-186f70e3400c0fdb,libunicode_width-b12dc506560895c6,libnum_traits-72c097a571d222e7,libindexmap-8cf4afde5d4b9318,libhashbrown-8559ad8073936cd5,libspirv-93221c0ccc977062,libthiserror-323769a5dcdf0d8c,libparking_lot-b7364826f85744ef,libparking_lot_core-e22000a0265a5859,liblock_api-f49ae76502f2ea42,libscopeguard-9cc769095de547c7,libhashbrown-37b09e907fbfeab9,libfoldhash-0b408022eb81cfb1,libglow-14931a637723def1,libwgpu_types-13e2046486da97d3,libcosmic_text-22b992b01d05d4b5,librustc_hash-7b4de770ce3fdd10,libunicode_linebreak-eccec0d39ddc4fe8,libsys_locale-8edd0623067c9671,libswash-af2325de3910d884,libyazi-635022657fffbeff,libskrifa-41daecda242d864e,libread_fonts-fcce3182d863ea5a,libfont_types-13cf41d02669aea6,libzeno-0fa485eafb99c3ef,libself_cell-7c02c9a864523ca5,librustybuzz-7d6aab7d0225afef,libunicode_bidi_mirroring-365d6fd80bd1a659,libunicode_script-0817c348c222da25,libunicode_ccc-ecd39c41d281be81,libunicode_properties-b315ec7233aed680,libttf_parser-a722c5af62296e12,libunicode_bidi-f5ec2cbb29da8b35,libfontdb-f52d917e3c5cafe1,libfontconfig_parser-918829484781d331,libroxmltree-11fa6b925362250d,libtinyvec-3366317835bdf92f,libttf_parser-d8f5240b126ddce8,librangemap-6685162e9dc42f70,libaccesskit-68105dfe045be4ab,libuuid-ed4aca0f2620d9a8,libserde_core-ab490aa323df22c4,libfontdue-ea8cb830def5a9bc,libhashbrown-39b28f6ccaa6a9f0,libfoldhash-b5d13c0e92a91d0a,libequivalent-bc5578463be669e6,liballocator_api2-8570395052038fce,libdbus-a74904916bd1aca5,liblibdbus_sys-334ca196ea9879e9,libwinit-40c644b797827d61,libsctk_adwaita-cd56864836105ec0,libab_glyph-beb4c51c04bc2330,libowned_ttf_parser-24610b73c92bf94f,libttf_parser-361d79f88a879ad7,libab_glyph_rasterizer-ba7c1a6af3b5b8d3,libtiny_skia-e9182c9baa186915,libpng-6c5562d41d1f33aa,libbitflags-50a7df933f7fa039,libflate2-579c811845b9cde1,libminiz_oxide-e91f41c67729fedf,libfdeflate-64dd6fafb879271d,libsimd_adler32-362cb5b9ad33252c,libcrc32fast-3e2594bac1597104,libarrayvec-027a6604e72d5245,libtiny_skia_path-2aa1c5e19172245b,libstrict_num-d9e51724cb668eb5,libfloat_cmp-31fd1f685b488308,libarrayref-93cd6789639b67e8,libbytemuck-35dbccd0200442e6,libpercent_encoding-956bedaa8b1c0286,libx11rb-2bd40d84b299c541,libgethostname-417c533203855924,libas_raw_xcb_connection-419e2ce630969f75,libx11rb_protocol-204967dc7fd40f60,libwayland_protocols_plasma-bfe7ce4fc346c38b,libahash-3f02769c8e4eeebb,libgetrandom-df89a5668d637f04,libzerocopy-6274f5c3f9930dba,libsmithay_client_toolkit-891df09b40e928a9,libwayland_cursor-8b16d939c7a1d000,libxcursor-1b38e4f5c9e5ed40,libwayland_protocols_wlr-18e8404bdc01f470,libwayland_protocols-825c9417817fece9,libwayland_csd_frame-55738617f2cd7304,libcalloop_wayland_source-d95173266a7a1106,libwayland_client-3057ef89fe2051c2,libwayland_backend-262bd7c5230444c8,libdowncast_rs-067a87da00d0e4fe,libscoped_tls-cb7947e893911d95,libwayland_sys-f358cee10dea806d,libsmallvec-fa2c02b56b7abd3c,libcalloop-9a847cade0a89983,libthiserror-6abeb5d9965e6a59,librustix-7ece7a032ccf1b66,liblinux_raw_sys-c3af7ea7c0ea26e4,libpolling-e09b050bd8838595,librustix-84e5874f6d91cebd,liblinux_raw_sys-5b4b507d1ab073f3,libmemmap2-214aa08b8b3dca32,libx11_dl-d443f156281d6f45,liblibc-9cd8a66bfd45f04e,libxkbcommon_dl-fa848b2cd0267e3e,libxkeysym-7603d9b3df798810,libdlib-45e062137db4291b,liblibloading-5a2eec6ee585a464,libcfg_if-d05893e10c9c8e83,libtracing-a85dcf19b52b1daa,liblog-3f60168723124568,libpin_project_lite-e9b26d79a08f0191,libtracing_core-1bc0eb80e1aff64f,libonce_cell-9b38858089cc1fb0,libbitflags-cf8e01e943908b85,libsmol_str-c5856e40a25210be,libcursor_icon-dd57f6459332f23d,libdpi-0786cfb02517571b,libraw_window_handle-2fbc8c535bf8ee17,libzgui-92d8906ae672479b,libunicode_segmentation-7e484a7ccc925c85,libtaffy-b4a9f95218a05349,libslotmap-582f4c847ebc6d4d,libgrid-612a1f7e3ac9ae68}.rlib" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-Wl,-Bdynamic" "-ldbus-1" "-ldl" "-ldl" "-lgcc_s" "-lutil" "-lrt" "-lpthread" "-lm" "-ldl" "-lc" "-L" "/home/runner/work/zgui/zgui/target/debug/examples/rustcYiUXQG/raw-dylibs" "-B<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld" "-fuse-ld=lld" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-L" "/usr/lib/x86_64-linux-gnu" "-L" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib" "-o" "/home/runner/work/zgui/zgui/target/debug/examples/line_height-91267ee88e8836e1" "-Wl,--gc-sections" "-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs"
+linux-gpu	UNKNOWN STEP	2026-09-22T23:10:00.8208556Z   ^[[1m^[[94m= ^[[0m^[[1mnote^[[0m:  "cc" "-m64" "/home/runner/work/lumine/lumine/target/debug/examples/rustcYiUXQG/symbols.o" "<17 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "/home/runner/work/lumine/lumine/target/debug/deps/{liblumine_desktop-d136964af83f5a54,libaccesskit_winit-ef9f819a27159bdc,libaccesskit_unix-129f5dac3bd0290d,libfutures_util-82940b767e426760,libfutures_task-9dc53e607663f6e3,libatspi-3633eee433fe91de,libatspi_proxies-18b494748797989b,libaccesskit_atspi_common-406ed73ffdbb88de,libphf-e6e2998c3782f176,libphf_shared-e943811de2934947,libatspi_common-42861ee474f396da,libzbus-a2cd4431c02fab90,libblocking-1eb86527f392e465,libpiper-d48a3b06544bf125,libatomic_waker-ceab3fbea5b1afba,libhex-cc798f5084951f61,libasync_executor-aafae170e5f9c7f6,libasync_process-9149b3606d87f1ea,libasync_signal-daffe8a5c7dd4a21,libsignal_hook_registry-e6597a800d115898,liberrno-a2092d20a8ab5329,libasync_lock-1dfaa9655c9aae28,libasync_task-3ec3ad0b392ce3e2,libasync_channel-a7660a958bfaa348,libordered_stream-f16f31c80f2a4ef9,libasync_broadcast-c14977737c82a761,libevent_listener_strategy-411ef6f9b275323b,libevent_listener-7815e517a0ba18a7,libasync_io-d44bde07740d3b1b,libslab-36edee2323b5a692,libconcurrent_queue-f9765680c1772f1f,libcrossbeam_utils-180eaa0b20113661,libfutures_lite-4d5ceaa7e47bf0f4,libfutures_core-b2e86d4a91990c16,libparking-50ff5b1922700d6d,libfutures_io-377533f4ed8b9027,libzbus_names-80ceeb028c814db1,libaccesskit_consumer-cb586f25af8170be,libzvariant-7a3e3d1bf9c3fa41,libenumflags2-f35857a1eddf8a1f,libendi-5ae2ea15d3427eab,libzcheapstr-48395d61ccdabd6c,libzvariant_utils-7ca56ef41e24f745,libwinnow-bc9b4fe98d34bfc6,libsyn-0adcb32918fcd9f7,libquote-e9f7a704eda414f1,libproc_macro2-febdcc881b006d03}.rlib" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib/{libproc_macro-*,librustc_literal_escaper-*}.rlib" "/home/runner/work/lumine/lumine/target/debug/deps/{libserde-534e2ccb129a737a,libsoftbuffer-f7244b3504ab2b28,libfastrand-b1d99d6a4c55a922,libtiny_xlib-896bc87d594b1fd4,libctor-09c9d58e200735cb,libdrm-598ca310280a7f0b,libdrm_ffi-9984e0cd917474f2,libdrm_sys-7b5df39c9d3896da,liblinux_raw_sys-dc1f80ca9a71d11d,libdrm_fourcc-5894833b92bddc20,libopen-33f4102d3287db0c,libis_wsl-84eabe9bc2c58894,libis_docker-980f0a7325cce3eb,librfd-3171d8a159d38049,libdbus_crossroads-b7ab1d624685100c,libsmithay_clipboard-2a0b5cee0cff6271,libsmithay_client_toolkit-f38c308261e89241,libwayland_protocols_misc-33a0317633182f9a,libwayland_protocols_experimental-baaea06b3ff38416,libcalloop_wayland_source-2f78298bd1127726,libcalloop-5710c816d3646f7b,libarboard-ecf8f59fae05056f,liblumine_gpu-1ec4ce793f185f8e,libgif-6161a4ff2d6279cc,libweezl-34a0638648c99250,libimage-4b998019c7de8ee6,libbyteorder_lite-95a52d1597daf675,libmoxcms-1af7289ca27c7af6,libpxfm-f62cc0e5b194c90a,libpng-b3c77be8b5cbcd9f,libzune_jpeg-8217f7942b1e2788,libzune_core-a7e924049f32d39e,libpollster-7526635499bffe00,libresvg-9a01ed3fabd7c05f,librgb-c0e37ec1653150b1,libusvg-9aab1d3bfe0f7a1c,libbase64-61acbe23ca84db72,libimagesize-53dcfa411980ca6f,libdata_url-8264d373ca96eb4f,libxmlwriter-a5d8a7928d9b9682,libsimplecss-2ab5ec225983696c,libroxmltree-9b1ae87382a63aec,libmemchr-ed4bd6a2f7da223f,libsvgtypes-d6f26b0bd9783e09,libkurbo-3876149b5c8c94af,libpolycool-9628feb2aeb9393d,libsiphasher-3e27cc8edfbb8a3c,libwgpu-442a3979a9968bed,libstatic_assertions-f8684a4518278bac,libwgpu_core-5d3404b322d46071,libwgpu_hal-b83d7913e91be1d0,librenderdoc_sys-464f84291bd16588,libgpu_allocator-07d2c13552b9c8d5,libpresser-63576251248e5463,libkhronos_egl-0a1cc478ead729d1,libprofiling-df9ea980dbe89cca,libwgpu_naga_bridge-9ae7ea95972cee92,libordered_float-45a968c59eba57a1,libgpu_descriptor-88fa2773d42bc733,libgpu_descriptor_types-24eb814f7f894ec7,libash-a350eebc61161aaf,libnaga-60b874cb1a36badf,liblibm-4e13895d1a1c14ae,libhexf_parse-cf1ddeffcbb220b7,libunicode_ident-092dd8320acc1894,libbit_set-43da5d41abbd9e8a,libbit_vec-74de2b16c43fa2c3,libhalf-4ec81ba0f23bc1fd,libcodespan_reporting-186f70e3400c0fdb,libunicode_width-b12dc506560895c6,libnum_traits-72c097a571d222e7,libindexmap-8cf4afde5d4b9318,libhashbrown-8559ad8073936cd5,libspirv-93221c0ccc977062,libthiserror-323769a5dcdf0d8c,libparking_lot-b7364826f85744ef,libparking_lot_core-e22000a0265a5859,liblock_api-f49ae76502f2ea42,libscopeguard-9cc769095de547c7,libhashbrown-37b09e907fbfeab9,libfoldhash-0b408022eb81cfb1,libglow-14931a637723def1,libwgpu_types-13e2046486da97d3,libcosmic_text-22b992b01d05d4b5,librustc_hash-7b4de770ce3fdd10,libunicode_linebreak-eccec0d39ddc4fe8,libsys_locale-8edd0623067c9671,libswash-af2325de3910d884,libyazi-635022657fffbeff,libskrifa-41daecda242d864e,libread_fonts-fcce3182d863ea5a,libfont_types-13cf41d02669aea6,libzeno-0fa485eafb99c3ef,libself_cell-7c02c9a864523ca5,librustybuzz-7d6aab7d0225afef,libunicode_bidi_mirroring-365d6fd80bd1a659,libunicode_script-0817c348c222da25,libunicode_ccc-ecd39c41d281be81,libunicode_properties-b315ec7233aed680,libttf_parser-a722c5af62296e12,libunicode_bidi-f5ec2cbb29da8b35,libfontdb-f52d917e3c5cafe1,libfontconfig_parser-918829484781d331,libroxmltree-11fa6b925362250d,libtinyvec-3366317835bdf92f,libttf_parser-d8f5240b126ddce8,librangemap-6685162e9dc42f70,libaccesskit-68105dfe045be4ab,libuuid-ed4aca0f2620d9a8,libserde_core-ab490aa323df22c4,libfontdue-ea8cb830def5a9bc,libhashbrown-39b28f6ccaa6a9f0,libfoldhash-b5d13c0e92a91d0a,libequivalent-bc5578463be669e6,liballocator_api2-8570395052038fce,libdbus-a74904916bd1aca5,liblibdbus_sys-334ca196ea9879e9,libwinit-40c644b797827d61,libsctk_adwaita-cd56864836105ec0,libab_glyph-beb4c51c04bc2330,libowned_ttf_parser-24610b73c92bf94f,libttf_parser-361d79f88a879ad7,libab_glyph_rasterizer-ba7c1a6af3b5b8d3,libtiny_skia-e9182c9baa186915,libpng-6c5562d41d1f33aa,libbitflags-50a7df933f7fa039,libflate2-579c811845b9cde1,libminiz_oxide-e91f41c67729fedf,libfdeflate-64dd6fafb879271d,libsimd_adler32-362cb5b9ad33252c,libcrc32fast-3e2594bac1597104,libarrayvec-027a6604e72d5245,libtiny_skia_path-2aa1c5e19172245b,libstrict_num-d9e51724cb668eb5,libfloat_cmp-31fd1f685b488308,libarrayref-93cd6789639b67e8,libbytemuck-35dbccd0200442e6,libpercent_encoding-956bedaa8b1c0286,libx11rb-2bd40d84b299c541,libgethostname-417c533203855924,libas_raw_xcb_connection-419e2ce630969f75,libx11rb_protocol-204967dc7fd40f60,libwayland_protocols_plasma-bfe7ce4fc346c38b,libahash-3f02769c8e4eeebb,libgetrandom-df89a5668d637f04,libzerocopy-6274f5c3f9930dba,libsmithay_client_toolkit-891df09b40e928a9,libwayland_cursor-8b16d939c7a1d000,libxcursor-1b38e4f5c9e5ed40,libwayland_protocols_wlr-18e8404bdc01f470,libwayland_protocols-825c9417817fece9,libwayland_csd_frame-55738617f2cd7304,libcalloop_wayland_source-d95173266a7a1106,libwayland_client-3057ef89fe2051c2,libwayland_backend-262bd7c5230444c8,libdowncast_rs-067a87da00d0e4fe,libscoped_tls-cb7947e893911d95,libwayland_sys-f358cee10dea806d,libsmallvec-fa2c02b56b7abd3c,libcalloop-9a847cade0a89983,libthiserror-6abeb5d9965e6a59,librustix-7ece7a032ccf1b66,liblinux_raw_sys-c3af7ea7c0ea26e4,libpolling-e09b050bd8838595,librustix-84e5874f6d91cebd,liblinux_raw_sys-5b4b507d1ab073f3,libmemmap2-214aa08b8b3dca32,libx11_dl-d443f156281d6f45,liblibc-9cd8a66bfd45f04e,libxkbcommon_dl-fa848b2cd0267e3e,libxkeysym-7603d9b3df798810,libdlib-45e062137db4291b,liblibloading-5a2eec6ee585a464,libcfg_if-d05893e10c9c8e83,libtracing-a85dcf19b52b1daa,liblog-3f60168723124568,libpin_project_lite-e9b26d79a08f0191,libtracing_core-1bc0eb80e1aff64f,libonce_cell-9b38858089cc1fb0,libbitflags-cf8e01e943908b85,libsmol_str-c5856e40a25210be,libcursor_icon-dd57f6459332f23d,libdpi-0786cfb02517571b,libraw_window_handle-2fbc8c535bf8ee17,liblumine-92d8906ae672479b,libunicode_segmentation-7e484a7ccc925c85,libtaffy-b4a9f95218a05349,libslotmap-582f4c847ebc6d4d,libgrid-612a1f7e3ac9ae68}.rlib" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-Wl,-Bdynamic" "-ldbus-1" "-ldl" "-ldl" "-lgcc_s" "-lutil" "-lrt" "-lpthread" "-lm" "-ldl" "-lc" "-L" "/home/runner/work/lumine/lumine/target/debug/examples/rustcYiUXQG/raw-dylibs" "-B<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld" "-fuse-ld=lld" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-L" "/usr/lib/x86_64-linux-gnu" "-L" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib" "-o" "/home/runner/work/lumine/lumine/target/debug/examples/line_height-91267ee88e8836e1" "-Wl,--gc-sections" "-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs"
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:00.8283865Z   ^[[1m^[[94m= ^[[0m^[[1mnote^[[0m: some arguments are omitted. use `--verbose` to show all linker arguments
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:00.8286040Z   ^[[1m^[[94m= ^[[0m^[[1mnote^[[0m: PLEASE submit a bug report to https://github.com/llvm/llvm-project/issues/ and include the crash backtrace and instructions to reproduce the bug.
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:00.8288017Z           Stack dump without symbol names (ensure you have llvm-symbolizer in your PATH or set the environment var `LLVM_SYMBOLIZER_PATH` to point to it):
@@ -3458,11 +3458,11 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:10:00.8306447Z           collect2: fatal er
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:00.8332892Z           compilation terminated.
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:00.8337118Z           
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:00.8337428Z 
-linux-gpu	UNKNOWN STEP	2026-09-22T23:10:01.0451322Z ^[[1m^[[91merror^[[0m: could not compile `zgui-desktop` (example "line_height") due to 1 previous error
+linux-gpu	UNKNOWN STEP	2026-09-22T23:10:01.0451322Z ^[[1m^[[91merror^[[0m: could not compile `lumine-desktop` (example "line_height") due to 1 previous error
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:01.0538494Z ^[[1m^[[33mwarning^[[0m: build failed, waiting for other jobs to finish...
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:03.8985464Z ^[[1m^[[91merror^[[0m^[[1m: linking with `cc` failed: exit status: 1^[[0m
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:03.8992103Z   ^[[1m^[[94m|^[[0m
-linux-gpu	UNKNOWN STEP	2026-09-22T23:10:03.9090895Z   ^[[1m^[[94m= ^[[0m^[[1mnote^[[0m:  "cc" "-m64" "/home/runner/work/zgui/zgui/target/debug/examples/rustc3m4f3L/symbols.o" "<17 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "/home/runner/work/zgui/zgui/target/debug/deps/{libzgui_desktop-d136964af83f5a54,libaccesskit_winit-ef9f819a27159bdc,libaccesskit_unix-129f5dac3bd0290d,libfutures_util-82940b767e426760,libfutures_task-9dc53e607663f6e3,libatspi-3633eee433fe91de,libatspi_proxies-18b494748797989b,libaccesskit_atspi_common-406ed73ffdbb88de,libphf-e6e2998c3782f176,libphf_shared-e943811de2934947,libatspi_common-42861ee474f396da,libzbus-a2cd4431c02fab90,libblocking-1eb86527f392e465,libpiper-d48a3b06544bf125,libatomic_waker-ceab3fbea5b1afba,libhex-cc798f5084951f61,libasync_executor-aafae170e5f9c7f6,libasync_process-9149b3606d87f1ea,libasync_signal-daffe8a5c7dd4a21,libsignal_hook_registry-e6597a800d115898,liberrno-a2092d20a8ab5329,libasync_lock-1dfaa9655c9aae28,libasync_task-3ec3ad0b392ce3e2,libasync_channel-a7660a958bfaa348,libordered_stream-f16f31c80f2a4ef9,libasync_broadcast-c14977737c82a761,libevent_listener_strategy-411ef6f9b275323b,libevent_listener-7815e517a0ba18a7,libasync_io-d44bde07740d3b1b,libslab-36edee2323b5a692,libconcurrent_queue-f9765680c1772f1f,libcrossbeam_utils-180eaa0b20113661,libfutures_lite-4d5ceaa7e47bf0f4,libfutures_core-b2e86d4a91990c16,libparking-50ff5b1922700d6d,libfutures_io-377533f4ed8b9027,libzbus_names-80ceeb028c814db1,libaccesskit_consumer-cb586f25af8170be,libzvariant-7a3e3d1bf9c3fa41,libenumflags2-f35857a1eddf8a1f,libendi-5ae2ea15d3427eab,libzcheapstr-48395d61ccdabd6c,libzvariant_utils-7ca56ef41e24f745,libwinnow-bc9b4fe98d34bfc6,libsyn-0adcb32918fcd9f7,libquote-e9f7a704eda414f1,libproc_macro2-febdcc881b006d03}.rlib" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib/{libproc_macro-*,librustc_literal_escaper-*}.rlib" "/home/runner/work/zgui/zgui/target/debug/deps/{libserde-534e2ccb129a737a,libsoftbuffer-f7244b3504ab2b28,libfastrand-b1d99d6a4c55a922,libtiny_xlib-896bc87d594b1fd4,libctor-09c9d58e200735cb,libdrm-598ca310280a7f0b,libdrm_ffi-9984e0cd917474f2,libdrm_sys-7b5df39c9d3896da,liblinux_raw_sys-dc1f80ca9a71d11d,libdrm_fourcc-5894833b92bddc20,libopen-33f4102d3287db0c,libis_wsl-84eabe9bc2c58894,libis_docker-980f0a7325cce3eb,librfd-3171d8a159d38049,libdbus_crossroads-b7ab1d624685100c,libsmithay_clipboard-2a0b5cee0cff6271,libsmithay_client_toolkit-f38c308261e89241,libwayland_protocols_misc-33a0317633182f9a,libwayland_protocols_experimental-baaea06b3ff38416,libcalloop_wayland_source-2f78298bd1127726,libcalloop-5710c816d3646f7b,libarboard-ecf8f59fae05056f,libzgui_gpu-1ec4ce793f185f8e,libgif-6161a4ff2d6279cc,libweezl-34a0638648c99250,libimage-4b998019c7de8ee6,libbyteorder_lite-95a52d1597daf675,libmoxcms-1af7289ca27c7af6,libpxfm-f62cc0e5b194c90a,libpng-b3c77be8b5cbcd9f,libzune_jpeg-8217f7942b1e2788,libzune_core-a7e924049f32d39e,libpollster-7526635499bffe00,libresvg-9a01ed3fabd7c05f,librgb-c0e37ec1653150b1,libusvg-9aab1d3bfe0f7a1c,libbase64-61acbe23ca84db72,libimagesize-53dcfa411980ca6f,libdata_url-8264d373ca96eb4f,libxmlwriter-a5d8a7928d9b9682,libsimplecss-2ab5ec225983696c,libroxmltree-9b1ae87382a63aec,libmemchr-ed4bd6a2f7da223f,libsvgtypes-d6f26b0bd9783e09,libkurbo-3876149b5c8c94af,libpolycool-9628feb2aeb9393d,libsiphasher-3e27cc8edfbb8a3c,libwgpu-442a3979a9968bed,libstatic_assertions-f8684a4518278bac,libwgpu_core-5d3404b322d46071,libwgpu_hal-b83d7913e91be1d0,librenderdoc_sys-464f84291bd16588,libgpu_allocator-07d2c13552b9c8d5,libpresser-63576251248e5463,libkhronos_egl-0a1cc478ead729d1,libprofiling-df9ea980dbe89cca,libwgpu_naga_bridge-9ae7ea95972cee92,libordered_float-45a968c59eba57a1,libgpu_descriptor-88fa2773d42bc733,libgpu_descriptor_types-24eb814f7f894ec7,libash-a350eebc61161aaf,libnaga-60b874cb1a36badf,liblibm-4e13895d1a1c14ae,libhexf_parse-cf1ddeffcbb220b7,libunicode_ident-092dd8320acc1894,libbit_set-43da5d41abbd9e8a,libbit_vec-74de2b16c43fa2c3,libhalf-4ec81ba0f23bc1fd,libcodespan_reporting-186f70e3400c0fdb,libunicode_width-b12dc506560895c6,libnum_traits-72c097a571d222e7,libindexmap-8cf4afde5d4b9318,libhashbrown-8559ad8073936cd5,libspirv-93221c0ccc977062,libthiserror-323769a5dcdf0d8c,libparking_lot-b7364826f85744ef,libparking_lot_core-e22000a0265a5859,liblock_api-f49ae76502f2ea42,libscopeguard-9cc769095de547c7,libhashbrown-37b09e907fbfeab9,libfoldhash-0b408022eb81cfb1,libglow-14931a637723def1,libwgpu_types-13e2046486da97d3,libcosmic_text-22b992b01d05d4b5,librustc_hash-7b4de770ce3fdd10,libunicode_linebreak-eccec0d39ddc4fe8,libsys_locale-8edd0623067c9671,libswash-af2325de3910d884,libyazi-635022657fffbeff,libskrifa-41daecda242d864e,libread_fonts-fcce3182d863ea5a,libfont_types-13cf41d02669aea6,libzeno-0fa485eafb99c3ef,libself_cell-7c02c9a864523ca5,librustybuzz-7d6aab7d0225afef,libunicode_bidi_mirroring-365d6fd80bd1a659,libunicode_script-0817c348c222da25,libunicode_ccc-ecd39c41d281be81,libunicode_properties-b315ec7233aed680,libttf_parser-a722c5af62296e12,libunicode_bidi-f5ec2cbb29da8b35,libfontdb-f52d917e3c5cafe1,libfontconfig_parser-918829484781d331,libroxmltree-11fa6b925362250d,libtinyvec-3366317835bdf92f,libttf_parser-d8f5240b126ddce8,librangemap-6685162e9dc42f70,libaccesskit-68105dfe045be4ab,libuuid-ed4aca0f2620d9a8,libserde_core-ab490aa323df22c4,libfontdue-ea8cb830def5a9bc,libhashbrown-39b28f6ccaa6a9f0,libfoldhash-b5d13c0e92a91d0a,libequivalent-bc5578463be669e6,liballocator_api2-8570395052038fce,libdbus-a74904916bd1aca5,liblibdbus_sys-334ca196ea9879e9,libwinit-40c644b797827d61,libsctk_adwaita-cd56864836105ec0,libab_glyph-beb4c51c04bc2330,libowned_ttf_parser-24610b73c92bf94f,libttf_parser-361d79f88a879ad7,libab_glyph_rasterizer-ba7c1a6af3b5b8d3,libtiny_skia-e9182c9baa186915,libpng-6c5562d41d1f33aa,libbitflags-50a7df933f7fa039,libflate2-579c811845b9cde1,libminiz_oxide-e91f41c67729fedf,libfdeflate-64dd6fafb879271d,libsimd_adler32-362cb5b9ad33252c,libcrc32fast-3e2594bac1597104,libarrayvec-027a6604e72d5245,libtiny_skia_path-2aa1c5e19172245b,libstrict_num-d9e51724cb668eb5,libfloat_cmp-31fd1f685b488308,libarrayref-93cd6789639b67e8,libbytemuck-35dbccd0200442e6,libpercent_encoding-956bedaa8b1c0286,libx11rb-2bd40d84b299c541,libgethostname-417c533203855924,libas_raw_xcb_connection-419e2ce630969f75,libx11rb_protocol-204967dc7fd40f60,libwayland_protocols_plasma-bfe7ce4fc346c38b,libahash-3f02769c8e4eeebb,libgetrandom-df89a5668d637f04,libzerocopy-6274f5c3f9930dba,libsmithay_client_toolkit-891df09b40e928a9,libwayland_cursor-8b16d939c7a1d000,libxcursor-1b38e4f5c9e5ed40,libwayland_protocols_wlr-18e8404bdc01f470,libwayland_protocols-825c9417817fece9,libwayland_csd_frame-55738617f2cd7304,libcalloop_wayland_source-d95173266a7a1106,libwayland_client-3057ef89fe2051c2,libwayland_backend-262bd7c5230444c8,libdowncast_rs-067a87da00d0e4fe,libscoped_tls-cb7947e893911d95,libwayland_sys-f358cee10dea806d,libsmallvec-fa2c02b56b7abd3c,libcalloop-9a847cade0a89983,libthiserror-6abeb5d9965e6a59,librustix-7ece7a032ccf1b66,liblinux_raw_sys-c3af7ea7c0ea26e4,libpolling-e09b050bd8838595,librustix-84e5874f6d91cebd,liblinux_raw_sys-5b4b507d1ab073f3,libmemmap2-214aa08b8b3dca32,libx11_dl-d443f156281d6f45,liblibc-9cd8a66bfd45f04e,libxkbcommon_dl-fa848b2cd0267e3e,libxkeysym-7603d9b3df798810,libdlib-45e062137db4291b,liblibloading-5a2eec6ee585a464,libcfg_if-d05893e10c9c8e83,libtracing-a85dcf19b52b1daa,liblog-3f60168723124568,libpin_project_lite-e9b26d79a08f0191,libtracing_core-1bc0eb80e1aff64f,libonce_cell-9b38858089cc1fb0,libbitflags-cf8e01e943908b85,libsmol_str-c5856e40a25210be,libcursor_icon-dd57f6459332f23d,libdpi-0786cfb02517571b,libraw_window_handle-2fbc8c535bf8ee17,libzgui-92d8906ae672479b,libunicode_segmentation-7e484a7ccc925c85,libtaffy-b4a9f95218a05349,libslotmap-582f4c847ebc6d4d,libgrid-612a1f7e3ac9ae68}.rlib" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-Wl,-Bdynamic" "-ldbus-1" "-ldl" "-ldl" "-lgcc_s" "-lutil" "-lrt" "-lpthread" "-lm" "-ldl" "-lc" "-L" "/home/runner/work/zgui/zgui/target/debug/examples/rustc3m4f3L/raw-dylibs" "-B<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld" "-fuse-ld=lld" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-L" "/usr/lib/x86_64-linux-gnu" "-L" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib" "-o" "/home/runner/work/zgui/zgui/target/debug/examples/animated_image-9d8a2284209edf21" "-Wl,--gc-sections" "-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs"
+linux-gpu	UNKNOWN STEP	2026-09-22T23:10:03.9090895Z   ^[[1m^[[94m= ^[[0m^[[1mnote^[[0m:  "cc" "-m64" "/home/runner/work/lumine/lumine/target/debug/examples/rustc3m4f3L/symbols.o" "<17 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "/home/runner/work/lumine/lumine/target/debug/deps/{liblumine_desktop-d136964af83f5a54,libaccesskit_winit-ef9f819a27159bdc,libaccesskit_unix-129f5dac3bd0290d,libfutures_util-82940b767e426760,libfutures_task-9dc53e607663f6e3,libatspi-3633eee433fe91de,libatspi_proxies-18b494748797989b,libaccesskit_atspi_common-406ed73ffdbb88de,libphf-e6e2998c3782f176,libphf_shared-e943811de2934947,libatspi_common-42861ee474f396da,libzbus-a2cd4431c02fab90,libblocking-1eb86527f392e465,libpiper-d48a3b06544bf125,libatomic_waker-ceab3fbea5b1afba,libhex-cc798f5084951f61,libasync_executor-aafae170e5f9c7f6,libasync_process-9149b3606d87f1ea,libasync_signal-daffe8a5c7dd4a21,libsignal_hook_registry-e6597a800d115898,liberrno-a2092d20a8ab5329,libasync_lock-1dfaa9655c9aae28,libasync_task-3ec3ad0b392ce3e2,libasync_channel-a7660a958bfaa348,libordered_stream-f16f31c80f2a4ef9,libasync_broadcast-c14977737c82a761,libevent_listener_strategy-411ef6f9b275323b,libevent_listener-7815e517a0ba18a7,libasync_io-d44bde07740d3b1b,libslab-36edee2323b5a692,libconcurrent_queue-f9765680c1772f1f,libcrossbeam_utils-180eaa0b20113661,libfutures_lite-4d5ceaa7e47bf0f4,libfutures_core-b2e86d4a91990c16,libparking-50ff5b1922700d6d,libfutures_io-377533f4ed8b9027,libzbus_names-80ceeb028c814db1,libaccesskit_consumer-cb586f25af8170be,libzvariant-7a3e3d1bf9c3fa41,libenumflags2-f35857a1eddf8a1f,libendi-5ae2ea15d3427eab,libzcheapstr-48395d61ccdabd6c,libzvariant_utils-7ca56ef41e24f745,libwinnow-bc9b4fe98d34bfc6,libsyn-0adcb32918fcd9f7,libquote-e9f7a704eda414f1,libproc_macro2-febdcc881b006d03}.rlib" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib/{libproc_macro-*,librustc_literal_escaper-*}.rlib" "/home/runner/work/lumine/lumine/target/debug/deps/{libserde-534e2ccb129a737a,libsoftbuffer-f7244b3504ab2b28,libfastrand-b1d99d6a4c55a922,libtiny_xlib-896bc87d594b1fd4,libctor-09c9d58e200735cb,libdrm-598ca310280a7f0b,libdrm_ffi-9984e0cd917474f2,libdrm_sys-7b5df39c9d3896da,liblinux_raw_sys-dc1f80ca9a71d11d,libdrm_fourcc-5894833b92bddc20,libopen-33f4102d3287db0c,libis_wsl-84eabe9bc2c58894,libis_docker-980f0a7325cce3eb,librfd-3171d8a159d38049,libdbus_crossroads-b7ab1d624685100c,libsmithay_clipboard-2a0b5cee0cff6271,libsmithay_client_toolkit-f38c308261e89241,libwayland_protocols_misc-33a0317633182f9a,libwayland_protocols_experimental-baaea06b3ff38416,libcalloop_wayland_source-2f78298bd1127726,libcalloop-5710c816d3646f7b,libarboard-ecf8f59fae05056f,liblumine_gpu-1ec4ce793f185f8e,libgif-6161a4ff2d6279cc,libweezl-34a0638648c99250,libimage-4b998019c7de8ee6,libbyteorder_lite-95a52d1597daf675,libmoxcms-1af7289ca27c7af6,libpxfm-f62cc0e5b194c90a,libpng-b3c77be8b5cbcd9f,libzune_jpeg-8217f7942b1e2788,libzune_core-a7e924049f32d39e,libpollster-7526635499bffe00,libresvg-9a01ed3fabd7c05f,librgb-c0e37ec1653150b1,libusvg-9aab1d3bfe0f7a1c,libbase64-61acbe23ca84db72,libimagesize-53dcfa411980ca6f,libdata_url-8264d373ca96eb4f,libxmlwriter-a5d8a7928d9b9682,libsimplecss-2ab5ec225983696c,libroxmltree-9b1ae87382a63aec,libmemchr-ed4bd6a2f7da223f,libsvgtypes-d6f26b0bd9783e09,libkurbo-3876149b5c8c94af,libpolycool-9628feb2aeb9393d,libsiphasher-3e27cc8edfbb8a3c,libwgpu-442a3979a9968bed,libstatic_assertions-f8684a4518278bac,libwgpu_core-5d3404b322d46071,libwgpu_hal-b83d7913e91be1d0,librenderdoc_sys-464f84291bd16588,libgpu_allocator-07d2c13552b9c8d5,libpresser-63576251248e5463,libkhronos_egl-0a1cc478ead729d1,libprofiling-df9ea980dbe89cca,libwgpu_naga_bridge-9ae7ea95972cee92,libordered_float-45a968c59eba57a1,libgpu_descriptor-88fa2773d42bc733,libgpu_descriptor_types-24eb814f7f894ec7,libash-a350eebc61161aaf,libnaga-60b874cb1a36badf,liblibm-4e13895d1a1c14ae,libhexf_parse-cf1ddeffcbb220b7,libunicode_ident-092dd8320acc1894,libbit_set-43da5d41abbd9e8a,libbit_vec-74de2b16c43fa2c3,libhalf-4ec81ba0f23bc1fd,libcodespan_reporting-186f70e3400c0fdb,libunicode_width-b12dc506560895c6,libnum_traits-72c097a571d222e7,libindexmap-8cf4afde5d4b9318,libhashbrown-8559ad8073936cd5,libspirv-93221c0ccc977062,libthiserror-323769a5dcdf0d8c,libparking_lot-b7364826f85744ef,libparking_lot_core-e22000a0265a5859,liblock_api-f49ae76502f2ea42,libscopeguard-9cc769095de547c7,libhashbrown-37b09e907fbfeab9,libfoldhash-0b408022eb81cfb1,libglow-14931a637723def1,libwgpu_types-13e2046486da97d3,libcosmic_text-22b992b01d05d4b5,librustc_hash-7b4de770ce3fdd10,libunicode_linebreak-eccec0d39ddc4fe8,libsys_locale-8edd0623067c9671,libswash-af2325de3910d884,libyazi-635022657fffbeff,libskrifa-41daecda242d864e,libread_fonts-fcce3182d863ea5a,libfont_types-13cf41d02669aea6,libzeno-0fa485eafb99c3ef,libself_cell-7c02c9a864523ca5,librustybuzz-7d6aab7d0225afef,libunicode_bidi_mirroring-365d6fd80bd1a659,libunicode_script-0817c348c222da25,libunicode_ccc-ecd39c41d281be81,libunicode_properties-b315ec7233aed680,libttf_parser-a722c5af62296e12,libunicode_bidi-f5ec2cbb29da8b35,libfontdb-f52d917e3c5cafe1,libfontconfig_parser-918829484781d331,libroxmltree-11fa6b925362250d,libtinyvec-3366317835bdf92f,libttf_parser-d8f5240b126ddce8,librangemap-6685162e9dc42f70,libaccesskit-68105dfe045be4ab,libuuid-ed4aca0f2620d9a8,libserde_core-ab490aa323df22c4,libfontdue-ea8cb830def5a9bc,libhashbrown-39b28f6ccaa6a9f0,libfoldhash-b5d13c0e92a91d0a,libequivalent-bc5578463be669e6,liballocator_api2-8570395052038fce,libdbus-a74904916bd1aca5,liblibdbus_sys-334ca196ea9879e9,libwinit-40c644b797827d61,libsctk_adwaita-cd56864836105ec0,libab_glyph-beb4c51c04bc2330,libowned_ttf_parser-24610b73c92bf94f,libttf_parser-361d79f88a879ad7,libab_glyph_rasterizer-ba7c1a6af3b5b8d3,libtiny_skia-e9182c9baa186915,libpng-6c5562d41d1f33aa,libbitflags-50a7df933f7fa039,libflate2-579c811845b9cde1,libminiz_oxide-e91f41c67729fedf,libfdeflate-64dd6fafb879271d,libsimd_adler32-362cb5b9ad33252c,libcrc32fast-3e2594bac1597104,libarrayvec-027a6604e72d5245,libtiny_skia_path-2aa1c5e19172245b,libstrict_num-d9e51724cb668eb5,libfloat_cmp-31fd1f685b488308,libarrayref-93cd6789639b67e8,libbytemuck-35dbccd0200442e6,libpercent_encoding-956bedaa8b1c0286,libx11rb-2bd40d84b299c541,libgethostname-417c533203855924,libas_raw_xcb_connection-419e2ce630969f75,libx11rb_protocol-204967dc7fd40f60,libwayland_protocols_plasma-bfe7ce4fc346c38b,libahash-3f02769c8e4eeebb,libgetrandom-df89a5668d637f04,libzerocopy-6274f5c3f9930dba,libsmithay_client_toolkit-891df09b40e928a9,libwayland_cursor-8b16d939c7a1d000,libxcursor-1b38e4f5c9e5ed40,libwayland_protocols_wlr-18e8404bdc01f470,libwayland_protocols-825c9417817fece9,libwayland_csd_frame-55738617f2cd7304,libcalloop_wayland_source-d95173266a7a1106,libwayland_client-3057ef89fe2051c2,libwayland_backend-262bd7c5230444c8,libdowncast_rs-067a87da00d0e4fe,libscoped_tls-cb7947e893911d95,libwayland_sys-f358cee10dea806d,libsmallvec-fa2c02b56b7abd3c,libcalloop-9a847cade0a89983,libthiserror-6abeb5d9965e6a59,librustix-7ece7a032ccf1b66,liblinux_raw_sys-c3af7ea7c0ea26e4,libpolling-e09b050bd8838595,librustix-84e5874f6d91cebd,liblinux_raw_sys-5b4b507d1ab073f3,libmemmap2-214aa08b8b3dca32,libx11_dl-d443f156281d6f45,liblibc-9cd8a66bfd45f04e,libxkbcommon_dl-fa848b2cd0267e3e,libxkeysym-7603d9b3df798810,libdlib-45e062137db4291b,liblibloading-5a2eec6ee585a464,libcfg_if-d05893e10c9c8e83,libtracing-a85dcf19b52b1daa,liblog-3f60168723124568,libpin_project_lite-e9b26d79a08f0191,libtracing_core-1bc0eb80e1aff64f,libonce_cell-9b38858089cc1fb0,libbitflags-cf8e01e943908b85,libsmol_str-c5856e40a25210be,libcursor_icon-dd57f6459332f23d,libdpi-0786cfb02517571b,libraw_window_handle-2fbc8c535bf8ee17,liblumine-92d8906ae672479b,libunicode_segmentation-7e484a7ccc925c85,libtaffy-b4a9f95218a05349,libslotmap-582f4c847ebc6d4d,libgrid-612a1f7e3ac9ae68}.rlib" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-Wl,-Bdynamic" "-ldbus-1" "-ldl" "-ldl" "-lgcc_s" "-lutil" "-lrt" "-lpthread" "-lm" "-ldl" "-lc" "-L" "/home/runner/work/lumine/lumine/target/debug/examples/rustc3m4f3L/raw-dylibs" "-B<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld" "-fuse-ld=lld" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-L" "/usr/lib/x86_64-linux-gnu" "-L" "<sysroot>/lib/rustlib/x86_64-unknown-linux-gnu/lib" "-o" "/home/runner/work/lumine/lumine/target/debug/examples/animated_image-9d8a2284209edf21" "-Wl,--gc-sections" "-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs"
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:03.9227657Z   ^[[1m^[[94m= ^[[0m^[[1mnote^[[0m: some arguments are omitted. use `--verbose` to show all linker arguments
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:03.9236554Z   ^[[1m^[[94m= ^[[0m^[[1mnote^[[0m: PLEASE submit a bug report to https://github.com/llvm/llvm-project/issues/ and include the crash backtrace and instructions to reproduce the bug.
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:03.9244275Z           Stack dump without symbol names (ensure you have llvm-symbolizer in your PATH or set the environment var `LLVM_SYMBOLIZER_PATH` to point to it):
@@ -3484,72 +3484,72 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:10:03.9325919Z           collect2: fatal er
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:03.9330096Z           compilation terminated.
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:03.9333992Z           
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:03.9334316Z 
-linux-gpu	UNKNOWN STEP	2026-09-22T23:10:03.9338952Z ^[[1m^[[91merror^[[0m: could not compile `zgui-desktop` (example "animated_image") due to 1 previous error
+linux-gpu	UNKNOWN STEP	2026-09-22T23:10:03.9338952Z ^[[1m^[[91merror^[[0m: could not compile `lumine-desktop` (example "animated_image") due to 1 previous error
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.7295252Z ##[error]Process completed with exit code 101.
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9119668Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9121108Z ##[group]Run actions/upload-artifact@v4
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9121422Z with:
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9121632Z   name: linux-gpu-evidence
-linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9127817Z   path: /home/runner/work/_temp/zgui-vulkan-tests.log
-linux-gpu	UNKNOWN STEP	/home/runner/work/_temp/zgui-host-suspend.log
-linux-gpu	UNKNOWN STEP	/tmp/zgui-openbox.log
-linux-gpu	UNKNOWN STEP	/tmp/zgui-component-host
-linux-gpu	UNKNOWN STEP	/tmp/zgui-checkbox
-linux-gpu	UNKNOWN STEP	/tmp/zgui-slider
-linux-gpu	UNKNOWN STEP	/tmp/zgui-progress
-linux-gpu	UNKNOWN STEP	/tmp/zgui-images
-linux-gpu	UNKNOWN STEP	/tmp/zgui-scroll
-linux-gpu	UNKNOWN STEP	/tmp/zgui-focus-scroll
-linux-gpu	UNKNOWN STEP	/tmp/zgui-horizontal-scroll
-linux-gpu	UNKNOWN STEP	/tmp/zgui-scrollbars
-linux-gpu	UNKNOWN STEP	/tmp/zgui-virtual-keyboard
-linux-gpu	UNKNOWN STEP	/tmp/zgui-overlays
-linux-gpu	UNKNOWN STEP	/tmp/zgui-menus
-linux-gpu	UNKNOWN STEP	/tmp/zgui-submenus
-linux-gpu	UNKNOWN STEP	/tmp/zgui-hidden-updates
-linux-gpu	UNKNOWN STEP	/tmp/zgui-paint-media
-linux-gpu	UNKNOWN STEP	/tmp/zgui-cursors
-linux-gpu	UNKNOWN STEP	/tmp/zgui-rich-text
-linux-gpu	UNKNOWN STEP	/tmp/zgui-actions
-linux-gpu	UNKNOWN STEP	/tmp/zgui-layout
-linux-gpu	UNKNOWN STEP	/tmp/zgui-drag-drop
-linux-gpu	UNKNOWN STEP	/tmp/zgui-native-menus
-linux-gpu	UNKNOWN STEP	/tmp/zgui-native-menus-wayland
-linux-gpu	UNKNOWN STEP	/tmp/zgui-native-services
-linux-gpu	UNKNOWN STEP	/tmp/zgui-file-drop
-linux-gpu	UNKNOWN STEP	/tmp/zgui-file-drop-wayland
-linux-gpu	UNKNOWN STEP	/tmp/zgui-variable-virtual-list
-linux-gpu	UNKNOWN STEP	/tmp/zgui-measured-virtual-list
-linux-gpu	UNKNOWN STEP	/tmp/zgui-wayland-input
-linux-gpu	UNKNOWN STEP	/tmp/zgui-event-hooks
-linux-gpu	UNKNOWN STEP	/tmp/zgui-wrapped-editor
-linux-gpu	UNKNOWN STEP	/tmp/zgui-editor-paging
-linux-gpu	UNKNOWN STEP	/tmp/zgui-editor-selection
-linux-gpu	UNKNOWN STEP	/tmp/zgui-editor-autoscroll
-linux-gpu	UNKNOWN STEP	/tmp/zgui-transparency
-linux-gpu	UNKNOWN STEP	/tmp/zgui-wayland-transparency
-linux-gpu	UNKNOWN STEP	/tmp/zgui-native-ime
-linux-gpu	UNKNOWN STEP	/tmp/zgui-wayland-ime
-linux-gpu	UNKNOWN STEP	/tmp/zgui-wayland-external-ime
-linux-gpu	UNKNOWN STEP	/tmp/zgui-wayland-readonly-ime
-linux-gpu	UNKNOWN STEP	/tmp/zgui-held-keys
-linux-gpu	UNKNOWN STEP	/tmp/zgui-live-dpi
-linux-gpu	UNKNOWN STEP	/tmp/zgui-live-dpi-pointer
-linux-gpu	UNKNOWN STEP	/tmp/zgui-live-dpi-maximized
-linux-gpu	UNKNOWN STEP	/tmp/zgui-line-height
-linux-gpu	UNKNOWN STEP	/tmp/zgui-percent-sizes
-linux-gpu	UNKNOWN STEP	/tmp/zgui-letter-spacing
-linux-gpu	UNKNOWN STEP	/tmp/zgui-atspi
-linux-gpu	UNKNOWN STEP	/tmp/zgui-image-fit
-linux-gpu	UNKNOWN STEP	/tmp/zgui-effects
-linux-gpu	UNKNOWN STEP	/tmp/zgui-pointer-chords
-linux-gpu	UNKNOWN STEP	/tmp/zgui-keyboard-chords
-linux-gpu	UNKNOWN STEP	/tmp/zgui-disabled-interaction
-linux-gpu	UNKNOWN STEP	/tmp/zgui-history-limits
-linux-gpu	UNKNOWN STEP	/tmp/zgui-external-ime
-linux-gpu	UNKNOWN STEP	/tmp/zgui-model-text
-linux-gpu	UNKNOWN STEP	/tmp/zgui-read-only
-linux-gpu	UNKNOWN STEP	/tmp/zgui-readonly-ime
+linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9127817Z   path: /home/runner/work/_temp/lumine-vulkan-tests.log
+linux-gpu	UNKNOWN STEP	/home/runner/work/_temp/lumine-host-suspend.log
+linux-gpu	UNKNOWN STEP	/tmp/lumine-openbox.log
+linux-gpu	UNKNOWN STEP	/tmp/lumine-component-host
+linux-gpu	UNKNOWN STEP	/tmp/lumine-checkbox
+linux-gpu	UNKNOWN STEP	/tmp/lumine-slider
+linux-gpu	UNKNOWN STEP	/tmp/lumine-progress
+linux-gpu	UNKNOWN STEP	/tmp/lumine-images
+linux-gpu	UNKNOWN STEP	/tmp/lumine-scroll
+linux-gpu	UNKNOWN STEP	/tmp/lumine-focus-scroll
+linux-gpu	UNKNOWN STEP	/tmp/lumine-horizontal-scroll
+linux-gpu	UNKNOWN STEP	/tmp/lumine-scrollbars
+linux-gpu	UNKNOWN STEP	/tmp/lumine-virtual-keyboard
+linux-gpu	UNKNOWN STEP	/tmp/lumine-overlays
+linux-gpu	UNKNOWN STEP	/tmp/lumine-menus
+linux-gpu	UNKNOWN STEP	/tmp/lumine-submenus
+linux-gpu	UNKNOWN STEP	/tmp/lumine-hidden-updates
+linux-gpu	UNKNOWN STEP	/tmp/lumine-paint-media
+linux-gpu	UNKNOWN STEP	/tmp/lumine-cursors
+linux-gpu	UNKNOWN STEP	/tmp/lumine-rich-text
+linux-gpu	UNKNOWN STEP	/tmp/lumine-actions
+linux-gpu	UNKNOWN STEP	/tmp/lumine-layout
+linux-gpu	UNKNOWN STEP	/tmp/lumine-drag-drop
+linux-gpu	UNKNOWN STEP	/tmp/lumine-native-menus
+linux-gpu	UNKNOWN STEP	/tmp/lumine-native-menus-wayland
+linux-gpu	UNKNOWN STEP	/tmp/lumine-native-services
+linux-gpu	UNKNOWN STEP	/tmp/lumine-file-drop
+linux-gpu	UNKNOWN STEP	/tmp/lumine-file-drop-wayland
+linux-gpu	UNKNOWN STEP	/tmp/lumine-variable-virtual-list
+linux-gpu	UNKNOWN STEP	/tmp/lumine-measured-virtual-list
+linux-gpu	UNKNOWN STEP	/tmp/lumine-wayland-input
+linux-gpu	UNKNOWN STEP	/tmp/lumine-event-hooks
+linux-gpu	UNKNOWN STEP	/tmp/lumine-wrapped-editor
+linux-gpu	UNKNOWN STEP	/tmp/lumine-editor-paging
+linux-gpu	UNKNOWN STEP	/tmp/lumine-editor-selection
+linux-gpu	UNKNOWN STEP	/tmp/lumine-editor-autoscroll
+linux-gpu	UNKNOWN STEP	/tmp/lumine-transparency
+linux-gpu	UNKNOWN STEP	/tmp/lumine-wayland-transparency
+linux-gpu	UNKNOWN STEP	/tmp/lumine-native-ime
+linux-gpu	UNKNOWN STEP	/tmp/lumine-wayland-ime
+linux-gpu	UNKNOWN STEP	/tmp/lumine-wayland-external-ime
+linux-gpu	UNKNOWN STEP	/tmp/lumine-wayland-readonly-ime
+linux-gpu	UNKNOWN STEP	/tmp/lumine-held-keys
+linux-gpu	UNKNOWN STEP	/tmp/lumine-live-dpi
+linux-gpu	UNKNOWN STEP	/tmp/lumine-live-dpi-pointer
+linux-gpu	UNKNOWN STEP	/tmp/lumine-live-dpi-maximized
+linux-gpu	UNKNOWN STEP	/tmp/lumine-line-height
+linux-gpu	UNKNOWN STEP	/tmp/lumine-percent-sizes
+linux-gpu	UNKNOWN STEP	/tmp/lumine-letter-spacing
+linux-gpu	UNKNOWN STEP	/tmp/lumine-atspi
+linux-gpu	UNKNOWN STEP	/tmp/lumine-image-fit
+linux-gpu	UNKNOWN STEP	/tmp/lumine-effects
+linux-gpu	UNKNOWN STEP	/tmp/lumine-pointer-chords
+linux-gpu	UNKNOWN STEP	/tmp/lumine-keyboard-chords
+linux-gpu	UNKNOWN STEP	/tmp/lumine-disabled-interaction
+linux-gpu	UNKNOWN STEP	/tmp/lumine-history-limits
+linux-gpu	UNKNOWN STEP	/tmp/lumine-external-ime
+linux-gpu	UNKNOWN STEP	/tmp/lumine-model-text
+linux-gpu	UNKNOWN STEP	/tmp/lumine-read-only
+linux-gpu	UNKNOWN STEP	/tmp/lumine-readonly-ime
 linux-gpu	UNKNOWN STEP	
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9134174Z   if-no-files-found: warn
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9134431Z   compression-level: 6
@@ -3560,7 +3560,7 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9135341Z   CARGO_HOME: /home/runner/.
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9135950Z   CARGO_INCREMENTAL: 0
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9136218Z   CARGO_TERM_COLOR: always
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9136458Z   CACHE_ON_FAILURE: false
-linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9136814Z   LD_LIBRARY_PATH: /home/runner/work/_temp/zgui-vulkan-loader/build/loader
+linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9136814Z   LD_LIBRARY_PATH: /home/runner/work/_temp/lumine-vulkan-loader/build/loader
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:04.9137219Z ##[endgroup]
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:05.3277880Z (node:13840) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:05.3279487Z (Use `node --trace-deprecation ...` to show where the warning was created)
@@ -3577,7 +3577,7 @@ linux-gpu	UNKNOWN STEP	2026-09-22T23:10:05.7186200Z [command]/usr/bin/git versio
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:05.7276692Z git version 2.55.0
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:05.7360805Z Temporarily overriding HOME='/home/runner/work/_temp/86cc8217-a173-4cd5-bc68-07de7e766e2f' before making global git config changes
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:05.7386068Z Adding repository directory to the temporary git global config as a safe directory
-linux-gpu	UNKNOWN STEP	2026-09-22T23:10:05.7404222Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/zgui/zgui
+linux-gpu	UNKNOWN STEP	2026-09-22T23:10:05.7404222Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/lumine/lumine
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:05.7407748Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:05.7492638Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
 linux-gpu	UNKNOWN STEP	2026-09-22T23:10:05.8331787Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
@@ -3625,7 +3625,7 @@ core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.1130406Z Compl
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.1947144Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.1956493Z ##[group]Run actions/checkout@v4
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.1957330Z with:
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.1957821Z   repository: zeronsh/zgui
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.1957821Z   repository: zeronsh/lumine
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.1962287Z   token: ***
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.1962807Z   ssh-strict: true
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.1963294Z   ssh-user: git
@@ -3640,18 +3640,18 @@ core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.1967352Z   sub
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.1967833Z   set-safe-directory: true
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.1968377Z   allow-unsafe-pr-checkout: false
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.1969290Z ##[endgroup]
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3336499Z Syncing repository: zeronsh/zgui
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3336499Z Syncing repository: zeronsh/lumine
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3339868Z ##[group]Getting Git version info
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3341018Z Working directory is '/home/runner/work/zgui/zgui'
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3341018Z Working directory is '/home/runner/work/lumine/lumine'
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3343409Z [command]/usr/bin/git version
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3433881Z git version 2.55.0
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3440827Z ##[endgroup]
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3451619Z Temporarily overriding HOME='/home/runner/work/_temp/4431bdd5-a5b9-4782-8926-43e7f1b4f136' before making global git config changes
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3454932Z Adding repository directory to the temporary git global config as a safe directory
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3457849Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/zgui/zgui
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3559295Z Deleting the contents of '/home/runner/work/zgui/zgui'
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3457849Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/lumine/lumine
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3559295Z Deleting the contents of '/home/runner/work/lumine/lumine'
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3566158Z ##[group]Initializing the repository
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3569547Z [command]/usr/bin/git init /home/runner/work/zgui/zgui
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3569547Z [command]/usr/bin/git init /home/runner/work/lumine/lumine
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3689188Z hint: Using 'master' as the name for the initial branch. This default branch name
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3691969Z hint: will change to "main" in Git 3.0. To configure the initial branch name
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3694736Z hint: to use in all of your new repositories, which will suppress this warning,
@@ -3665,8 +3665,8 @@ core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3709362Z hint:
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3711970Z hint: 	git branch -m <name>
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3713708Z hint:
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.3726084Z hint: Disable this message with "git config set advice.defaultBranchName false"
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.4838023Z Initialized empty Git repository in /home/runner/work/zgui/zgui/.git/
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.5154321Z [command]/usr/bin/git remote add origin https://github.com/zeronsh/zgui
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.4838023Z Initialized empty Git repository in /home/runner/work/lumine/lumine/.git/
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.5154321Z [command]/usr/bin/git remote add origin https://github.com/zeronsh/lumine
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.5224243Z ##[endgroup]
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.5226689Z ##[group]Disabling automatic garbage collection
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.5228465Z [command]/usr/bin/git config --local gc.auto 0
@@ -3682,7 +3682,7 @@ core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.5580815Z [comm
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.5623049Z ##[endgroup]
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.5630750Z ##[group]Fetching the repository
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:09.5637721Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e51589408079f831c8b9ee433388e2edf46432a7:refs/remotes/origin/main
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:11.7939679Z From https://github.com/zeronsh/zgui
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:11.7939679Z From https://github.com/zeronsh/lumine
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:11.7952813Z  * [new ref]         e51589408079f831c8b9ee433388e2edf46432a7 -> origin/main
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:11.7965044Z ##[endgroup]
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:11.7966420Z ##[group]Determining the checkout info
@@ -3886,14 +3886,14 @@ core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6393193Z ##[gr
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6412235Z Cache Provider:
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6416909Z     github
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6452895Z Workspaces:
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6453611Z     /home/runner/work/zgui/zgui
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6453611Z     /home/runner/work/lumine/lumine
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6454425Z Cache Paths:
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6455169Z     /home/runner/.cargo/bin
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6456116Z     /home/runner/.cargo/.crates.toml
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6458059Z     /home/runner/.cargo/.crates2.json
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6458866Z     /home/runner/.cargo/registry
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6459635Z     /home/runner/.cargo/git
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6460392Z     /home/runner/work/zgui/zgui/target
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6460392Z     /home/runner/work/lumine/lumine/target
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6461050Z Restore Key:
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6461894Z     v0-rust-core-and-desktop-Linux-x64-6ff13d87
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6462636Z Cache Key:
@@ -3907,11 +3907,11 @@ core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6468258Z   - C
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6468790Z   - CARGO_INCREMENTAL
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6469802Z   - CARGO_TERM_COLOR
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6470502Z .. Lockfiles considered:
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6471376Z   - /home/runner/work/zgui/zgui/Cargo.lock
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6472125Z   - /home/runner/work/zgui/zgui/comparisons/workload/Cargo.toml
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6472928Z   - /home/runner/work/zgui/zgui/crates/zgui-desktop/Cargo.toml
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6473669Z   - /home/runner/work/zgui/zgui/crates/zgui-gpu/Cargo.toml
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6474357Z   - /home/runner/work/zgui/zgui/crates/zgui/Cargo.toml
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6471376Z   - /home/runner/work/lumine/lumine/Cargo.lock
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6472125Z   - /home/runner/work/lumine/lumine/comparisons/workload/Cargo.toml
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6472928Z   - /home/runner/work/lumine/lumine/crates/lumine-desktop/Cargo.toml
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6473669Z   - /home/runner/work/lumine/lumine/crates/lumine-gpu/Cargo.toml
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6474357Z   - /home/runner/work/lumine/lumine/crates/lumine/Cargo.toml
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6475303Z ##[endgroup]
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6475684Z 
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:16.6491915Z ... Restoring cache ...
@@ -4398,7 +4398,7 @@ core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:41.9552682Z ^[[1m
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:42.1096213Z ^[[1m^[[92m    Checking^[[0m unicode-segmentation v1.13.3
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:42.4114081Z ^[[1m^[[92m   Compiling^[[0m syn v3.0.6
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:42.5180180Z ^[[1m^[[92m    Checking^[[0m taffy v0.9.0
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:43.5532822Z ^[[1m^[[92m    Checking^[[0m zgui v0.1.0 (/home/runner/work/zgui/zgui/crates/zgui)
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:43.5532822Z ^[[1m^[[92m    Checking^[[0m lumine v0.1.0 (/home/runner/work/lumine/lumine/crates/lumine)
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:45.4832541Z ^[[1m^[[92m    Checking^[[0m cfg-if v1.0.5
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:45.5122425Z ^[[1m^[[92m    Checking^[[0m bitflags v2.13.2
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:02:45.6574025Z ^[[1m^[[92m   Compiling^[[0m syn v2.0.119
@@ -4603,7 +4603,7 @@ core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:05.4272127Z ^[[1m
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:05.6965911Z ^[[1m^[[92m    Checking^[[0m errno v0.3.14
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:05.7612764Z ^[[1m^[[92m    Checking^[[0m async-task v4.7.1
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:05.8920788Z ^[[1m^[[92m    Checking^[[0m signal-hook-registry v1.4.8
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:06.2899665Z ^[[1m^[[92m    Checking^[[0m zgui-gpu v0.1.0 (/home/runner/work/zgui/zgui/crates/zgui-gpu)
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:06.2899665Z ^[[1m^[[92m    Checking^[[0m lumine-gpu v0.1.0 (/home/runner/work/lumine/lumine/crates/lumine-gpu)
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:06.8564405Z ^[[1m^[[92m    Checking^[[0m async-channel v2.5.0
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:07.0003462Z ^[[1m^[[92m    Checking^[[0m uuid v1.26.1
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:07.2661831Z ^[[1m^[[92m    Checking^[[0m atomic-waker v1.1.2
@@ -4662,11 +4662,11 @@ core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:22.7200308Z ^[[1m
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:22.8274283Z ^[[1m^[[92m    Checking^[[0m open v5.4.4
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:22.8934929Z ^[[1m^[[92m    Checking^[[0m arboard v3.6.1
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:23.1052447Z ^[[1m^[[92m    Checking^[[0m fontdue v0.9.4
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:23.1779459Z ^[[1m^[[92m    Checking^[[0m zgui-workload v0.1.0 (/home/runner/work/zgui/zgui/comparisons/workload)
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:23.3743246Z ^[[1m^[[92m    Checking^[[0m zgui-desktop v0.1.0 (/home/runner/work/zgui/zgui/crates/zgui-desktop)
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:23.1779459Z ^[[1m^[[92m    Checking^[[0m lumine-workload v0.1.0 (/home/runner/work/lumine/lumine/comparisons/workload)
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:23.3743246Z ^[[1m^[[92m    Checking^[[0m lumine-desktop v0.1.0 (/home/runner/work/lumine/lumine/crates/lumine-desktop)
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:34.4682143Z ^[[1m^[[92m    Finished^[[0m `dev` profile [unoptimized + debuginfo] target(s) in 2m 00s
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:34.5819648Z ##[group]Run cargo test -p zgui -p zgui-desktop -p zgui-workload --all-targets --locked
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:34.5820314Z ^[[36;1mcargo test -p zgui -p zgui-desktop -p zgui-workload --all-targets --locked^[[0m
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:34.5819648Z ##[group]Run cargo test -p lumine -p lumine-desktop -p lumine-workload --all-targets --locked
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:34.5820314Z ^[[36;1mcargo test -p lumine -p lumine-desktop -p lumine-workload --all-targets --locked^[[0m
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:34.5856459Z shell: /usr/bin/bash -e {0}
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:34.5856720Z env:
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:34.5856930Z   CARGO_HOME: /home/runner/.cargo
@@ -4684,7 +4684,7 @@ core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:35.8362455Z ^[[1m
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:35.9842381Z ^[[1m^[[92m   Compiling^[[0m taffy v0.9.0
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:36.2132557Z ^[[1m^[[92m   Compiling^[[0m cfg-if v1.0.5
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:36.2453237Z ^[[1m^[[92m   Compiling^[[0m syn v3.0.6
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:37.4222921Z ^[[1m^[[92m   Compiling^[[0m zgui v0.1.0 (/home/runner/work/zgui/zgui/crates/zgui)
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:37.4222921Z ^[[1m^[[92m   Compiling^[[0m lumine v0.1.0 (/home/runner/work/lumine/lumine/crates/lumine)
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:41.2602534Z ^[[1m^[[92m   Compiling^[[0m bitflags v2.13.2
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:41.4342691Z ^[[1m^[[92m   Compiling^[[0m once_cell v1.21.4
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:41.5942584Z ^[[1m^[[92m   Compiling^[[0m syn v2.0.119
@@ -4702,7 +4702,7 @@ core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:49.6139267Z [comm
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:49.6378938Z git version 2.55.0
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:49.6574531Z Temporarily overriding HOME='/home/runner/work/_temp/1ac83bb4-1f98-4ed0-ae39-12e97af7d71e' before making global git config changes
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:49.6587888Z Adding repository directory to the temporary git global config as a safe directory
-core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:49.6602106Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/zgui/zgui
+core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:49.6602106Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/lumine/lumine
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:49.6758895Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:49.6965243Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
 core-and-desktop (ubuntu-latest)	UNKNOWN STEP	2026-09-22T23:04:49.8022629Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
@@ -4754,7 +4754,7 @@ macos-gpu	UNKNOWN STEP	2026-09-22T23:02:11.8973060Z Complete job name: macos-gpu
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:11.9441460Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:11.9448240Z ##[group]Run actions/checkout@v4
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:11.9448830Z with:
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:11.9449210Z   repository: zeronsh/zgui
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:11.9449210Z   repository: zeronsh/lumine
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:11.9452220Z   token: ***
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:11.9452630Z   ssh-strict: true
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:11.9453010Z   ssh-user: git
@@ -4769,19 +4769,19 @@ macos-gpu	UNKNOWN STEP	2026-09-22T23:02:11.9456540Z   submodules: false
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:11.9456980Z   set-safe-directory: true
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:11.9457350Z   allow-unsafe-pr-checkout: false
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:11.9457870Z ##[endgroup]
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1027750Z Syncing repository: zeronsh/zgui
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1027750Z Syncing repository: zeronsh/lumine
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1030880Z ##[group]Getting Git version info
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1031470Z Working directory is '/Users/runner/work/zgui/zgui'
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1031470Z Working directory is '/Users/runner/work/lumine/lumine'
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1032450Z [command]/opt/homebrew/bin/git version
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1562340Z git version 2.55.0
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1574910Z ##[endgroup]
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1584850Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/ba3a35b1-8be7-47c3-b103-14a1212b085a/.gitconfig'
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1591580Z Temporarily overriding HOME='/Users/runner/work/_temp/ba3a35b1-8be7-47c3-b103-14a1212b085a' before making global git config changes
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1593000Z Adding repository directory to the temporary git global config as a safe directory
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1596550Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/zgui/zgui
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1715630Z Deleting the contents of '/Users/runner/work/zgui/zgui'
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1596550Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/lumine/lumine
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1715630Z Deleting the contents of '/Users/runner/work/lumine/lumine'
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1720040Z ##[group]Initializing the repository
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1726920Z [command]/opt/homebrew/bin/git init /Users/runner/work/zgui/zgui
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1726920Z [command]/opt/homebrew/bin/git init /Users/runner/work/lumine/lumine
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1953700Z hint: Using 'master' as the name for the initial branch. This default branch name
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1954850Z hint: will change to "main" in Git 3.0. To configure the initial branch name
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1955880Z hint: to use in all of your new repositories, which will suppress this warning,
@@ -4795,8 +4795,8 @@ macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1960220Z hint:
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1960840Z hint: 	git branch -m <name>
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1961210Z hint:
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1961800Z hint: Disable this message with "git config set advice.defaultBranchName false"
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1962490Z Initialized empty Git repository in /Users/runner/work/zgui/zgui/.git/
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1964030Z [command]/opt/homebrew/bin/git remote add origin https://github.com/zeronsh/zgui
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1962490Z Initialized empty Git repository in /Users/runner/work/lumine/lumine/.git/
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.1964030Z [command]/opt/homebrew/bin/git remote add origin https://github.com/zeronsh/lumine
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.2037470Z ##[endgroup]
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.2038070Z ##[group]Disabling automatic garbage collection
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.2043130Z [command]/opt/homebrew/bin/git config --local gc.auto 0
@@ -4812,7 +4812,7 @@ macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.5329220Z [command]/opt/homebrew/bin/g
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.5389840Z ##[endgroup]
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.5390680Z ##[group]Fetching the repository
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:12.5395960Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e51589408079f831c8b9ee433388e2edf46432a7:refs/remotes/origin/main
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:15.8259910Z From https://github.com/zeronsh/zgui
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:15.8259910Z From https://github.com/zeronsh/lumine
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:15.8261050Z  * [new ref]         e51589408079f831c8b9ee433388e2edf46432a7 -> origin/main
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:15.8263740Z ##[endgroup]
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:15.8264640Z ##[group]Determining the checkout info
@@ -5014,14 +5014,14 @@ macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1610350Z ##[group]Cache Configuration
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1676700Z Cache Provider:
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1700160Z     github
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1726150Z Workspaces:
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1765190Z     /Users/runner/work/zgui/zgui
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1765190Z     /Users/runner/work/lumine/lumine
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1803630Z Cache Paths:
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1838070Z     /Users/runner/.cargo/bin
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1851390Z     /Users/runner/.cargo/.crates.toml
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1861070Z     /Users/runner/.cargo/.crates2.json
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1872500Z     /Users/runner/.cargo/registry
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1872880Z     /Users/runner/.cargo/git
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1873160Z     /Users/runner/work/zgui/zgui/target
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1873160Z     /Users/runner/work/lumine/lumine/target
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1873440Z Restore Key:
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1873680Z     v0-rust-macos-gpu-Darwin-arm64-2eab217e
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1873980Z Cache Key:
@@ -5035,18 +5035,18 @@ macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1876320Z   - CARGO_HOME
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1876500Z   - CARGO_INCREMENTAL
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1876650Z   - CARGO_TERM_COLOR
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1876830Z .. Lockfiles considered:
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1877010Z   - /Users/runner/work/zgui/zgui/Cargo.lock
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1877280Z   - /Users/runner/work/zgui/zgui/comparisons/workload/Cargo.toml
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1877580Z   - /Users/runner/work/zgui/zgui/crates/zgui-desktop/Cargo.toml
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1877870Z   - /Users/runner/work/zgui/zgui/crates/zgui-gpu/Cargo.toml
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1878140Z   - /Users/runner/work/zgui/zgui/crates/zgui/Cargo.toml
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1877010Z   - /Users/runner/work/lumine/lumine/Cargo.lock
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1877280Z   - /Users/runner/work/lumine/lumine/comparisons/workload/Cargo.toml
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1877580Z   - /Users/runner/work/lumine/lumine/crates/lumine-desktop/Cargo.toml
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1877870Z   - /Users/runner/work/lumine/lumine/crates/lumine-gpu/Cargo.toml
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1878140Z   - /Users/runner/work/lumine/lumine/crates/lumine/Cargo.toml
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1878610Z ##[endgroup]
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1878700Z 
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.1878750Z ... Restoring cache ...
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.2986090Z No cache found.
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.3057140Z ##[group]Run set -o pipefail
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.3057350Z ^[[36;1mset -o pipefail^[[0m
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.3057840Z ^[[36;1mpython3 scripts/macos_native_validation.py --target-dir target --output "$RUNNER_TEMP/zgui-macos-parity" 2>&1 | tee "$RUNNER_TEMP/zgui-metal-tests.log"^[[0m
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.3057840Z ^[[36;1mpython3 scripts/macos_native_validation.py --target-dir target --output "$RUNNER_TEMP/lumine-macos-parity" 2>&1 | tee "$RUNNER_TEMP/lumine-metal-tests.log"^[[0m
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.3087320Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.3087540Z env:
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.3087670Z   CARGO_HOME: /Users/runner/.cargo
@@ -5055,13 +5055,13 @@ macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.3087980Z   CARGO_TERM_COLOR: always
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.3088120Z   CACHE_ON_FAILURE: false
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:18.3088260Z ##[endgroup]
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0516740Z Traceback (most recent call last):
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0525700Z   File "/Users/runner/work/zgui/zgui/scripts/macos_native_validation.py", line 115, in <module>
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0525700Z   File "/Users/runner/work/lumine/lumine/scripts/macos_native_validation.py", line 115, in <module>
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0526070Z     main()
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0526210Z     ~~~~^^
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0527780Z   File "/Users/runner/work/zgui/zgui/scripts/macos_native_validation.py", line 44, in main
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0528530Z     run('metal-rendering-tests', ['cargo', 'test', '-p', 'zgui-gpu', '--locked', '--', '--test-threads=1'], 1800)
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0527780Z   File "/Users/runner/work/lumine/lumine/scripts/macos_native_validation.py", line 44, in main
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0528530Z     run('metal-rendering-tests', ['cargo', 'test', '-p', 'lumine-gpu', '--locked', '--', '--test-threads=1'], 1800)
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0529040Z     ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0529520Z   File "/Users/runner/work/zgui/zgui/scripts/macos_native_validation.py", line 41, in run
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0529520Z   File "/Users/runner/work/lumine/lumine/scripts/macos_native_validation.py", line 41, in run
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0530000Z     raise RuntimeError(f'{name} failed; inspect its retained log')
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0530430Z RuntimeError: metal-rendering-tests failed; inspect its retained log
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0711080Z ##[error]Process completed with exit code 1.
@@ -5069,9 +5069,9 @@ macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0959900Z Node 20 is being deprecated.
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0960860Z ##[group]Run actions/upload-artifact@v4
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0961050Z with:
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0961160Z   name: macos-gpu-evidence
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0961560Z   path: /Users/runner/work/_temp/zgui-metal-tests.log
-macos-gpu	UNKNOWN STEP	/Users/runner/work/_temp/zgui-macos-host
-macos-gpu	UNKNOWN STEP	/Users/runner/work/_temp/zgui-macos-parity
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0961560Z   path: /Users/runner/work/_temp/lumine-metal-tests.log
+macos-gpu	UNKNOWN STEP	/Users/runner/work/_temp/lumine-macos-host
+macos-gpu	UNKNOWN STEP	/Users/runner/work/_temp/lumine-macos-parity
 macos-gpu	UNKNOWN STEP	
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0961980Z   if-no-files-found: warn
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.0962290Z   compression-level: 6
@@ -5099,7 +5099,7 @@ macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.5166430Z git version 2.55.0
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.5186560Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/4113c8e1-16f1-4533-937b-ce790b137539/.gitconfig'
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.5195950Z Temporarily overriding HOME='/Users/runner/work/_temp/4113c8e1-16f1-4533-937b-ce790b137539' before making global git config changes
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.5197300Z Adding repository directory to the temporary git global config as a safe directory
-macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.5200870Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/zgui/zgui
+macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.5200870Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/lumine/lumine
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.5273150Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.5337520Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
 macos-gpu	UNKNOWN STEP	2026-09-22T23:02:59.6200810Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
@@ -5147,7 +5147,7 @@ core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.3493220Z Comple
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.3952000Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.3957880Z ##[group]Run actions/checkout@v4
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.3958340Z with:
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.3958640Z   repository: zeronsh/zgui
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.3958640Z   repository: zeronsh/lumine
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.3961390Z   token: ***
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.3961710Z   ssh-strict: true
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.3962040Z   ssh-user: git
@@ -5162,19 +5162,19 @@ core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.3965140Z   subm
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.3965540Z   set-safe-directory: true
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.3966010Z   allow-unsafe-pr-checkout: false
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.3966540Z ##[endgroup]
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5261740Z Syncing repository: zeronsh/zgui
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5261740Z Syncing repository: zeronsh/lumine
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5262930Z ##[group]Getting Git version info
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5263430Z Working directory is '/Users/runner/work/zgui/zgui'
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5263430Z Working directory is '/Users/runner/work/lumine/lumine'
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5264350Z [command]/opt/homebrew/bin/git version
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5770620Z git version 2.55.0
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5781600Z ##[endgroup]
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5787980Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/c6739097-0f1d-415d-aa0d-6b2c107ebdab/.gitconfig'
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5795680Z Temporarily overriding HOME='/Users/runner/work/_temp/c6739097-0f1d-415d-aa0d-6b2c107ebdab' before making global git config changes
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5796730Z Adding repository directory to the temporary git global config as a safe directory
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5799100Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/zgui/zgui
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5898080Z Deleting the contents of '/Users/runner/work/zgui/zgui'
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5799100Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/lumine/lumine
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5898080Z Deleting the contents of '/Users/runner/work/lumine/lumine'
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5900800Z ##[group]Initializing the repository
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5903360Z [command]/opt/homebrew/bin/git init /Users/runner/work/zgui/zgui
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.5903360Z [command]/opt/homebrew/bin/git init /Users/runner/work/lumine/lumine
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6090120Z hint: Using 'master' as the name for the initial branch. This default branch name
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6091230Z hint: will change to "main" in Git 3.0. To configure the initial branch name
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6092010Z hint: to use in all of your new repositories, which will suppress this warning,
@@ -5188,8 +5188,8 @@ core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6095940Z hint:
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6096260Z hint: 	git branch -m <name>
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6096690Z hint:
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6097220Z hint: Disable this message with "git config set advice.defaultBranchName false"
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6097930Z Initialized empty Git repository in /Users/runner/work/zgui/zgui/.git/
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6099740Z [command]/opt/homebrew/bin/git remote add origin https://github.com/zeronsh/zgui
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6097930Z Initialized empty Git repository in /Users/runner/work/lumine/lumine/.git/
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6099740Z [command]/opt/homebrew/bin/git remote add origin https://github.com/zeronsh/lumine
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6161660Z ##[endgroup]
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6162360Z ##[group]Disabling automatic garbage collection
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.6163420Z [command]/opt/homebrew/bin/git config --local gc.auto 0
@@ -5205,7 +5205,7 @@ core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.8639280Z [comma
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.8705950Z ##[endgroup]
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.8711720Z ##[group]Fetching the repository
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:10.8713100Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e51589408079f831c8b9ee433388e2edf46432a7:refs/remotes/origin/main
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:14.2296940Z From https://github.com/zeronsh/zgui
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:14.2296940Z From https://github.com/zeronsh/lumine
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:14.2307120Z  * [new ref]         e51589408079f831c8b9ee433388e2edf46432a7 -> origin/main
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:14.2349540Z ##[endgroup]
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:14.2367820Z ##[group]Determining the checkout info
@@ -5411,14 +5411,14 @@ core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1976660Z ##[gro
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1977120Z Cache Provider:
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1977320Z     github
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1977500Z Workspaces:
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1977660Z     /Users/runner/work/zgui/zgui
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1977660Z     /Users/runner/work/lumine/lumine
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1977830Z Cache Paths:
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1977970Z     /Users/runner/.cargo/bin
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1978150Z     /Users/runner/.cargo/.crates.toml
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1978360Z     /Users/runner/.cargo/.crates2.json
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1978620Z     /Users/runner/.cargo/registry
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1978890Z     /Users/runner/.cargo/git
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1979080Z     /Users/runner/work/zgui/zgui/target
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1979080Z     /Users/runner/work/lumine/lumine/target
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1979260Z Restore Key:
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1979440Z     v0-rust-core-and-desktop-Darwin-arm64-2eab217e
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1979660Z Cache Key:
@@ -5432,11 +5432,11 @@ core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1981880Z   - CA
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1982020Z   - CARGO_INCREMENTAL
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1982170Z   - CARGO_TERM_COLOR
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1982320Z .. Lockfiles considered:
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1982490Z   - /Users/runner/work/zgui/zgui/Cargo.lock
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1982820Z   - /Users/runner/work/zgui/zgui/comparisons/workload/Cargo.toml
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1983200Z   - /Users/runner/work/zgui/zgui/crates/zgui-desktop/Cargo.toml
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1983490Z   - /Users/runner/work/zgui/zgui/crates/zgui-gpu/Cargo.toml
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1983750Z   - /Users/runner/work/zgui/zgui/crates/zgui/Cargo.toml
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1982490Z   - /Users/runner/work/lumine/lumine/Cargo.lock
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1982820Z   - /Users/runner/work/lumine/lumine/comparisons/workload/Cargo.toml
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1983200Z   - /Users/runner/work/lumine/lumine/crates/lumine-desktop/Cargo.toml
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1983490Z   - /Users/runner/work/lumine/lumine/crates/lumine-gpu/Cargo.toml
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1983750Z   - /Users/runner/work/lumine/lumine/crates/lumine/Cargo.toml
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1984200Z ##[endgroup]
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1984340Z 
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:16.1984420Z ... Restoring cache ...
@@ -5773,7 +5773,7 @@ core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:29.3610750Z ^[[1m^
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:29.5360670Z ^[[1m^[[92m    Checking^[[0m roxmltree v0.21.1
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:29.6079410Z ^[[1m^[[92m    Checking^[[0m objc2-core-video v0.3.2
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:29.7247140Z ^[[1m^[[92m    Checking^[[0m objc2-quartz-core v0.3.2
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:29.7949820Z ^[[1m^[[92m    Checking^[[0m zgui v0.1.0 (/Users/runner/work/zgui/zgui/crates/zgui)
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:29.7949820Z ^[[1m^[[92m    Checking^[[0m lumine v0.1.0 (/Users/runner/work/lumine/lumine/crates/lumine)
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:29.9317230Z ^[[1m^[[92m    Checking^[[0m raw-window-metal v1.1.0
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:29.9947030Z ^[[1m^[[92m   Compiling^[[0m document-features v0.2.12
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:30.0147820Z ^[[1m^[[92m    Checking^[[0m svgtypes v0.16.1
@@ -5841,16 +5841,16 @@ core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:34.6736920Z ^[[1m^
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:34.8859280Z ^[[1m^[[92m    Checking^[[0m accesskit_winit v0.33.2
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:34.9408120Z ^[[1m^[[92m    Checking^[[0m softbuffer v0.4.8
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:34.9972130Z ^[[1m^[[92m    Checking^[[0m fontdue v0.9.4
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:35.0274150Z ^[[1m^[[92m    Checking^[[0m zgui-gpu v0.1.0 (/Users/runner/work/zgui/zgui/crates/zgui-gpu)
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:35.0274150Z ^[[1m^[[92m    Checking^[[0m lumine-gpu v0.1.0 (/Users/runner/work/lumine/lumine/crates/lumine-gpu)
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:35.0474910Z ^[[1m^[[92m    Checking^[[0m open v5.4.4
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:35.0876370Z ^[[1m^[[92m    Checking^[[0m arboard v3.6.1
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:35.1378030Z ^[[1m^[[92m    Checking^[[0m zgui-workload v0.1.0 (/Users/runner/work/zgui/zgui/comparisons/workload)
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:35.1378030Z ^[[1m^[[92m    Checking^[[0m lumine-workload v0.1.0 (/Users/runner/work/lumine/lumine/comparisons/workload)
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:35.2482370Z ^[[1m^[[92m    Checking^[[0m keyboard-types v0.7.0
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:35.6512000Z ^[[1m^[[92m    Checking^[[0m muda v0.18.0
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:35.8503520Z ^[[1m^[[92m    Checking^[[0m zgui-desktop v0.1.0 (/Users/runner/work/zgui/zgui/crates/zgui-desktop)
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:35.8503520Z ^[[1m^[[92m    Checking^[[0m lumine-desktop v0.1.0 (/Users/runner/work/lumine/lumine/crates/lumine-desktop)
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:38.7938000Z ^[[1m^[[92m    Finished^[[0m `dev` profile [unoptimized + debuginfo] target(s) in 21.20s
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:38.8394660Z ##[group]Run cargo test -p zgui -p zgui-desktop -p zgui-workload --all-targets --locked
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:38.8395070Z ^[[36;1mcargo test -p zgui -p zgui-desktop -p zgui-workload --all-targets --locked^[[0m
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:38.8394660Z ##[group]Run cargo test -p lumine -p lumine-desktop -p lumine-workload --all-targets --locked
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:38.8395070Z ^[[36;1mcargo test -p lumine -p lumine-desktop -p lumine-workload --all-targets --locked^[[0m
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:38.8425140Z shell: /bin/bash -e {0}
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:38.8425310Z env:
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:38.8425440Z   CARGO_HOME: /Users/runner/.cargo
@@ -5944,7 +5944,7 @@ core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:46.7029590Z ^[[1m^
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:47.0967090Z ^[[1m^[[92m   Compiling^[[0m core-graphics-types v0.1.3
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:47.1607200Z ^[[1m^[[92m   Compiling^[[0m png v0.17.16
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:47.8650120Z ^[[1m^[[92m   Compiling^[[0m objc2-core-video v0.3.2
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:48.0975800Z ^[[1m^[[92m   Compiling^[[0m zgui v0.1.0 (/Users/runner/work/zgui/zgui/crates/zgui)
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:48.0975800Z ^[[1m^[[92m   Compiling^[[0m lumine v0.1.0 (/Users/runner/work/lumine/lumine/crates/lumine)
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:49.0836690Z ^[[1m^[[92m   Compiling^[[0m objc2-quartz-core v0.3.2
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:49.2685070Z ^[[1m^[[92m   Compiling^[[0m dpi v0.1.2
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:02:49.3713620Z ^[[1m^[[92m   Compiling^[[0m raw-window-metal v1.1.0
@@ -6021,14 +6021,14 @@ core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:05.0847550Z ^[[1m^
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:05.4705710Z ^[[1m^[[92m   Compiling^[[0m accesskit_winit v0.33.2
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:05.5446790Z ^[[1m^[[92m   Compiling^[[0m muda v0.18.0
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:05.7849740Z ^[[1m^[[92m   Compiling^[[0m rfd v0.17.2
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:06.3700420Z ^[[1m^[[92m   Compiling^[[0m zgui-gpu v0.1.0 (/Users/runner/work/zgui/zgui/crates/zgui-gpu)
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:06.3700420Z ^[[1m^[[92m   Compiling^[[0m lumine-gpu v0.1.0 (/Users/runner/work/lumine/lumine/crates/lumine-gpu)
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:06.5159330Z ^[[1m^[[92m   Compiling^[[0m arboard v3.6.1
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:06.6569380Z ^[[1m^[[92m   Compiling^[[0m softbuffer v0.4.8
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:06.8335160Z ^[[1m^[[92m   Compiling^[[0m open v5.4.4
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:06.9191460Z ^[[1m^[[92m   Compiling^[[0m zgui-workload v0.1.0 (/Users/runner/work/zgui/zgui/comparisons/workload)
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:07.0160700Z ^[[1m^[[92m   Compiling^[[0m zgui-desktop v0.1.0 (/Users/runner/work/zgui/zgui/crates/zgui-desktop)
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:06.9191460Z ^[[1m^[[92m   Compiling^[[0m lumine-workload v0.1.0 (/Users/runner/work/lumine/lumine/comparisons/workload)
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:07.0160700Z ^[[1m^[[92m   Compiling^[[0m lumine-desktop v0.1.0 (/Users/runner/work/lumine/lumine/crates/lumine-desktop)
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:35.2621480Z ^[[1m^[[92m    Finished^[[0m `test` profile [unoptimized + debuginfo] target(s) in 56.35s
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:35.3013180Z ^[[1m^[[92m     Running^[[0m unittests src/lib.rs (target/debug/deps/zgui-b2743c6b1e7f744c)
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:35.3013180Z ^[[1m^[[92m     Running^[[0m unittests src/lib.rs (target/debug/deps/lumine-b2743c6b1e7f744c)
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:35.3067380Z 
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:35.3069070Z running 186 tests
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:35.3093380Z test affine::tests::composition_inverse_and_reflection ... ok
@@ -6727,7 +6727,7 @@ core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0760180Z failur
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0760260Z 
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0760450Z ---- paging_uses_padded_resized_viewport_and_preserves_history_and_shift_anchor stdout ----
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0760700Z 
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0761030Z thread 'paging_uses_padded_resized_viewport_and_preserves_history_and_shift_anchor' (34979) panicked at crates/zgui/tests/editor_paging.rs:73:5:
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0761030Z thread 'paging_uses_padded_resized_viewport_and_preserves_history_and_shift_anchor' (34979) panicked at crates/lumine/tests/editor_paging.rs:73:5:
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0761550Z assertion `left == right` failed: paging must preserve the existing undo entry
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0762230Z   left: "abcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef!"
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0762770Z  right: "abcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef\nabcdef"
@@ -6739,7 +6739,7 @@ core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0764570Z     pa
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0764820Z 
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0765010Z test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0767120Z 
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0773280Z ^[[1m^[[91merror^[[0m: test failed, to rerun pass `-p zgui --test editor_paging`
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0773280Z ^[[1m^[[91merror^[[0m: test failed, to rerun pass `-p lumine --test editor_paging`
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0800200Z ##[error]Process completed with exit code 101.
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0911010Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.0912050Z Post job cleanup.
@@ -6748,7 +6748,7 @@ core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.2105760Z git ve
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.2122470Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/fc0f922f-b332-45e0-989b-e4b300b50f2d/.gitconfig'
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.2129090Z Temporarily overriding HOME='/Users/runner/work/_temp/fc0f922f-b332-45e0-989b-e4b300b50f2d' before making global git config changes
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.2129850Z Adding repository directory to the temporary git global config as a safe directory
-core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.2133370Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/zgui/zgui
+core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.2133370Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/lumine/lumine
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.2196750Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.2257010Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
 core-and-desktop (macos-latest)	UNKNOWN STEP	2026-09-22T23:03:36.3094490Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader

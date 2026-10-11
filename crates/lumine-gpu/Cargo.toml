@@ -1,0 +1,33 @@
+[package]
+name = "lumine-gpu"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+lumine = { path = "../lumine" }
+wgpu = "29.0.4"
+winit = "0.30.13"
+cosmic-text = { version = "0.19.0", features = ["shape-run-cache"] }
+pollster = "0.4"
+bytemuck = { version = "1.25", features = ["derive"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "jpeg"] }
+resvg = { version = "0.46.0", default-features = false }
+unicode-segmentation = "1.12"
+# Per-glyph and per-node lookups every frame; already in the tree via cosmic-text.
+rustc-hash = "2.1"
+
+gif = { version = "=0.14.2", default-features = false, features = ["std"] }
+serde_json = { version = "1.0.151", optional = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-core-foundation = "0.3.2"
+objc2-core-video = "0.3.2"
+objc2-metal = "0.3.2"
+
+[features]
+benchmark = ["dep:serde_json"]
+
+[[example]]
+name = "effects_bench"
+required-features = ["benchmark"]

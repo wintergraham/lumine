@@ -22,8 +22,8 @@ inverse transform. Singular transforms paint nothing and receive no image hit;
 nonfinite matrices supplied to `ImageData::transformed` normalize to identity.
 
 This API applies to image/SVG views, not arbitrary container subtrees. SVG is
-decoded once with `zgui_gpu::assets::decode_svg`; the
-[runnable example](../crates/zgui-desktop/examples/svg_transform.rs) changes its
+decoded once with `lumine_gpu::assets::decode_svg`; the
+[runnable example](../crates/lumine-desktop/examples/svg_transform.rs) changes its
 transform without redecoding. Resolution remains the decoded resolution.
 
 Regression coverage in `affine_images` tests covers rotations, reflection,

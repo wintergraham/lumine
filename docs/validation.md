@@ -27,12 +27,12 @@ Native examples run under Xvfb with Openbox, using llvmpipe Vulkan:
 - The widget gallery passes pointer activation, Unicode model rendering, typed text, Ctrl+A selection, clipboard copy/paste between fields, Tab focus, native resizing and timed close. `scripts/desktop_smoke.py` verifies final model/semantic values rather than only checking that a window opened.
 - The multi-window smoke verifies independent child/grandchild lifetime, a rejected first close request, an accepted second request, exactly-once close cleanup, and cancellation of a pending window before its builder executes.
 - The workbench passes virtual-row selection, note editing/autosave across selection changes, menu opening/dismissal, modal confirmation and viewport resizing. See [workbench](images/workbench.png) and [dialog](images/workbench-dialog.png). Its draft storage is session-only memory.
-- GPUI, QuickGUI and zgui render the same frozen deterministic workload using their actual pinned frameworks. Geometry/content/colors match; native text rasterization/baseline differences remain. See the [comparison protocol](benchmarking.md) and [raw results](results/README.md).
+- GPUI, QuickGUI and lumine render the same frozen deterministic workload using their actual pinned frameworks. Geometry/content/colors match; native text rasterization/baseline differences remain. See the [comparison protocol](benchmarking.md) and [raw results](results/README.md).
 
 To rerun on an existing X11 test display with a window manager:
 
 ```sh
-cargo build -p zgui-desktop --examples --locked
+cargo build -p lumine-desktop --examples --locked
 DISPLAY=:96 python3 scripts/desktop_smoke.py target/debug/examples/gallery
 DISPLAY=:96 target/debug/examples/windows --smoke-test
 ```
@@ -53,9 +53,9 @@ Recorded native runs use `scripts/platform_smoke.py`, which creates and cleans u
 All native rendering above uses llvmpipe, not a hardware GPU. Reproduce the isolated runs with:
 
 ```sh
-cargo build -p zgui-desktop --examples --locked
+cargo build -p lumine-desktop --examples --locked
 python3 scripts/platform_smoke.py target/debug/examples/gallery \
-  --windows target/debug/examples/windows --output /tmp/zgui-platform-validation
+  --windows target/debug/examples/windows --output /tmp/lumine-platform-validation
 ```
 
 The script requires Xvfb, Openbox, xdotool, Weston, weston-screenshooter and Python Pillow. It writes screenshots, compositor logs and `results.json`; the Wayland screenshot check rejects an absent gallery surface. X11 checks assert actual native window dimensions and the model's final logical viewport, so merely issuing a resize command cannot pass validation.
@@ -68,13 +68,13 @@ Use a real display and equivalent hardware renderer configurations for performan
 
 The surface/focus lifecycle changes also pass a fresh full native smoke run: X11 at 1.5× and 2× and Wayland presentation/multiwindow lifecycle. Its separate [result inventory](platform-validation/lifecycle/results.json) and screenshots preserve the earlier platform evidence. That historical Wayland run had no input seat; the newer nested-seat run below covers input separately.
 
-The declarative [form example](../crates/zgui-desktop/examples/form.rs) passes native X11 pointer focus, selection replacement, cross-editor clipboard, Tab focus, multiline entry, disabled editing and reactive/native resize via `scripts/form_smoke.py`. Its [model report](platform-validation/form/form.log) and [screenshot](platform-validation/form/form.png) are retained. GPU editor tests compare incremental and full frames after font changes, selection, text replacement and shrink/grow cycles; they also check glyph/caret colors and scroll restoration.
+The declarative [form example](../crates/lumine-desktop/examples/form.rs) passes native X11 pointer focus, selection replacement, cross-editor clipboard, Tab focus, multiline entry, disabled editing and reactive/native resize via `scripts/form_smoke.py`. Its [model report](platform-validation/form/form.log) and [screenshot](platform-validation/form/form.png) are retained. GPU editor tests compare incremental and full frames after font changes, selection, text replacement and shrink/grow cycles; they also check glyph/caret colors and scroll restoration.
 
 The public component virtual list has bounded-work tests on 100,000 rows, keyed state/index retention, resize and count clamping, constructor failure cleanup, wheel chaining and zero-layout scrolling within the same range. Numeric tests cover extreme counts and finite output geometry; observer tests cover reentrant mounting and removal during size notification. GPU tests verify padded viewport clipping and incremental/full equality across large scroll offsets and allocation changes.
 
 The component workload native debug smoke runs all four modes successfully and visually verifies +, = and done controls. [Reports](platform-validation/component-workload/results.json) and [screenshot](platform-validation/component-workload/idle-done.png) are preserved. Debug llvmpipe delivered 179 scroll ticks and 57–59 streaming ticks in three seconds; this is correctness evidence, not release performance evidence. Existing benchmark numbers still describe the earlier direct-scene adapter.
 
-A fresh [normalized public-component release comparison](results/component-comparison/README.md) completed all 24 runs. Its 3,395 raw samples, 70-file source archive and frozen binary hashes were audited. Active runs delivered 594–599 updates per ten seconds; all zgui active runs delivered 599. The series shows lower sampled active CPU for zgui than both references on llvmpipe, while GPUI has lower RSS. Native screenshots of the same seeded workload were inspected. These are software-GPU measurements, not hardware or macOS performance evidence.
+A fresh [normalized public-component release comparison](results/component-comparison/README.md) completed all 24 runs. Its 3,395 raw samples, 70-file source archive and frozen binary hashes were audited. Active runs delivered 594–599 updates per ten seconds; all lumine active runs delivered 599. The series shows lower sampled active CPU for lumine than both references on llvmpipe, while GPUI has lower RSS. Native screenshots of the same seeded workload were inspected. These are software-GPU measurements, not hardware or macOS performance evidence.
 
 Dynamic native window controls pass title, client resize, minimization/restoration, maximization and visibility checks on X11/Openbox; [external state observations](platform-validation/window-controls-x11.json) supplement the example's viewport assertions. Pending/suspended request-state unit tests do not replace native OS suspension validation. Five allocation-feedback regressions cover oscillation, growth, reentrant preparation, panic cleanup and recovery; fallible native frame/input preparation reports errors rather than hanging.
 
@@ -86,7 +86,7 @@ Rendering now stops before layout preparation/scene flushing for native-confirme
 
 Keyed constructor recovery regressions cover both public components and low-level scopes: a late failure after an earlier new child has mounted releases all staged subscriptions/resources, preserves the original child order/identity/local state and permits successful retry. The complete workspace passes 214 tests, 15 doctests, strict Clippy, formatting and macOS ARM64 all-target cross-check after this change.
 
-Declarative checkboxes share fluent styles and inherited typography with other components, including indicators that expand for large fonts. Four component regressions cover input, model/semantics synchronization, disabled state styles, cleanup and sizing. An AccessKit consumer regression verifies checked-state updates, disabled activation rejection and unmount cleanup. The [native checkbox example](../crates/zgui-desktop/examples/checkbox.rs) passes label clicks, Space activation, disabled behavior and external writes under an owned Xvfb window; [results and screenshot](platform-validation/checkbox/result.json) accompany `scripts/checkbox_smoke.py`. Linux CI runs this smoke. Reusable `Styled::apply`, `when` and `when_some` transformations preserve sparse patches; dynamic signal styles continue to use `reactive_style`.
+Declarative checkboxes share fluent styles and inherited typography with other components, including indicators that expand for large fonts. Four component regressions cover input, model/semantics synchronization, disabled state styles, cleanup and sizing. An AccessKit consumer regression verifies checked-state updates, disabled activation rejection and unmount cleanup. The [native checkbox example](../crates/lumine-desktop/examples/checkbox.rs) passes label clicks, Space activation, disabled behavior and external writes under an owned Xvfb window; [results and screenshot](platform-validation/checkbox/result.json) accompany `scripts/checkbox_smoke.py`. Linux CI runs this smoke. Reusable `Styled::apply`, `when` and `when_some` transformations preserve sparse patches; dynamic signal styles continue to use `reactive_style`.
 
 Declarative sliders use allocated content dimensions and padding for thumb/rail drawing and pointer mapping. Four component tests cover resize, capture, keyboard, extreme finite ranges, external normalization, initial/reactive disabled semantics, inherited colors and cleanup. An AccessKit consumer verifies range/value/action updates; GPU readback compares partial/full frames after value, width and color changes. The [native slider run](platform-validation/slider/result.json) validates drag, Home/End/arrows, reactive width, disabled suppression and external values via `scripts/slider_smoke.py`; Linux CI runs this check. Legacy slider and progress geometry also responds to allocation changes, with two regressions. The integrated run passes 228 tests, 17 doctests, formatting, strict Clippy and macOS ARM64 all-target cross-check.
 
@@ -175,7 +175,7 @@ checks; native macOS and live input-method-service validation are separate.
 Winit 0.30.13 documents formal application suspension for Android, iOS and Web;
 it does not emit equivalent callbacks on Linux/macOS. See the
 [upstream lifecycle contract](https://docs.rs/winit/0.30.13/winit/application/trait.ApplicationHandler.html#method.suspended),
-also verified in the installed dependency source. zgui's callback teardown and
+also verified in the installed dependency source. lumine's callback teardown and
 recreation path is defensive portability support. It does not constitute a native
 desktop machine-sleep/wake or real driver-loss test; those remain separate gaps.
 
@@ -661,7 +661,7 @@ Native macOS IME and candidate popup placement also remain unverified.
 The [direct winit diagnostic](platform-validation/wayland-ime-burst/README.md)
 delivered final preedit and Unicode commit for all 22 tested bursts across fixed,
 moving and delayed candidate geometry. It narrows the investigation but does
-not reproduce or resolve the original zgui burst failures.
+not reproduce or resolve the original lumine burst failures.
 
 ## Refreshed comparison acceptance checks
 
@@ -673,7 +673,7 @@ by six Python regression tests and CI.
 The [retry](results/refined-framework-retry/README.md) completed all 36 GUI
 processes and preserved 10,793 samples. Independent recomputation verified all
 220 archived inputs and measured binary hashes, but the runner correctly rejected
-update parity: zgui scrolling repeat 1 delivered 1,099 updates in 20 seconds,
+update parity: lumine scrolling repeat 1 delivered 1,099 updates in 20 seconds,
 below the 1,160 minimum. Unrelated builds restarted on the shared host during
 sampling. The cause is not isolated, and no new performance ranking is accepted.
 Fresh seeded captures were reviewed for all three applications. Both attempts
@@ -708,16 +708,16 @@ evidence or convert rejected process benchmarks into valid comparisons.
 
 A standalone winit/softbuffer test with synchronous 80 ms blocking delivered all
 12 final preedit/Unicode commit pairs. Four additional unsynchronized bursts in
-the actual zgui editor also delivered final state. Compositor-side traces in
+the actual lumine editor also delivered final state. Compositor-side traces in
 both tests show some intermediate preedits rejected with stale input-method
 serials; these successes do not invalidate the earlier persistent failure.
 
 A separate zero-delay condition reproduced the persistent final-preedit failure
-in both zgui and the independent program: two warm failures, two cold successes.
+in both lumine and the independent program: two warm failures, two cold successes.
 In each failure the compositor advanced its input-method serial after the first
 preedit, then rejected the final preedit carrying the previous serial. Space
 subsequently committed the correct Unicode text with the current serial in all
-four observations. This demonstrates the symptom outside zgui and its GPU
+four observations. This demonstrates the symptom outside lumine and its GPU
 renderer on the tested Sway/wlroots/Fcitx stack; it does not establish failure
 rates on other input stacks or lost committed text. No timing workaround or
 text replay was added to the framework.
@@ -749,12 +749,12 @@ See the [source-frozen checks and native log](platform-validation/surface-recove
 A private Fcitx5 5.1.19 frontend patch republishes only the current nonempty
 preedit after an ordinary input-method serial change, excluding activation and
 deactivation transitions. All four zero-delay observations delivered final
-preedit and exactly one Unicode commit. In the zgui warm run, the trace still
+preedit and exactly one Unicode commit. In the lumine warm run, the trace still
 shows the original final transaction rejected, followed by an accepted refresh
 at the new serial: this directly demonstrates recovery rather than mere absence
 of the race. The eight-stage Escape/focus-switch composition smoke also passes.
 
-No installed plugin, global service or zgui production code was changed. This
+No installed plugin, global service or lumine production code was changed. This
 is an upstream patch candidate, not a shipped fix: empty-preedit cancellation,
 stale commit/deletion transactions and broader surrounding-text/lifecycle cases
 need upstream testing. Exact patch/source/build provenance, private plugin

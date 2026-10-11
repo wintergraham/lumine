@@ -1,7 +1,7 @@
 READY
-DIALOG open Ok(Some("/tmp/zgui-parity-native/native-services/fixture.txt"))
-DIALOG folder Ok(Some("/tmp/zgui-parity-native/native-services/chosen-folder"))
-DIALOG save Ok(Some("/tmp/zgui-parity-native/native-services/chosen-folder/saved.txt"))
+DIALOG open Ok(Some("/tmp/lumine-parity-native/native-services/fixture.txt"))
+DIALOG folder Ok(Some("/tmp/lumine-parity-native/native-services/chosen-folder"))
+DIALOG save Ok(Some("/tmp/lumine-parity-native/native-services/chosen-folder/saved.txt"))
 DIALOG open Ok(None)
 PROMPT Ok(Ok)
 URL Ok(())

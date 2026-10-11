@@ -117,7 +117,7 @@
 [1998615.214]  -> wp_viewporter#10.get_viewport(new id wp_viewport#34, wl_surface#28)
 [1998615.228]  -> wp_fractional_scale_manager_v1#9.get_fractional_scale(new id wp_fractional_scale_v1#35, wl_surface#28)
 [1998615.244]  -> wl_surface#28.set_opaque_region(nil)
-[1998615.254]  -> xdg_toplevel#30.set_title("zgui transparency")
+[1998615.254]  -> xdg_toplevel#30.set_title("lumine transparency")
 [1998615.265]  -> xdg_toplevel#30.set_min_size(2, 1)
 [1998615.275]  -> xdg_toplevel#30.set_max_size(0, 0)
 [1998615.282]  -> wl_surface#28.commit()

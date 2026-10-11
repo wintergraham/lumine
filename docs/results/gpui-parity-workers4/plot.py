@@ -10,7 +10,7 @@ out = Path(__file__).resolve().parent
 records = json.loads((out / 'summary.json').read_text())['groups']
 data = {(r['mode'], r['framework']): r for r in records}
 modes = ['idle', 'stream', 'scroll', 'both']
-colors = {'zgui': '#007f6e', 'gpui': '#4164b7', 'quickgui': '#b96a23'}
+colors = {'lumine': '#007f6e', 'gpui': '#4164b7', 'quickgui': '#b96a23'}
 plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 11,
                      'axes.spines.top': False, 'axes.spines.right': False,
                      'svg.fonttype': 'none'})

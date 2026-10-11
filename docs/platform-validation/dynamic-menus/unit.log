@@ -1,6 +1,6 @@
-   Compiling zgui-desktop v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-desktop)
+   Compiling lumine-desktop v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-desktop)
     Finished `test` profile [unoptimized] target(s) in 2.93s
-     Running unittests src/lib.rs (/tmp/zgui-target/debug/deps/zgui_desktop-0797ae698a0c537b)
+     Running unittests src/lib.rs (/tmp/lumine-target/debug/deps/lumine_desktop-0797ae698a0c537b)
 
 running 6 tests
 test app_menu::tests::disabled_and_unknown_commands_cannot_dispatch ... ok

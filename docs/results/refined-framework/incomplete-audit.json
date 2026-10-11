@@ -4,7 +4,7 @@
   "completed_trials": 17,
   "expected_trials": 36,
   "recomputed_completed_samples": 5092,
-  "failed_trial": "zgui/stream/1",
+  "failed_trial": "lumine/stream/1",
   "failed_trial_exit_code": 101,
   "failed_trial_raw_samples_available": false,
   "active_ticks_per_requested_second": {

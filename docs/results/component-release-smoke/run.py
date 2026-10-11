@@ -1,7 +1,7 @@
 import os, pathlib, subprocess, time, json, hashlib, sys, tarfile, platform
 sys.path.insert(0, str(pathlib.Path('scripts').resolve()))
 from compare import sample
-out=pathlib.Path('docs/results/component-release-smoke'); binary=pathlib.Path('/tmp/zgui-target/release/examples/component_workload')
+out=pathlib.Path('docs/results/component-release-smoke'); binary=pathlib.Path('/tmp/lumine-target/release/examples/component_workload')
 files=sorted(p for base in ('crates','comparisons/workload') for p in pathlib.Path(base).rglob('*') if p.is_file() and p.suffix in ('.rs','.toml','.lock','.wgsl') and 'target' not in p.parts)+[pathlib.Path('Cargo.toml'),pathlib.Path('Cargo.lock')]
 metadata={'binary_sha256':hashlib.sha256(binary.read_bytes()).hexdigest(),'platform':platform.platform(),'source_sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in files},'seconds':5,'warmup_seconds':1,'note':'Single-run release smoke, Xvfb llvmpipe software Vulkan. Not a hardware GPU benchmark or a controlled multi-framework comparison.'}
 with tarfile.open(out/'source.tar.gz','w:gz') as archive:
@@ -11,7 +11,7 @@ xlog=open(out/'xvfb.log','w'); xvfb=subprocess.Popen(['Xvfb','-displayfd',str(wr
 wm=None
 try:
  display=':'+os.read(read_fd,64).decode().strip();os.close(read_fd)
- env=dict(os.environ,DISPLAY=display,WINIT_UNIX_BACKEND='x11',WGPU_BACKEND='vulkan',VK_ICD_FILENAMES='/usr/share/vulkan/icd.d/lvp_icd.json',LIBGL_ALWAYS_SOFTWARE='1',ZGUI_INITIAL_TICKS='0');env.pop('WAYLAND_DISPLAY',None)
+ env=dict(os.environ,DISPLAY=display,WINIT_UNIX_BACKEND='x11',WGPU_BACKEND='vulkan',VK_ICD_FILENAMES='/usr/share/vulkan/icd.d/lvp_icd.json',LIBGL_ALWAYS_SOFTWARE='1',LUMINE_INITIAL_TICKS='0');env.pop('WAYLAND_DISPLAY',None)
  metadata['environment']={k:env.get(k) for k in ('DISPLAY','WINIT_UNIX_BACKEND','WGPU_BACKEND','VK_ICD_FILENAMES','LIBGL_ALWAYS_SOFTWARE')}
  (out/'metadata.json').write_text(json.dumps(metadata,indent=2))
  wlog=open(out/'openbox.log','w');wm=subprocess.Popen(['openbox'],env=env,stdout=wlog,stderr=wlog);time.sleep(.5)
@@ -19,7 +19,7 @@ try:
  for mode in ('idle','stream','scroll','both'):
   samples=[];start=time.monotonic()
   with open(out/(mode+'.log'),'w') as log:
-   proc=subprocess.Popen([str(binary)],env=dict(env,ZGUI_MODE=mode,ZGUI_SECONDS='5'),stdout=log,stderr=log)
+   proc=subprocess.Popen([str(binary)],env=dict(env,LUMINE_MODE=mode,LUMINE_SECONDS='5'),stdout=log,stderr=log)
    try:
     while proc.poll() is None:
      elapsed=time.monotonic()-start

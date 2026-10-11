@@ -1,3 +1,3 @@
-dbus-daemon[4092516]: Activating service name='org.a11y.atspi.Registry' requested by ':1.0' (uid=1000 pid=4092107 comm="/usr/bin/python3 /home/ubuntu/GitHub/zgui/scripts/" label="unconfined")
+dbus-daemon[4092516]: Activating service name='org.a11y.atspi.Registry' requested by ':1.0' (uid=1000 pid=4092107 comm="/usr/bin/python3 /home/ubuntu/GitHub/lumine/scripts/" label="unconfined")
 dbus-daemon[4092516]: Successfully activated service 'org.a11y.atspi.Registry'
 SpiRegistry daemon is running with well-known name - org.a11y.atspi.Registry

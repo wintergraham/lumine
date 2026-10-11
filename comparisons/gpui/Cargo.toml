@@ -1,11 +1,11 @@
 [package]
-name = "zgui-compare-gpui"
+name = "lumine-compare-gpui"
 version = "0.1.0"
 edition = "2021"
 [workspace]
 [dependencies]
 gpui = "=0.2.2"
-zgui-workload = { path = "../workload" }
+lumine-workload = { path = "../workload" }
 [profile.release]
 lto = "thin"
 codegen-units = 1

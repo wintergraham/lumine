@@ -25,9 +25,9 @@
 -- Looking for backtrace
 -- Looking for backtrace - found
 -- Found Execinfo: /usr/include
--- Found Gettext: /tmp/zgui-fcitx-preedit/tools/usr/bin/msgmerge (found version "0.23.2")
+-- Found Gettext: /tmp/lumine-fcitx-preedit/tools/usr/bin/msgmerge (found version "0.23.2")
 -- Found Expat: /usr/lib/x86_64-linux-gnu/libexpat.so (found version "2.7.4")
-CMake Warning (dev) at /tmp/zgui-fcitx-preedit/tools/usr/share/ECM/modules/ECMFindModuleHelpers.cmake:113 (message):
+CMake Warning (dev) at /tmp/lumine-fcitx-preedit/tools/usr/share/ECM/modules/ECMFindModuleHelpers.cmake:113 (message):
   Your project should require at least CMake 3.16.0 to use
   FindXKBCommon.cmake
 Call Stack (most recent call first):
@@ -41,7 +41,7 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
 --   Found iso-codes, version 4.20.1
 -- Found IsoCodes: /usr/share/iso-codes/json/iso_639-3.json
 -- Found XKeyboardConfig: /usr/share/X11/xkb (found version "2.46")
--- Found nlohmann_json: /tmp/zgui-fcitx-preedit/tools/usr/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found version "3.11.3")
+-- Found nlohmann_json: /tmp/lumine-fcitx-preedit/tools/usr/share/cmake/nlohmann_json/nlohmann_jsonConfig.cmake (found version "3.11.3")
 -- Checking for module 'cairo'
 --   Found cairo, version 1.18.4
 -- Checking for modules 'pango;pangocairo'
@@ -56,21 +56,21 @@ CMake Error at CMakeLists.txt:171 (add_subdirectory):
   existing directory.
 
 
-CMake Warning (dev) at /tmp/zgui-fcitx-preedit/tools/usr/share/ECM/modules/ECMFindModuleHelpers.cmake:113 (message):
+CMake Warning (dev) at /tmp/lumine-fcitx-preedit/tools/usr/share/ECM/modules/ECMFindModuleHelpers.cmake:113 (message):
   Your project should require at least CMake 3.16.0 to use FindWayland.cmake
 Call Stack (most recent call first):
-  /tmp/zgui-fcitx-preedit/tools/usr/share/ECM/find-modules/FindWayland.cmake:63 (ecm_find_package_version_check)
+  /tmp/lumine-fcitx-preedit/tools/usr/share/ECM/find-modules/FindWayland.cmake:63 (ecm_find_package_version_check)
   CMakeLists.txt:178 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
 
 -- Found Wayland_Client: /usr/lib/x86_64-linux-gnu/libwayland-client.so (found version "1.24.0")
 -- Found Wayland_Cursor: /usr/lib/x86_64-linux-gnu/libwayland-cursor.so (found version "1.24.0")
 -- Found Wayland: /usr/lib/x86_64-linux-gnu/libwayland-client.so;/usr/lib/x86_64-linux-gnu/libwayland-cursor.so (found suitable version "1.24.0", minimum required is "1.22") found components: Client Cursor
-CMake Warning (dev) at /tmp/zgui-fcitx-preedit/tools/usr/share/ECM/modules/ECMFindModuleHelpers.cmake:113 (message):
+CMake Warning (dev) at /tmp/lumine-fcitx-preedit/tools/usr/share/ECM/modules/ECMFindModuleHelpers.cmake:113 (message):
   Your project should require at least CMake 3.16.0 to use
   FindWaylandScanner.cmake
 Call Stack (most recent call first):
-  /tmp/zgui-fcitx-preedit/tools/usr/share/ECM/find-modules/FindWaylandScanner.cmake:82 (ecm_find_package_version_check)
+  /tmp/lumine-fcitx-preedit/tools/usr/share/ECM/find-modules/FindWaylandScanner.cmake:82 (ecm_find_package_version_check)
   CMakeLists.txt:179 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
 

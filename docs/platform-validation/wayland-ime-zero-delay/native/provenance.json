@@ -3,7 +3,7 @@
   "binary_sha256": "89d70c52c1a0c2b1908caaf7bab6739646757dfd1262de6f07a8d3aaf26b40bb",
   "argv": [
     "docs/platform-validation/wayland-ime-zero-delay/sources/native_zero.py",
-    "/tmp/zgui-target/debug/examples/native_ime",
+    "/tmp/lumine-target/debug/examples/native_ime",
     "--sessions",
     "1",
     "--bursts",

@@ -1,5 +1,5 @@
 //! Standalone diagnostic copy; build and runtime evidence is archived separately.
-//! Direct winit IME diagnostic, independent of zgui editors and rendering.
+//! Direct winit IME diagnostic, independent of lumine editors and rendering.
 //! `--fixed` keeps candidate geometry fixed; default/`--moving` follows preedit
 //! character count. `--seconds N` sets the lifetime (default 15 seconds).
 //! `--cursor-delay-ms N` coalesces updates behind a 0–1000 ms deadline (default 0).
@@ -139,7 +139,7 @@ impl ApplicationHandler for Probe {
             event_loop
                 .create_window(
                     Window::default_attributes()
-                        .with_title("zgui direct winit IME probe")
+                        .with_title("lumine direct winit IME probe")
                         .with_inner_size(LogicalSize::new(640., 240.)),
                 )
                 .expect("create diagnostic window"),

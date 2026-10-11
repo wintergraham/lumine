@@ -1,6 +1,6 @@
 # Initial GitHub Actions inspection
 
-Run: https://github.com/zeronsh/zgui/actions/runs/35795413672
+Run: https://github.com/zeronsh/lumine/actions/runs/35795413672
 Commit: `e51589408079f831c8b9ee433388e2edf46432a7`
 
 `run-35795413672.log` is the unfiltered `gh run view --log` output. `run.json` records job conclusions and steps; `artifacts.json` confirms that no artifacts survived this run.
@@ -12,4 +12,4 @@ Commit: `e51589408079f831c8b9ee433388e2edf46432a7`
 
 These failures do not prove parity or completion of native validation gates.
 
-Local macOS verification: `cargo test -p zgui --test editor_paging --test editor_read_only --test editor_streaming_history --locked` passed (13 tests), with raw output in `focused-shortcut-tests.log`. This verifies command routing/model assertions, not native key injection or UI gates.
+Local macOS verification: `cargo test -p lumine --test editor_paging --test editor_read_only --test editor_streaming_history --locked` passed (13 tests), with raw output in `focused-shortcut-tests.log`. This verifies command routing/model assertions, not native key injection or UI gates.

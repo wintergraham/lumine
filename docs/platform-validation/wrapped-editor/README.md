@@ -16,8 +16,8 @@ selection offsets and caret positions are recorded in `results.json` and
 Reproduce from the repository root:
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo build -p zgui-desktop --example wrapped_editor
-python3 scripts/wrapped_editor_smoke.py /tmp/zgui-target/debug/examples/wrapped_editor --output docs/platform-validation/wrapped-editor
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo build -p lumine-desktop --example wrapped_editor
+python3 scripts/wrapped_editor_smoke.py /tmp/lumine-target/debug/examples/wrapped_editor --output docs/platform-validation/wrapped-editor
 ```
 
 `metadata.json` records the final binary hash, compiler and commands.

@@ -1,58 +1,58 @@
 WARNING: deliberately contended shared-host series; builds active at start: [' 300450 cargo', ' 846583 cargo', '1014700 rustc', '1046608 rustc', '1049927 rustc', '1051366 rustc', '1061510 rustc', '4166972 cargo']
-zgui      idle   CPU    0.00% RSS   108.10 MiB
+lumine      idle   CPU    0.00% RSS   108.10 MiB
 gpui      idle   CPU    0.32% RSS   112.95 MiB
 quickgui  idle   CPU    0.06% RSS   136.19 MiB
-zgui      stream CPU   31.59% RSS   114.64 MiB
+lumine      stream CPU   31.59% RSS   114.64 MiB
 gpui      stream CPU   71.37% RSS   116.01 MiB
 quickgui  stream CPU   68.28% RSS   141.02 MiB
-zgui      scroll CPU   15.80% RSS   116.36 MiB
+lumine      scroll CPU   15.80% RSS   116.36 MiB
 gpui      scroll CPU  138.37% RSS   112.74 MiB
 quickgui  scroll CPU  147.72% RSS   144.17 MiB
-zgui      both   CPU   35.57% RSS   115.95 MiB
+lumine      both   CPU   35.57% RSS   115.95 MiB
 gpui      both   CPU  101.26% RSS   113.88 MiB
 quickgui  both   CPU   87.98% RSS   144.47 MiB
 gpui      idle   CPU    0.33% RSS   112.46 MiB
 quickgui  idle   CPU    0.00% RSS   136.64 MiB
-zgui      idle   CPU    0.00% RSS   107.60 MiB
+lumine      idle   CPU    0.00% RSS   107.60 MiB
 gpui      stream CPU  200.51% RSS   116.08 MiB
 quickgui  stream CPU  180.60% RSS   139.03 MiB
-zgui      stream CPU   30.44% RSS   112.75 MiB
+lumine      stream CPU   30.44% RSS   112.75 MiB
 gpui      scroll CPU  183.81% RSS   111.68 MiB
 quickgui  scroll CPU  141.79% RSS   143.48 MiB
-zgui      scroll CPU   12.74% RSS   116.11 MiB
+lumine      scroll CPU   12.74% RSS   116.11 MiB
 gpui      both   CPU  175.11% RSS   113.87 MiB
 quickgui  both   CPU  196.00% RSS   142.91 MiB
-zgui      both   CPU   35.58% RSS   116.34 MiB
+lumine      both   CPU   35.58% RSS   116.34 MiB
 quickgui  idle   CPU    0.07% RSS   134.33 MiB
-zgui      idle   CPU    0.00% RSS   107.41 MiB
+lumine      idle   CPU    0.00% RSS   107.41 MiB
 gpui      idle   CPU    0.20% RSS   112.98 MiB
 quickgui  stream CPU  167.41% RSS   139.50 MiB
-zgui      stream CPU   28.52% RSS   112.14 MiB
+lumine      stream CPU   28.52% RSS   112.14 MiB
 gpui      stream CPU  143.41% RSS   113.11 MiB
 quickgui  scroll CPU  138.26% RSS   141.82 MiB
-zgui      scroll CPU   15.28% RSS   115.55 MiB
+lumine      scroll CPU   15.28% RSS   115.55 MiB
 gpui      scroll CPU  160.81% RSS   111.37 MiB
 quickgui  both   CPU  180.21% RSS   142.09 MiB
-zgui      both   CPU   32.36% RSS   114.08 MiB
+lumine      both   CPU   32.36% RSS   114.08 MiB
 gpui      both   CPU  201.06% RSS   112.82 MiB
 | Mode | Framework | CPU median [range], % one core | Mean RSS median [range], MiB | Completed ticks [range] |
 | --- | --- | ---: | ---: | ---: |
-| idle | zgui | 0.00 [0.00–0.00] | 107.60 [107.41–108.10] | 0–0 |
+| idle | lumine | 0.00 [0.00–0.00] | 107.60 [107.41–108.10] | 0–0 |
 | idle | gpui | 0.32 [0.20–0.33] | 112.95 [112.46–112.98] | 0–0 |
 | idle | quickgui | 0.06 [0.00–0.07] | 136.19 [134.33–136.64] | 0–0 |
-| stream | zgui | 30.44 [28.52–31.59] | 112.75 [112.14–114.64] | 1155–1199 |
+| stream | lumine | 30.44 [28.52–31.59] | 112.75 [112.14–114.64] | 1155–1199 |
 | stream | gpui | 143.41 [71.37–200.51] | 116.01 [113.11–116.08] | 300–969 |
 | stream | quickgui | 167.41 [68.28–180.60] | 139.50 [139.03–141.02] | 389–1030 |
-| scroll | zgui | 15.28 [12.74–15.80] | 116.11 [115.55–116.36] | 957–1192 |
+| scroll | lumine | 15.28 [12.74–15.80] | 116.11 [115.55–116.36] | 957–1192 |
 | scroll | gpui | 160.81 [138.37–183.81] | 111.68 [111.37–112.74] | 634–1192 |
 | scroll | quickgui | 141.79 [138.26–147.72] | 143.48 [141.82–144.17] | 820–950 |
-| both | zgui | 35.57 [32.36–35.58] | 115.95 [114.08–116.34] | 1198–1199 |
+| both | lumine | 35.57 [32.36–35.58] | 115.95 [114.08–116.34] | 1198–1199 |
 | both | gpui | 175.11 [101.26–201.06] | 113.87 [112.82–113.88] | 609–1126 |
 | both | quickgui | 180.21 [87.98–196.00] | 142.91 [142.09–144.47] | 477–1175 |
 Traceback (most recent call last):
-  File "/home/ubuntu/GitHub/zgui/docs/results/latest-linux-2026-09-25-fcfcc9a/run.py", line 151, in <module>
+  File "/home/ubuntu/GitHub/lumine/docs/results/latest-linux-2026-09-25-fcfcc9a/run.py", line 151, in <module>
     main()
     ~~~~^^
-  File "/home/ubuntu/GitHub/zgui/docs/results/latest-linux-2026-09-25-fcfcc9a/run.py", line 145, in main
+  File "/home/ubuntu/GitHub/lumine/docs/results/latest-linux-2026-09-25-fcfcc9a/run.py", line 145, in main
     raise RuntimeError('model-update parity failed; preserve evidence and investigate before comparison claims')
 RuntimeError: model-update parity failed; preserve evidence and investigate before comparison claims

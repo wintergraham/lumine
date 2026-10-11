@@ -1,57 +1,57 @@
-zgui      idle   CPU    0.00% RSS   100.26 MiB
+lumine      idle   CPU    0.00% RSS   100.26 MiB
 gpui      idle   CPU    0.13% RSS   108.16 MiB
 quickgui  idle   CPU    0.07% RSS   130.75 MiB
-zgui      stream CPU  136.30% RSS   106.65 MiB
+lumine      stream CPU  136.30% RSS   106.65 MiB
 gpui      stream CPU  308.80% RSS   110.52 MiB
 quickgui  stream CPU  240.38% RSS   136.63 MiB
-zgui      scroll CPU  169.49% RSS   105.59 MiB
+lumine      scroll CPU  169.49% RSS   105.59 MiB
 gpui      scroll CPU  292.37% RSS   108.71 MiB
 quickgui  scroll CPU  228.16% RSS   138.41 MiB
-zgui      both   CPU  206.19% RSS   106.89 MiB
+lumine      both   CPU  206.19% RSS   106.89 MiB
 gpui      both   CPU  314.14% RSS   110.78 MiB
 quickgui  both   CPU  240.20% RSS   139.84 MiB
 gpui      idle   CPU    0.27% RSS   108.47 MiB
 quickgui  idle   CPU    0.12% RSS   133.41 MiB
-zgui      idle   CPU    0.00% RSS   103.62 MiB
+lumine      idle   CPU    0.00% RSS   103.62 MiB
 gpui      stream CPU  306.35% RSS   111.25 MiB
 quickgui  stream CPU  239.92% RSS   136.84 MiB
-zgui      stream CPU  136.79% RSS   106.99 MiB
+lumine      stream CPU  136.79% RSS   106.99 MiB
 gpui      scroll CPU  291.96% RSS   108.58 MiB
 quickgui  scroll CPU  226.15% RSS   138.95 MiB
-zgui      scroll CPU  148.69% RSS   106.34 MiB
+lumine      scroll CPU  148.69% RSS   106.34 MiB
 gpui      both   CPU  308.31% RSS   111.33 MiB
 quickgui  both   CPU  240.80% RSS   141.45 MiB
-zgui      both   CPU  205.82% RSS   106.00 MiB
+lumine      both   CPU  205.82% RSS   106.00 MiB
 quickgui  idle   CPU    0.00% RSS   131.34 MiB
-zgui      idle   CPU    0.00% RSS   100.29 MiB
+lumine      idle   CPU    0.00% RSS   100.29 MiB
 gpui      idle   CPU    0.13% RSS   108.28 MiB
 quickgui  stream CPU  236.98% RSS   135.86 MiB
-zgui      stream CPU  137.13% RSS   107.29 MiB
+lumine      stream CPU  137.13% RSS   107.29 MiB
 gpui      stream CPU  306.22% RSS   110.16 MiB
 quickgui  scroll CPU  227.97% RSS   139.03 MiB
-zgui      scroll CPU  168.99% RSS   106.45 MiB
+lumine      scroll CPU  168.99% RSS   106.45 MiB
 gpui      scroll CPU  293.34% RSS   108.09 MiB
 quickgui  both   CPU  242.95% RSS   140.81 MiB
-zgui      both   CPU  203.25% RSS   107.77 MiB
+lumine      both   CPU  203.25% RSS   107.77 MiB
 gpui      both   CPU  309.82% RSS   110.42 MiB
 | Mode | Framework | CPU median [range], % one core | Mean RSS median [range], MiB | Completed ticks [range] |
 | --- | --- | ---: | ---: | ---: |
-| idle | zgui | 0.00 [0.00–0.00] | 100.29 [100.26–103.62] | 0–0 |
+| idle | lumine | 0.00 [0.00–0.00] | 100.29 [100.26–103.62] | 0–0 |
 | idle | gpui | 0.13 [0.13–0.27] | 108.28 [108.16–108.47] | 0–0 |
 | idle | quickgui | 0.07 [0.00–0.12] | 131.34 [130.75–133.41] | 0–0 |
-| stream | zgui | 136.79 [136.30–137.13] | 106.99 [106.65–107.29] | 1198–1199 |
+| stream | lumine | 136.79 [136.30–137.13] | 106.99 [106.65–107.29] | 1198–1199 |
 | stream | gpui | 306.35 [306.22–308.80] | 110.52 [110.16–111.25] | 1185–1192 |
 | stream | quickgui | 239.92 [236.98–240.38] | 136.63 [135.86–136.84] | 1194–1199 |
-| scroll | zgui | 168.99 [148.69–169.49] | 106.34 [105.59–106.45] | 1099–1199 |
+| scroll | lumine | 168.99 [148.69–169.49] | 106.34 [105.59–106.45] | 1099–1199 |
 | scroll | gpui | 292.37 [291.96–293.34] | 108.58 [108.09–108.71] | 1195–1198 |
 | scroll | quickgui | 227.97 [226.15–228.16] | 138.95 [138.41–139.03] | 1198–1199 |
-| both | zgui | 205.82 [203.25–206.19] | 106.89 [106.00–107.77] | 1191–1199 |
+| both | lumine | 205.82 [203.25–206.19] | 106.89 [106.00–107.77] | 1191–1199 |
 | both | gpui | 309.82 [308.31–314.14] | 110.78 [110.42–111.33] | 1194–1197 |
 | both | quickgui | 240.80 [240.20–242.95] | 140.81 [139.84–141.45] | 1198–1199 |
 Traceback (most recent call last):
-  File "/home/ubuntu/GitHub/zgui/docs/results/refined-framework-retry/run.py", line 128, in <module>
+  File "/home/ubuntu/GitHub/lumine/docs/results/refined-framework-retry/run.py", line 128, in <module>
     main()
     ~~~~^^
-  File "/home/ubuntu/GitHub/zgui/docs/results/refined-framework-retry/run.py", line 122, in main
+  File "/home/ubuntu/GitHub/lumine/docs/results/refined-framework-retry/run.py", line 122, in main
     raise RuntimeError('model-update parity failed; preserve evidence and investigate before comparison claims')
 RuntimeError: model-update parity failed; preserve evidence and investigate before comparison claims

@@ -1,10 +1,10 @@
 
 (ibus-daemon:664577): IBUS-WARNING **: 14:07:19.654: 14:07:19.654431: Engines exec:/usr/libexec/ibus-engine-libpinyin --xml is failed: 
 
-(ibus-daemon:664577): IBUS-WARNING **: 14:07:19.671: 14:07:19.671196: Failed to unlink /tmp/zgui-external-ime-u9yvq9bw/config/ibus/bus/cfe95018469c4b5f8eefebdfd9aed5fe-unix-0: No such file or directory
+(ibus-daemon:664577): IBUS-WARNING **: 14:07:19.671: 14:07:19.671196: Failed to unlink /tmp/lumine-external-ime-u9yvq9bw/config/ibus/bus/cfe95018469c4b5f8eefebdfd9aed5fe-unix-0: No such file or directory
 
 (ibus-ui-gtk3:664729): IBUS-WARNING **: 14:07:19.744: ibus_bus_call_sync: org.freedesktop.DBus.Properties.Get: GDBus.Error:org.freedesktop.DBus.Error.Failed: No global engine.
 cannot open ../lua/base.lua: No such file or directory
 lua script loaded.
-cannot open /tmp/zgui-external-ime-u9yvq9bw/config/ibus/libpinyin/user.lua: No such file or directory
-open /tmp/zgui-external-ime-u9yvq9bw/cache/ibus/libpinyin/user.conf failed.
+cannot open /tmp/lumine-external-ime-u9yvq9bw/config/ibus/libpinyin/user.lua: No such file or directory
+open /tmp/lumine-external-ime-u9yvq9bw/cache/ibus/libpinyin/user.conf failed.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Diagnose configurable unsynchronized Pinyin bursts with direct zgui and private Fcitx5.
+"""Diagnose configurable unsynchronized Pinyin bursts with direct lumine and private Fcitx5.
 
 Every session owns its compositor, input method, D-Bus, and configuration.
 Observed input loss is recorded as an outcome, never converted into a pass.
@@ -30,7 +30,7 @@ def run_session(args, mode, index, cursor_delay_ms):
     output.mkdir(parents=True, exist_ok=True)
     (output/'result.json').unlink(missing_ok=True)
     app = ime = compositor = wm = xvfb = bus = None
-    with tempfile.TemporaryDirectory(prefix='zgui-wayland-ime-burst-') as private:
+    with tempfile.TemporaryDirectory(prefix='lumine-wayland-ime-burst-') as private:
         env = dict(os.environ, XDG_RUNTIME_DIR=private, XDG_CONFIG_HOME=private+'/config',
                    XDG_CACHE_HOME=private+'/cache', XDG_DATA_HOME=private+'/data',
                    WLR_BACKENDS='x11', WLR_X11_OUTPUTS='1', WLR_RENDERER='pixman', LANG='C.UTF-8')
@@ -40,7 +40,7 @@ def run_session(args, mode, index, cursor_delay_ms):
         profile.parent.mkdir(parents=True)
         profile.write_text('[Groups/0]\nName=Default\nDefault Layout=us\nDefaultIM=pinyin\n\n[Groups/0/Items/0]\nName=keyboard-us\nLayout=\n\n[Groups/0/Items/1]\nName=pinyin\nLayout=\n\n[GroupOrder]\n0=Default\n')
         config = pathlib.Path(private, 'sway.conf')
-        config.write_text('xwayland disable\nseat seat0 fallback true\noutput * mode 1200x800\ndefault_border none\nfor_window [title="zgui native IME"] fullscreen enable\n')
+        config.write_text('xwayland disable\nseat seat0 fallback true\noutput * mode 1200x800\ndefault_border none\nfor_window [title="lumine native IME"] fullscreen enable\n')
         (output/'profile').write_text(profile.read_text())
         (output/'sway.conf').write_text(config.read_text())
         bus_config = pathlib.Path(private, 'dbus.conf')
@@ -160,7 +160,7 @@ def run_session(args, mode, index, cursor_delay_ms):
                 subprocess.run(['swaymsg','-s',str(sockets[0]),'[pid='+str(app.pid)+']','kill'],env=env,check=True,stdout=subprocess.DEVNULL)
                 app.wait(timeout=5)
             if app.returncode: raise RuntimeError('Direct winit probe exited unsuccessfully')
-            result=dict(mode=mode,cursor_delay_ms=cursor_delay_ms,application="zgui native_ime",server_protocol_trace=True,session=index,client_display_unset=True,trials=trials,
+            result=dict(mode=mode,cursor_delay_ms=cursor_delay_ms,application="lumine native_ime",server_protocol_trace=True,session=index,client_display_unset=True,trials=trials,
                         limitations=['Diagnostic only; no delayed event injection or serial-cancellation guarantee.',
                                      'Cold means a fresh private Fcitx process and empty user data, not a cold OS page cache.'])
             (output/'result.json').write_text(json.dumps(result,indent=2)+'\n')
@@ -181,7 +181,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('binary',type=pathlib.Path)
     parser.add_argument('--output',type=pathlib.Path,required=True)
-    parser.add_argument('--sessions',type=int,default=2,help='independent zgui sessions')
+    parser.add_argument('--sessions',type=int,default=2,help='independent lumine sessions')
     parser.add_argument('--bursts',type=int,default=3,help='identical bursts per session, first cold then warm')
     parser.add_argument('--observation-seconds',type=float,default=2.,help='fixed observation period after each unchanged burst')
     parser.add_argument('--cursor-delays-ms',default='0',help='comma-separated moving-rectangle delays; fixed control always uses zero')
@@ -208,7 +208,7 @@ def main():
                     argv=sys.argv,python=sys.version)
     (args.output/'provenance.json').write_text(json.dumps(provenance,indent=2)+'\n')
     sessions=[]
-    configurations=[('zgui',0)]
+    configurations=[('lumine',0)]
     # Alternate order across independent sessions to reduce ordering bias.
     for index in range(1,args.sessions+1):
         for mode,delay in (configurations if index%2 else list(reversed(configurations))):

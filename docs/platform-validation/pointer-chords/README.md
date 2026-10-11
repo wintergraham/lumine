@@ -20,9 +20,9 @@ desktop. Selection and slider values must advance after the unrelated release
 and remain unchanged after primary release.
 
 ```sh
-cargo build -p zgui-desktop --example pointer_chords --locked
+cargo build -p lumine-desktop --example pointer_chords --locked
 python3 scripts/pointer_chords_smoke.py target/debug/examples/pointer_chords \
-  --output /tmp/zgui-pointer-chords
+  --output /tmp/lumine-pointer-chords
 ```
 
 The runner isolates settings and owns its display/window-manager processes.

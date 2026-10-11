@@ -1,50 +1,50 @@
-zgui      idle   CPU    0.00% RSS   101.45 MiB
+lumine      idle   CPU    0.00% RSS   101.45 MiB
 gpui      idle   CPU    0.13% RSS   108.59 MiB
 quickgui  idle   CPU    0.07% RSS   131.61 MiB
-zgui      stream CPU   96.23% RSS   106.73 MiB
+lumine      stream CPU   96.23% RSS   106.73 MiB
 gpui      stream CPU  211.97% RSS   110.43 MiB
 quickgui  stream CPU  171.31% RSS   136.42 MiB
-zgui      scroll CPU  119.19% RSS   105.73 MiB
+lumine      scroll CPU  119.19% RSS   105.73 MiB
 gpui      scroll CPU  206.29% RSS   109.18 MiB
 quickgui  scroll CPU  160.97% RSS   139.55 MiB
-zgui      both   CPU  150.43% RSS   106.80 MiB
+lumine      both   CPU  150.43% RSS   106.80 MiB
 gpui      both   CPU  214.50% RSS   110.35 MiB
 quickgui  both   CPU  176.74% RSS   139.40 MiB
 gpui      idle   CPU    0.13% RSS   107.62 MiB
 quickgui  idle   CPU    0.07% RSS   131.23 MiB
-zgui      idle   CPU    0.00% RSS   101.26 MiB
+lumine      idle   CPU    0.00% RSS   101.26 MiB
 gpui      stream CPU  214.64% RSS   110.32 MiB
 quickgui  stream CPU  169.09% RSS   136.12 MiB
-zgui      stream CPU   97.64% RSS   106.14 MiB
+lumine      stream CPU   97.64% RSS   106.14 MiB
 gpui      scroll CPU  210.67% RSS   109.40 MiB
 quickgui  scroll CPU  162.43% RSS   138.73 MiB
-zgui      scroll CPU  121.98% RSS   105.88 MiB
+lumine      scroll CPU  121.98% RSS   105.88 MiB
 gpui      both   CPU  216.65% RSS   111.78 MiB
 quickgui  both   CPU  170.55% RSS   139.78 MiB
-zgui      both   CPU  150.52% RSS   105.54 MiB
+lumine      both   CPU  150.52% RSS   105.54 MiB
 quickgui  idle   CPU    0.00% RSS   131.20 MiB
-zgui      idle   CPU    0.00% RSS   100.68 MiB
+lumine      idle   CPU    0.00% RSS   100.68 MiB
 gpui      idle   CPU    0.13% RSS   108.34 MiB
 quickgui  stream CPU  169.39% RSS   137.30 MiB
-zgui      stream CPU   95.88% RSS   106.73 MiB
+lumine      stream CPU   95.88% RSS   106.73 MiB
 gpui      stream CPU  211.49% RSS   110.46 MiB
 quickgui  scroll CPU  167.77% RSS   138.48 MiB
-zgui      scroll CPU  123.87% RSS   106.52 MiB
+lumine      scroll CPU  123.87% RSS   106.52 MiB
 gpui      scroll CPU  208.59% RSS   108.56 MiB
 quickgui  both   CPU  174.43% RSS   140.44 MiB
-zgui      both   CPU  151.14% RSS   107.76 MiB
+lumine      both   CPU  151.14% RSS   107.76 MiB
 gpui      both   CPU  216.41% RSS   109.44 MiB
 | Mode | Framework | CPU median [range], % one core | Mean RSS median [range], MiB | Completed ticks [range] |
 | --- | --- | ---: | ---: | ---: |
-| idle | zgui | 0.00 [0.00–0.00] | 101.26 [100.68–101.45] | 0–0 |
+| idle | lumine | 0.00 [0.00–0.00] | 101.26 [100.68–101.45] | 0–0 |
 | idle | gpui | 0.13 [0.13–0.13] | 108.34 [107.62–108.59] | 0–0 |
 | idle | quickgui | 0.07 [0.00–0.07] | 131.23 [131.20–131.61] | 0–0 |
-| stream | zgui | 96.23 [95.88–97.64] | 106.73 [106.14–106.73] | 1198–1199 |
+| stream | lumine | 96.23 [95.88–97.64] | 106.73 [106.14–106.73] | 1198–1199 |
 | stream | gpui | 211.97 [211.49–214.64] | 110.43 [110.32–110.46] | 1188–1196 |
 | stream | quickgui | 169.39 [169.09–171.31] | 136.42 [136.12–137.30] | 1198–1199 |
-| scroll | zgui | 121.98 [119.19–123.87] | 105.88 [105.73–106.52] | 1198–1199 |
+| scroll | lumine | 121.98 [119.19–123.87] | 105.88 [105.73–106.52] | 1198–1199 |
 | scroll | gpui | 208.59 [206.29–210.67] | 109.18 [108.56–109.40] | 1194–1197 |
 | scroll | quickgui | 162.43 [160.97–167.77] | 138.73 [138.48–139.55] | 1196–1199 |
-| both | zgui | 150.52 [150.43–151.14] | 106.80 [105.54–107.76] | 1196–1199 |
+| both | lumine | 150.52 [150.43–151.14] | 106.80 [105.54–107.76] | 1196–1199 |
 | both | gpui | 216.41 [214.50–216.65] | 110.35 [109.44–111.78] | 1188–1195 |
 | both | quickgui | 174.43 [170.55–176.74] | 139.78 [139.40–140.44] | 1191–1198 |

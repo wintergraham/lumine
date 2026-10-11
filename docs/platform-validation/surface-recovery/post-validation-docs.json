@@ -1,9 +1,9 @@
 {
-  "path": "crates/zgui-desktop/src/lib.rs",
+  "path": "crates/lumine-desktop/src/lib.rs",
   "sha256": "393b5313195bd63d8b46a4fa31546028380839ed7fc4c5094174e8913f2c366a",
   "change": "Crate landing-page example now uses components, children and fluent styles; no production Rust behavior changed.",
   "checks": {
-    "cargo test -p zgui-desktop --doc --locked": 0,
+    "cargo test -p lumine-desktop --doc --locked": 0,
     "cargo fmt --all -- --check": 0
   },
   "first_draft": "Failed doctest because Signal::set returns bool; fixed callback to return unit; all four desktop doctests then passed."

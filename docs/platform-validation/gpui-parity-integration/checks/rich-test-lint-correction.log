@@ -1,6 +1,6 @@
-   Compiling zgui v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui)
+   Compiling lumine v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine)
     Finished `test` profile [unoptimized] target(s) in 5.08s
-     Running unittests src/lib.rs (/tmp/zgui-target/debug/deps/zgui-3d382db47f8f827f)
+     Running unittests src/lib.rs (/tmp/lumine-target/debug/deps/lumine-3d382db47f8f827f)
 
 running 1 test
 test rich_text::tests::validates_unicode_coverage_sizes_and_empty_text ... ok

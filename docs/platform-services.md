@@ -9,8 +9,8 @@ available while the user chooses a path. Selecting a save destination does not
 create or overwrite the file.
 
 ```no_run
-use zgui_desktop::{FileDialogOptions, FileFilter, WindowContext};
-fn choose_document(cx: &mut WindowContext, scope: &mut zgui::view::ViewScope) {
+use lumine_desktop::{FileDialogOptions, FileFilter, WindowContext};
+fn choose_document(cx: &mut WindowContext, scope: &mut lumine::view::ViewScope) {
     let options = FileDialogOptions::new("Open document")
         .filter(FileFilter::new("Text", ["txt", "md"]));
     scope.retain(cx.prompt_open_file(options, |result| {
@@ -62,14 +62,14 @@ with keyboard traversal, disabled-item skipping, Escape dismissal, focus
 restoration, and nested submenus. `has_native_app_menu()` exposes the distinction.
 
 ```no_run
-use zgui_desktop::{AppMenu, AppMenuEntry, Application};
+use lumine_desktop::{AppMenu, AppMenuEntry, Application};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     Application::new().menus(vec![AppMenu::new("File", [
         AppMenuEntry::item("Open…", "open"),
         AppMenuEntry::item("Save", "save").enabled(false),
     ])])?.run(|cx| {
         cx.on_menu_action(|action| println!("{}", action.0));
-        if !zgui_desktop::has_native_app_menu() {
+        if !lumine_desktop::has_native_app_menu() {
             cx.render(cx.app_menu_bar());
         }
     })
@@ -99,7 +99,7 @@ binding and replacement unregisters previous shortcuts. macOS displays and
 handles the same shortcuts in the native menu. Standard native OS-role items
 (About/Services/Hide) remain separate from this application-command model.
 
-Run `cargo run -p zgui-desktop --example platform_services` for an interactive
+Run `cargo run -p lumine-desktop --example platform_services` for an interactive
 example. `scripts/native_services_smoke.py` exercises a real GTK file portal in
 an isolated Sway session; it does not inject dialog results into application code.
 The [macOS continuation packet](platform-validation/macos-continuation/README.md)
@@ -121,7 +121,7 @@ dismissing that message box.
 
 `open_url("https://example.com").await` asks the OS default handler to open a URI on a worker. It rejects malformed schemes and control characters. Success means the launcher accepted the request, not that the remote resource loaded.
 
-`Application::application_id("org.example.Editor")?.on_application_event(...)` delivers typed `ApplicationEvent::OpenUrls` and `Reopen` callbacks on the UI thread. Linux owns the corresponding session-bus name and implements `org.freedesktop.Application.Open` and `Activate` at the application ID's slash-separated object path. Install the application's `.desktop` file, URI MIME associations, and D-Bus activation service separately for OS launching; this library does not modify the user's registration. macOS owns AppleEvent handlers for URL/document opens and reopen while preserving winit's application delegate. Routes are installed again after native launch initialization and removed on teardown. URL schemes still require the application's bundle `CFBundleURLTypes` registration. These callbacks are opt-in through the application ID. Native Mac reopen and OS URL launch/delivery have been observed: a test receiver registered in the user's Applications directory received the exact `zgui-smoke:accepted` URL in its retained UI after the launcher returned success. Earlier missing-registration failures are preserved. This test-only registration does not add application packaging to the framework.
+`Application::application_id("org.example.Editor")?.on_application_event(...)` delivers typed `ApplicationEvent::OpenUrls` and `Reopen` callbacks on the UI thread. Linux owns the corresponding session-bus name and implements `org.freedesktop.Application.Open` and `Activate` at the application ID's slash-separated object path. Install the application's `.desktop` file, URI MIME associations, and D-Bus activation service separately for OS launching; this library does not modify the user's registration. macOS owns AppleEvent handlers for URL/document opens and reopen while preserving winit's application delegate. Routes are installed again after native launch initialization and removed on teardown. URL schemes still require the application's bundle `CFBundleURLTypes` registration. These callbacks are opt-in through the application ID. Native Mac reopen and OS URL launch/delivery have been observed: a test receiver registered in the user's Applications directory received the exact `lumine-smoke:accepted` URL in its retained UI after the launcher returned success. Earlier missing-registration failures are preserved. This test-only registration does not add application packaging to the framework.
 
 Windows has no native application-activation backend. Opting into
 `Application::application_id` makes `run` return an explicit error; applications
@@ -138,4 +138,4 @@ On Wayland, global window position and arbitrary placement are unavailable, so b
 
 External Wayland file drops use an owned `wl_data_device` queue on the application's display. The receiver negotiates Copy and reads `text/uri-list` without blocking the UI thread. It delivers surface-local logical coordinates, per-path compatibility events, and one `FilesDrop` batch. A transfer finishes only after the UI accepts a drop (for example through `View::on_files_drop`); rejected regions, closed owners and failed transfers do not falsely report successful protocol completion. Surface routing is removed on suspend and teardown, and the worker joins before releasing its owned display connection.
 
-The URI transport accepts at most 1 MiB of encoded transfer data and 1,024 local file paths, with a three-second stalled-transfer deadline. Invalid/remote/NUL-bearing URIs reject the complete batch, with typed `FilesDropRejected` reasons. Nonblocking transfer polling keeps input responsive. Leaving the target clears hover and cancels an uncommitted receiver operation. Escape during an external drag is controlled by the source/compositor; the tested GTK3/Sway combination did not forward Escape to the source and still dropped on release. This differs from zgui's typed internal drag, which owns and handles Escape cancellation.
+The URI transport accepts at most 1 MiB of encoded transfer data and 1,024 local file paths, with a three-second stalled-transfer deadline. Invalid/remote/NUL-bearing URIs reject the complete batch, with typed `FilesDropRejected` reasons. Nonblocking transfer polling keeps input responsive. Leaving the target clears hover and cancels an uncommitted receiver operation. Escape during an external drag is controlled by the source/compositor; the tested GTK3/Sway combination did not forward Escape to the source and still dropped on release. This differs from lumine's typed internal drag, which owns and handles Escape cancellation.

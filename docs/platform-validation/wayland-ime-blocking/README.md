@@ -1,6 +1,6 @@
 # Blocking preedit diagnostic
 
-All 12 observations delivered final `ni hao` preedit and exactly one `你好` commit. This standalone winit/softbuffer diagnostic did **not** reproduce the previous zgui final-preedit failure. No production fix follows from this result.
+All 12 observations delivered final `ni hao` preedit and exactly one `你好` commit. This standalone winit/softbuffer diagnostic did **not** reproduce the previous lumine final-preedit failure. No production fix follows from this result.
 
 | Preedit-handler configuration | Moving cold/warm | Fixed cold/warm |
 | --- | --- | --- |
@@ -22,7 +22,7 @@ The moving cold baseline received only `n` and `ni hao`; missing intermediate st
 
 The matching wlroots 0.19.2 implementation discards input-method commits whose serial differs from its current serial. This trace therefore supports rejection of those three intermediate transactions, not loss of the final preedit or committed text. `server-serial-analysis.json` records all server-side input-method commit comparisons: three mismatches in that session, zero in the other five. The analysis counts issued input-method `done()` events from the start of each complete server log; the separate text-input-v3 serial is not used as an input-method serial.
 
-Blocking in an IME callback and presenting a white softbuffer surface do not reproduce the full zgui layout/render/GPU batching path. The experiment changes timing and connection flush behavior, and has only one cold/warm pair per configuration. Zero final failures in this matrix is not evidence that the earlier failure was fixed or cannot recur. Moving application cursor synchronization ahead of GPU work remains an unproven timing hypothesis.
+Blocking in an IME callback and presenting a white softbuffer surface do not reproduce the full lumine layout/render/GPU batching path. The experiment changes timing and connection flush behavior, and has only one cold/warm pair per configuration. Zero final failures in this matrix is not evidence that the earlier failure was fixed or cannot recur. Moving application cursor synchronization ahead of GPU work remains an unproven timing hypothesis.
 
 ## Reproduction and provenance
 

@@ -1,18 +1,18 @@
 {
   "date": "2026-09-22T21:26:59.318806+00:00",
-  "binary": "/tmp/zgui-target/debug/examples/actions",
+  "binary": "/tmp/lumine-target/debug/examples/actions",
   "binary_sha256": "68dc8672764f91bbc0d3effbaa335b1becb3958fcddee8cc371a83eb1494266a",
   "scope": "Focused action/input source snapshot; not a complete source archive or proof of native macOS execution. Other framework features were concurrently in development.",
   "inputs": {
-    "crates/zgui/src/actions.rs": "ab61ed801f7499d86865941ab00d4492caf01012cbdaf33ccd7d8c14330619d5",
-    "crates/zgui/src/action_context.rs": "316d170f701f81b8d96bb3408e4ca54282746e7697e7ff1a837a363d949c6e44",
-    "crates/zgui/src/input.rs": "e598fe6ab18a31b676ee302b8473a6d37a9fe06c69ead873974e4a5bf1b4e82d",
-    "crates/zgui/src/widgets.rs": "d80c038edf1f5cff9592fd44d9349f9d5560560a88e1a87682cd9b6b1acd0d44",
-    "crates/zgui/src/compose.rs": "accd38d704425309bc625d8ead5bb7057850d8c66a8d9375528bc8cdb6c07052",
-    "crates/zgui/tests/actions.rs": "f40621a8d223e881408cca623828432f7915a5ec54984752bf80918ea1d5e747",
-    "crates/zgui-desktop/examples/actions.rs": "6abd30943c702db15e06887dd59a5463b3d230eef15470357708383888950549",
+    "crates/lumine/src/actions.rs": "ab61ed801f7499d86865941ab00d4492caf01012cbdaf33ccd7d8c14330619d5",
+    "crates/lumine/src/action_context.rs": "316d170f701f81b8d96bb3408e4ca54282746e7697e7ff1a837a363d949c6e44",
+    "crates/lumine/src/input.rs": "e598fe6ab18a31b676ee302b8473a6d37a9fe06c69ead873974e4a5bf1b4e82d",
+    "crates/lumine/src/widgets.rs": "d80c038edf1f5cff9592fd44d9349f9d5560560a88e1a87682cd9b6b1acd0d44",
+    "crates/lumine/src/compose.rs": "accd38d704425309bc625d8ead5bb7057850d8c66a8d9375528bc8cdb6c07052",
+    "crates/lumine/tests/actions.rs": "f40621a8d223e881408cca623828432f7915a5ec54984752bf80918ea1d5e747",
+    "crates/lumine-desktop/examples/actions.rs": "6abd30943c702db15e06887dd59a5463b3d230eef15470357708383888950549",
     "scripts/actions_smoke.py": "1dcc456b2aa3710145ebd4d76aa3f8728f14753439fa151e533c90960834a262",
     "scripts/platform_smoke.py": "2dd2fe170a223173381dd65bcaa64a15720c294a0a153abc2ce8157d4f7532fb"
   },
-  "native_command": "ZGUI_ACTION_EVENTS=1 LD_LIBRARY_PATH=/tmp/zgui-ci-loader-check/build/loader python3 scripts/actions_smoke.py /tmp/zgui-target/debug/examples/actions --output /tmp/zgui-actions-native-final"
+  "native_command": "LUMINE_ACTION_EVENTS=1 LD_LIBRARY_PATH=/tmp/lumine-ci-loader-check/build/loader python3 scripts/actions_smoke.py /tmp/lumine-target/debug/examples/actions --output /tmp/lumine-actions-native-final"
 }

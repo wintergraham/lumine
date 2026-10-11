@@ -4,8 +4,8 @@ Use stable Rust with the `x86_64-pc-windows-msvc` target and Visual Studio Build
 Tools (Desktop development with C++, including the Windows SDK). From PowerShell:
 
 ```powershell
-cargo run -p zgui-desktop --example components --locked
-cargo run -p zgui-desktop --example platform_services --locked
+cargo run -p lumine-desktop --example components --locked
+cargo run -p lumine-desktop --example platform_services --locked
 ```
 
 Windows uses the existing winit event loop and wgpu renderer (DX12/Vulkan),
@@ -29,7 +29,7 @@ callback can repeatedly consume paints that winit defers, preventing the pump
 from ever reaching idle. An outer `pump_app_events` loop alone is also unsuitable:
 winit removes its handler between calls. Arrange periodic wakeups while idle,
 for example a UI task awaiting a 10 ms timer, to keep the foreign loop advancing.
-`cargo run -p zgui-desktop --example native_message_pump --locked` checks the
+`cargo run -p lumine-desktop --example native_message_pump --locked` checks the
 native callback and shutdown path. This probe ran successfully on Windows.
 
 ## Limitations
@@ -52,8 +52,8 @@ editor, suspends and recreates the host, verifies retained text and input/IME
 cleanup, and checks the deferred native-window provider across those transitions:
 
 ```powershell
-cargo test -p zgui-desktop --lib --locked
-cargo test -p zgui-desktop --lib host_suspend_recreates_native_resources_and_retains_editor_state --locked -- --ignored --test-threads=1
+cargo test -p lumine-desktop --lib --locked
+cargo test -p lumine-desktop --lib host_suspend_recreates_native_resources_and_retains_editor_state --locked -- --ignored --test-threads=1
 ```
 
 The standard CI matrix includes Windows compilation, library/example tests,

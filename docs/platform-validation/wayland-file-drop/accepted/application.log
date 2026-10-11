@@ -160,7 +160,7 @@
 [3447195.811] wl_registry#28.global(30, "ext_data_control_manager_v1", 1)
 [3447195.815] wl_registry#28.global(31, "wp_security_context_manager_v1", 1)
 [3447195.817] wl_registry#28.global(32, "wp_viewporter", 1)
-[3447195.821]  -> xdg_toplevel#33.set_title("zgui typed drag")
+[3447195.821]  -> xdg_toplevel#33.set_title("lumine typed drag")
 [3447195.832] wl_registry#30.global(7, "ext_idle_notifier_v1", 2)
 [3447195.838] wl_registry#28.global(33, "wp_single_pixel_buffer_manager_v1", 1)
 [3447195.841]  -> xdg_toplevel#33.set_min_size(2, 1)
@@ -2538,7 +2538,7 @@
 [3448913.775] {mesa vk display queue}  -> wl_surface#29.damage_buffer(0, 0, 2147483647, 2147483647)
 [3448913.779] {mesa vk display queue}  -> wl_surface#29.frame(new id wl_callback#109)
 [3448913.782] {mesa vk display queue}  -> wl_surface#29.commit()
-FILE_DROP ["/tmp/zgui-wayland-files-accepted/first.txt", "/tmp/zgui-wayland-files-accepted/second file.txt"]
+FILE_DROP ["/tmp/lumine-wayland-files-accepted/first.txt", "/tmp/lumine-wayland-files-accepted/second file.txt"]
 [3448931.535] {Display Queue} wl_display#1.delete_id(108)
 [3448931.544] {Display Queue} wl_display#1.delete_id(109)
 [3448931.549] wl_callback#108.done(423502790)

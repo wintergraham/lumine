@@ -64,5 +64,5 @@
   Downloaded cosmic-text v0.14.2
   Downloaded linux-raw-sys v0.4.15
   Downloaded linux-raw-sys v0.9.4
-   Compiling zgui-desktop v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-desktop)
+   Compiling lumine-desktop v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-desktop)
     Finished `dev` profile [unoptimized] target(s) in 1.58s

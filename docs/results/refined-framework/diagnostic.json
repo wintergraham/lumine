@@ -4,12 +4,12 @@
     {
       "trial": 0,
       "exit_code": 0,
-      "log": "docs/results/refined-framework/diagnostic-zgui-stream-0.log"
+      "log": "docs/results/refined-framework/diagnostic-lumine-stream-0.log"
     },
     {
       "trial": 1,
       "exit_code": 0,
-      "log": "docs/results/refined-framework/diagnostic-zgui-stream-1.log"
+      "log": "docs/results/refined-framework/diagnostic-lumine-stream-1.log"
     }
   ]
 }

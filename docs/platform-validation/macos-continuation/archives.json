@@ -1,70 +1,70 @@
 [
   {
-    "source": "/tmp/zgui-macos-validation-20260922-01",
-    "archive": "zgui-macos-validation-20260922-01.tar.gz",
+    "source": "/tmp/lumine-macos-validation-20260922-01",
+    "archive": "lumine-macos-validation-20260922-01.tar.gz",
     "sha256": "2efc01487bf9dabd81e0dad0c88467b3b2fc3eecfb4da842e35ab76a54560aab",
     "bytes": 3630,
     "files": 2
   },
   {
-    "source": "/tmp/zgui-macos-validation-20260922-02",
-    "archive": "zgui-macos-validation-20260922-02.tar.gz",
+    "source": "/tmp/lumine-macos-validation-20260922-02",
+    "archive": "lumine-macos-validation-20260922-02.tar.gz",
     "sha256": "0bbb4165160eed3e04a4356344f91df2667d665079c71761254648a14360e413",
     "bytes": 839288,
     "files": 21
   },
   {
-    "source": "/tmp/zgui-metal-fixes",
-    "archive": "zgui-metal-fixes.tar.gz",
+    "source": "/tmp/lumine-metal-fixes",
+    "archive": "lumine-metal-fixes.tar.gz",
     "sha256": "8dc89d3e3d9284b227b5ece04bfdb86fb19e6874360546c0246759c719b7b943",
     "bytes": 6825,
     "files": 9
   },
   {
-    "source": "/tmp/zgui-macos-quality-01",
-    "archive": "zgui-macos-quality-01.tar.gz",
+    "source": "/tmp/lumine-macos-quality-01",
+    "archive": "lumine-macos-quality-01.tar.gz",
     "sha256": "313b95016a756eb622a6902747b8d2018c636802ed2862e56b48c0de26dc8e52",
     "bytes": 23478,
     "files": 4
   },
   {
-    "source": "/tmp/zgui-macos-quality-02",
-    "archive": "zgui-macos-quality-02.tar.gz",
+    "source": "/tmp/lumine-macos-quality-02",
+    "archive": "lumine-macos-quality-02.tar.gz",
     "sha256": "53ec27163b444f0bbec22a612ba375262bc37f068f5c9ce8c7e7d96d7d9a9105",
     "bytes": 32731,
     "files": 9
   },
   {
-    "source": "/tmp/zgui-macos-quality-03",
-    "archive": "zgui-macos-quality-03.tar.gz",
+    "source": "/tmp/lumine-macos-quality-03",
+    "archive": "lumine-macos-quality-03.tar.gz",
     "sha256": "b19acf3bc230738e45a17facc7cec7b9e7312560d8a836b4265f806500d51609",
     "bytes": 65088,
     "files": 12
   },
   {
-    "source": "/tmp/zgui-macos-quality-04",
-    "archive": "zgui-macos-quality-04.tar.gz",
+    "source": "/tmp/lumine-macos-quality-04",
+    "archive": "lumine-macos-quality-04.tar.gz",
     "sha256": "1a238c27793b044017ec1b03282cf4c703373b14bb36148e119ccafbc070f357",
     "bytes": 44340,
     "files": 11
   },
   {
-    "source": "/tmp/zgui-macos-validation-20260922-03",
-    "archive": "zgui-macos-validation-20260922-03.tar.gz",
+    "source": "/tmp/lumine-macos-validation-20260922-03",
+    "archive": "lumine-macos-validation-20260922-03.tar.gz",
     "sha256": "a2b4b5574c0aba5dd92d58c5837024f7328450f15ab19a3ddf03184005d26347",
     "bytes": 1246819,
     "files": 21
   },
   {
-    "source": "/tmp/zgui-macos-resources-01",
-    "archive": "zgui-macos-resources-01.tar.gz",
+    "source": "/tmp/lumine-macos-resources-01",
+    "archive": "lumine-macos-resources-01.tar.gz",
     "sha256": "2484207b8047b2851f57af67b0e06d08a49f39df1838a4a8f09077e2b8712a54",
     "bytes": 1248400,
     "files": 16
   },
   {
-    "source": "/tmp/zgui-macos-ui-20260922-01",
-    "archive": "zgui-macos-ui-20260922-01.tar.gz",
+    "source": "/tmp/lumine-macos-ui-20260922-01",
+    "archive": "lumine-macos-ui-20260922-01.tar.gz",
     "sha256": "977c9d070b802c51d1be8f38d3156bb69ebb959b7d3bd90b9fa16723d89a311f",
     "bytes": 18058,
     "files": 48,
@@ -76,128 +76,128 @@
     ]
   },
   {
-    "source": "/tmp/zgui-metal-fixes",
-    "archive": "zgui-metal-fixes-final.tar.gz",
+    "source": "/tmp/lumine-metal-fixes",
+    "archive": "lumine-metal-fixes-final.tar.gz",
     "sha256": "77595ce7e24f177268f71be57580672db7518e700bac57b9aa0b45b964f52b04",
     "bytes": 262747,
     "files": 36
   },
   {
-    "source": "/tmp/zgui-macos-validation-20260922-04",
-    "archive": "zgui-macos-validation-20260922-04.tar.gz",
+    "source": "/tmp/lumine-macos-validation-20260922-04",
+    "archive": "lumine-macos-validation-20260922-04.tar.gz",
     "sha256": "93da94edd4a2b95fb3e7ed3f053f1af95b9906103e9210930a90e7070c55f31c",
     "bytes": 1234106,
     "files": 21
   },
   {
-    "source": "/tmp/zgui-macos-resources-02",
-    "archive": "zgui-macos-resources-02.tar.gz",
+    "source": "/tmp/lumine-macos-resources-02",
+    "archive": "lumine-macos-resources-02.tar.gz",
     "sha256": "be5f5d1918d84762e18dd69f0d57e697acd7bf20d2ab3db33d07a678e6143499",
     "bytes": 1236371,
     "files": 17,
-    "note": "release-build.log is a copy of /tmp/zgui-macos-release-final.log; original retained."
+    "note": "release-build.log is a copy of /tmp/lumine-macos-release-final.log; original retained."
   },
   {
-    "source": "/tmp/zgui-macos-fixture-order-followup",
-    "archive": "zgui-macos-fixture-order-followup.tar.gz",
+    "source": "/tmp/lumine-macos-fixture-order-followup",
+    "archive": "lumine-macos-fixture-order-followup.tar.gz",
     "sha256": "488d8fcd824743301a22adfd5cbf7fb414fd931668bfc847ad335f5982f50f8d",
     "bytes": 1837,
     "files": 5
   },
   {
-    "source": "/tmp/zgui-linux-sway-readiness",
-    "archive": "zgui-linux-sway-readiness.tar.gz",
+    "source": "/tmp/lumine-linux-sway-readiness",
+    "archive": "lumine-linux-sway-readiness.tar.gz",
     "sha256": "3de9074a7fbb379449bfc0a7473006c58801ab9fdd7ea1118dfb44ad2af90ea0",
     "bytes": 22487,
     "files": 46
   },
   {
-    "source": "/tmp/zgui-ci-reviewed-raw/ci-reviewed",
+    "source": "/tmp/lumine-ci-reviewed-raw/ci-reviewed",
     "archive": "ci-reviewed.tar.gz",
     "sha256": "460e6a7c8abe09bdf40357fa70c4af9b3a4e9fa410ec41d7a63f1d8b2d9d4068",
     "bytes": 351118,
     "files": 9
   },
   {
-    "source": "/tmp/zgui-ci-reviewed-raw/ci-reviewed-02",
+    "source": "/tmp/lumine-ci-reviewed-raw/ci-reviewed-02",
     "archive": "ci-reviewed-02.tar.gz",
     "sha256": "48c05244a1932ebae11003662d382196bb41472ffbd303ca2d802f0ce7ac58f4",
     "bytes": 361414,
     "files": 12
   },
   {
-    "source": "/tmp/zgui-ci-reviewed-raw/ci-reviewed-03",
+    "source": "/tmp/lumine-ci-reviewed-raw/ci-reviewed-03",
     "archive": "ci-reviewed-03.tar.gz",
     "sha256": "5d8735d97f8e4ad922bd1cf0b24316dbd01fa51cb37e462e4f379e9f12857c32",
     "bytes": 237225,
     "files": 5
   },
   {
-    "source": "/tmp/zgui-ci-reviewed-raw/ci-reviewed-04",
+    "source": "/tmp/lumine-ci-reviewed-raw/ci-reviewed-04",
     "archive": "ci-reviewed-04.tar.gz",
     "sha256": "896b540cf461d8355cd23be3934da52d3a22dd2e33d5d096e70af4b9d54b2be9",
     "bytes": 227616,
     "files": 4
   },
   {
-    "source": "/tmp/zgui-ci-reviewed-raw/ci-reviewed-05",
+    "source": "/tmp/lumine-ci-reviewed-raw/ci-reviewed-05",
     "archive": "ci-reviewed-05.tar.gz",
     "sha256": "68f4db37d4b4524eeb2e2a9b989f70e940f5affb956dd873632a88a6c1423118",
     "bytes": 214813,
     "files": 4
   },
   {
-    "source": "/tmp/zgui-ci-reviewed-raw/ci-reviewed-06",
+    "source": "/tmp/lumine-ci-reviewed-raw/ci-reviewed-06",
     "archive": "ci-reviewed-06.tar.gz",
     "sha256": "195e111ef3a68f9ecacdbbd99b063f80a9d873647d959a6b8f6ca1441e99e3df",
     "bytes": 452514,
     "files": 5
   },
   {
-    "source": "/tmp/zgui-macos-gif-01",
-    "archive": "zgui-macos-gif-01.tar.gz",
+    "source": "/tmp/lumine-macos-gif-01",
+    "archive": "lumine-macos-gif-01.tar.gz",
     "sha256": "e8a42fc73cfcc499d885432d8114612d38d852030619659a49030d98ba74ec5e",
     "bytes": 25158,
     "files": 13
   },
   {
-    "source": "/tmp/zgui-macos-gif-02",
-    "archive": "zgui-macos-gif-02.tar.gz",
+    "source": "/tmp/lumine-macos-gif-02",
+    "archive": "lumine-macos-gif-02.tar.gz",
     "sha256": "4ba9c8913de1eaf4991e3d24f51d75f832bdcb884b7b1fe6557b21e05860bc39",
     "bytes": 1035827,
     "files": 20
   },
   {
-    "source": "/tmp/zgui-ci-reviewed-raw/ci-reviewed-07",
+    "source": "/tmp/lumine-ci-reviewed-raw/ci-reviewed-07",
     "archive": "ci-reviewed-07.tar.gz",
     "sha256": "931221cd2182867482f1abd681493045ad9cc90031e78f2615e03964b0f2cc70",
     "bytes": 434513,
     "files": 5
   },
   {
-    "source": "/tmp/zgui-macos-display-01",
-    "archive": "zgui-macos-display-01.tar.gz",
+    "source": "/tmp/lumine-macos-display-01",
+    "archive": "lumine-macos-display-01.tar.gz",
     "sha256": "0140eb71564df0332e4bccacf365ea0022039aa78bf3c56bb9119e8d0d9bfbd0",
     "bytes": 2943,
     "files": 5
   },
   {
-    "source": "/tmp/zgui-ci-reviewed-raw/ci-reviewed-08",
+    "source": "/tmp/lumine-ci-reviewed-raw/ci-reviewed-08",
     "archive": "ci-reviewed-08.tar.gz",
     "sha256": "6646cf20fa9e794c5d2f3fb37ad600e752d7dec4ad2feafc3a72037adeebfc8c",
     "bytes": 677731,
     "files": 4
   },
   {
-    "source": "/tmp/zgui-ci-reviewed-raw/ci-reviewed-09",
+    "source": "/tmp/lumine-ci-reviewed-raw/ci-reviewed-09",
     "archive": "ci-reviewed-09.tar.gz",
     "sha256": "17485970f9bdd670771beae682492e0a083584de13eb7326b26b0e84294992ce",
     "bytes": 713799,
     "files": 5
   },
   {
-    "source": "/tmp/zgui-linux-native-ime-followup",
-    "archive": "zgui-linux-native-ime-followup.tar.gz",
+    "source": "/tmp/lumine-linux-native-ime-followup",
+    "archive": "lumine-linux-native-ime-followup.tar.gz",
     "sha256": "482c16df6f188e86e963252151c6403754613ce57487eac96fb3cab39fc16b63",
     "bytes": 2029557,
     "files": 207

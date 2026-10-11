@@ -2,8 +2,8 @@
   "result": "pass",
   "backend": "native Wayland",
   "files": [
-    "/tmp/zgui-parity-native/file-drop-wayland/first.txt",
-    "/tmp/zgui-parity-native/file-drop-wayland/second file.txt"
+    "/tmp/lumine-parity-native/file-drop-wayland/first.txt",
+    "/tmp/lumine-parity-native/file-drop-wayland/second file.txt"
   ],
   "grouped_drop_count": 1,
   "leave_cancellation": true,

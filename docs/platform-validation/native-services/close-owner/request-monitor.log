@@ -2,4 +2,4 @@ signal time=1790113382.614579 sender=org.freedesktop.DBus -> destination=:1.0 se
    string ":1.0"
 signal time=1790113382.614596 sender=org.freedesktop.DBus -> destination=:1.0 serial=4 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameLost
    string ":1.0"
-method call time=1790113384.178268 sender=:1.5 -> destination=org.freedesktop.portal.Desktop serial=4 path=/org/freedesktop/portal/desktop/request/1_5/zgui_61f5fac45867f84740ecce25ae143634; interface=org.freedesktop.portal.Request; member=Close
+method call time=1790113384.178268 sender=:1.5 -> destination=org.freedesktop.portal.Desktop serial=4 path=/org/freedesktop/portal/desktop/request/1_5/lumine_61f5fac45867f84740ecce25ae143634; interface=org.freedesktop.portal.Request; member=Close

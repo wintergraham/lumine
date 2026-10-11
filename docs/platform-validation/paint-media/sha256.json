@@ -25,6 +25,6 @@
   "interactive/svg_transform-initial.png": "4214e7cc163f0a81cf95433070b6cbd8a05545c379abea682b6e6367bfb8dd51",
   "interactive/svg_transform.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "paint_media_smoke.py": "a3b6d4e170d3b8f9ea0c4a8b626a6e337dd504ac46d76a8d1335aad847c55f3f",
-  "zgui-root-decoration-test.log": "a9e89ff25697f30cce21079d89b20b9df1a7cb00d7aba7f098fa35dc7f575b65",
-  "zgui-root-svg-test.log": "e80c54d4f236ada86719afce3c9dea8c0efec35460ea3a9332758bdc9ebafc03"
+  "lumine-root-decoration-test.log": "a9e89ff25697f30cce21079d89b20b9df1a7cb00d7aba7f098fa35dc7f575b65",
+  "lumine-root-svg-test.log": "e80c54d4f236ada86719afce3c9dea8c0efec35460ea3a9332758bdc9ebafc03"
 }

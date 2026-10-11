@@ -42,273 +42,273 @@
 [ 27%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/outputinfomation.cpp.o
 [ 27%] Building CXX object src/lib/fcitx-config/CMakeFiles/Fcitx5Config.dir/configuration.cpp.o
 [ 27%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_buffer.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_buffer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_buffer.cpp:7:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_buffer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_buffer.cpp:7:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
     7 |         [](void *data, wl_buffer *wldata) {
       |                        ~~~~~~~~~~~^~~~~~
 [ 29%] Building CXX object src/lib/fcitx-config/CMakeFiles/Fcitx5Config.dir/marshallfunction.cpp.o
 [ 29%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_callback.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_callback.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_callback.cpp:7:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_callback.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_callback.cpp:7:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
     7 |         [](void *data, wl_callback *wldata, uint32_t callbackData) {
       |                        ~~~~~~~~~~~~~^~~~~~
 [ 31%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_compositor.cpp.o
 [ 31%] Building CXX object src/lib/fcitx-config/CMakeFiles/Fcitx5Config.dir/iniparser.cpp.o
 [ 31%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_data_device.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp:10:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp:10:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    10 |         [](void *data, wl_data_device *wldata, wl_data_offer *id) {
       |                        ~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp:19:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp:19:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    19 |         [](void *data, wl_data_device *wldata, uint32_t serial,
       |                        ~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp:36:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp:36:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    36 |         [](void *data, wl_data_device *wldata) {
       |                        ~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp:44:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp:44:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    44 |         [](void *data, wl_data_device *wldata, uint32_t time, wl_fixed_t x,
       |                        ~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp:53:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp:53:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    53 |         [](void *data, wl_data_device *wldata) {
       |                        ~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp:61:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_device.cpp:61:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    61 |         [](void *data, wl_data_device *wldata, wl_data_offer *id) {
       |                        ~~~~~~~~~~~~~~~~^~~~~~
 [ 31%] Building CXX object src/lib/fcitx-config/CMakeFiles/Fcitx5Config.dir/iniparser_deprecated.cpp.o
 [ 31%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_data_device_manager.cpp.o
 [ 34%] Building CXX object src/lib/fcitx-config/CMakeFiles/Fcitx5Config.dir/dbushelper.cpp.o
 [ 36%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_data_offer.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_offer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_offer.cpp:7:39: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_offer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_offer.cpp:7:39: warning: unused parameter ‘wldata’ [-Wunused-parameter]
     7 |         [](void *data, wl_data_offer *wldata, const char *mimeType) {
       |                        ~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_offer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_offer.cpp:15:39: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_offer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_offer.cpp:15:39: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    15 |         [](void *data, wl_data_offer *wldata, uint32_t sourceActions) {
       |                        ~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_offer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_offer.cpp:23:39: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_offer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_offer.cpp:23:39: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    23 |         [](void *data, wl_data_offer *wldata, uint32_t dndAction) {
       |                        ~~~~~~~~~~~~~~~^~~~~~
 [ 36%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_data_source.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp:7:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp:7:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
     7 |         [](void *data, wl_data_source *wldata, const char *mimeType) {
       |                        ~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp:15:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp:15:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    15 |         [](void *data, wl_data_source *wldata, const char *mimeType,
       |                        ~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp:24:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp:24:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    24 |         [](void *data, wl_data_source *wldata) {
       |                        ~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp:32:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp:32:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    32 |         [](void *data, wl_data_source *wldata) {
       |                        ~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp:40:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp:40:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    40 |         [](void *data, wl_data_source *wldata) {
       |                        ~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp:48:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_data_source.cpp:48:40: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    48 |         [](void *data, wl_data_source *wldata, uint32_t dndAction) {
       |                        ~~~~~~~~~~~~~~~~^~~~~~
 [ 36%] Linking CXX shared library ../../../bin/libFcitx5Config.so
 [ 36%] Built target Fcitx5Config
 [ 36%] Building CXX object src/lib/fcitx/CMakeFiles/Fcitx5Core.dir/addoninfo.cpp.o
 [ 36%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_keyboard.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp:8:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp:8:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
     8 |         [](void *data, wl_keyboard *wldata, uint32_t format, int32_t fd,
       |                        ~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp:17:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp:17:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    17 |         [](void *data, wl_keyboard *wldata, uint32_t serial,
       |                        ~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp:31:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp:31:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    31 |         [](void *data, wl_keyboard *wldata, uint32_t serial,
       |                        ~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp:45:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp:45:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    45 |         [](void *data, wl_keyboard *wldata, uint32_t serial, uint32_t time,
       |                        ~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp:54:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp:54:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    54 |         [](void *data, wl_keyboard *wldata, uint32_t serial,
       |                        ~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp:65:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_keyboard.cpp:65:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    65 |         [](void *data, wl_keyboard *wldata, int32_t rate, int32_t delay) {
       |                        ~~~~~~~~~~~~~^~~~~~
 [ 38%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_output.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp:7:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp:7:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
     7 |         [](void *data, wl_output *wldata, int32_t x, int32_t y,
       |                        ~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp:18:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp:18:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    18 |         [](void *data, wl_output *wldata, uint32_t flags, int32_t width,
       |                        ~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp:27:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp:27:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    27 |         [](void *data, wl_output *wldata) {
       |                        ~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp:35:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp:35:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    35 |         [](void *data, wl_output *wldata, int32_t factor) {
       |                        ~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp:43:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp:43:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    43 |         [](void *data, wl_output *wldata, const char *name) {
       |                        ~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp:51:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_output.cpp:51:35: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    51 |         [](void *data, wl_output *wldata, const char *description) {
       |                        ~~~~~~~~~~~^~~~~~
 [ 40%] Building CXX object src/lib/fcitx/CMakeFiles/Fcitx5Core.dir/instance.cpp.o
 [ 40%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_pointer.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:8:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:8:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
     8 |         [](void *data, wl_pointer *wldata, uint32_t serial, wl_surface *surface,
       |                        ~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:22:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:22:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    22 |         [](void *data, wl_pointer *wldata, uint32_t serial,
       |                        ~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:36:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:36:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    36 |         [](void *data, wl_pointer *wldata, uint32_t time, wl_fixed_t surfaceX,
       |                        ~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:45:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:45:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    45 |         [](void *data, wl_pointer *wldata, uint32_t serial, uint32_t time,
       |                        ~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:54:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:54:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    54 |         [](void *data, wl_pointer *wldata, uint32_t time, uint32_t axis,
       |                        ~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:63:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:63:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    63 |         [](void *data, wl_pointer *wldata) {
       |                        ~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:71:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:71:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    71 |         [](void *data, wl_pointer *wldata, uint32_t axisSource) {
       |                        ~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:79:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:79:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    79 |         [](void *data, wl_pointer *wldata, uint32_t time, uint32_t axis) {
       |                        ~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:87:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:87:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    87 |         [](void *data, wl_pointer *wldata, uint32_t axis, int32_t discrete) {
       |                        ~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:95:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:95:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    95 |         [](void *data, wl_pointer *wldata, uint32_t axis, int32_t value120) {
       |                        ~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:103:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_pointer.cpp:103:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
   103 |         [](void *data, wl_pointer *wldata, uint32_t axis, uint32_t direction) {
       |                        ~~~~~~~~~~~~^~~~~~
 [ 40%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_region.cpp.o
 [ 43%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_registry.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx/instance.cpp: In function ‘void fcitx::{anonymous}::initAsDaemon()’:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx/instance.cpp:120:16: warning: ignoring return value of ‘int chdir(const char*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx/instance.cpp: In function ‘void fcitx::{anonymous}::initAsDaemon()’:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx/instance.cpp:120:16: warning: ignoring return value of ‘int chdir(const char*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
   120 |     (void)chdir("/");
       |           ~~~~~^~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_registry.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_registry.cpp:7:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_registry.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_registry.cpp:7:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
     7 |         [](void *data, wl_registry *wldata, uint32_t name,
       |                        ~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_registry.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_registry.cpp:16:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_registry.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_registry.cpp:16:37: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    16 |         [](void *data, wl_registry *wldata, uint32_t name) {
       |                        ~~~~~~~~~~~~~^~~~~~
 [ 43%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_seat.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_seat.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_seat.cpp:10:33: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_seat.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_seat.cpp:10:33: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    10 |         [](void *data, wl_seat *wldata, uint32_t capabilities) {
       |                        ~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_seat.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_seat.cpp:18:33: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_seat.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_seat.cpp:18:33: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    18 |         [](void *data, wl_seat *wldata, const char *name) {
       |                        ~~~~~~~~~^~~~~~
 [ 43%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_shell.cpp.o
 [ 45%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_shell_surface.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shell_surface.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shell_surface.cpp:10:42: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shell_surface.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shell_surface.cpp:10:42: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    10 |         [](void *data, wl_shell_surface *wldata, uint32_t serial) {
       |                        ~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shell_surface.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shell_surface.cpp:18:42: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shell_surface.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shell_surface.cpp:18:42: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    18 |         [](void *data, wl_shell_surface *wldata, uint32_t edges, int32_t width,
       |                        ~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shell_surface.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shell_surface.cpp:27:42: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shell_surface.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shell_surface.cpp:27:42: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    27 |         [](void *data, wl_shell_surface *wldata) {
       |                        ~~~~~~~~~~~~~~~~~~^~~~~~
 [ 45%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_shm.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shm.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shm.cpp:8:32: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shm.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_shm.cpp:8:32: warning: unused parameter ‘wldata’ [-Wunused-parameter]
     8 |         [](void *data, wl_shm *wldata, uint32_t format) {
       |                        ~~~~~~~~^~~~~~
 [ 45%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_shm_pool.cpp.o
 [ 45%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_subcompositor.cpp.o
 [ 47%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_subsurface.cpp.o
 [ 47%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_surface.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp:11:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp:11:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    11 |         [](void *data, wl_surface *wldata, wl_output *output) {
       |                        ~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp:24:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp:24:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    24 |         [](void *data, wl_surface *wldata, wl_output *output) {
       |                        ~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp:37:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp:37:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    37 |         [](void *data, wl_surface *wldata, int32_t factor) {
       |                        ~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp:45:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_surface.cpp:45:36: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    45 |         [](void *data, wl_surface *wldata, uint32_t transform) {
       |                        ~~~~~~~~~~~~^~~~~~
 [ 47%] Building CXX object src/lib/fcitx/CMakeFiles/Fcitx5Core.dir/inputcontextmanager.cpp.o
 [ 47%] Building CXX object src/lib/fcitx-wayland/core/CMakeFiles/Fcitx5WaylandCore.dir/wl_touch.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:8:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:8:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
     8 |         [](void *data, wl_touch *wldata, uint32_t serial, uint32_t time,
       |                        ~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:22:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:22:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    22 |         [](void *data, wl_touch *wldata, uint32_t serial, uint32_t time,
       |                        ~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:31:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:31:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    31 |         [](void *data, wl_touch *wldata, uint32_t time, int32_t id,
       |                        ~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:40:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:40:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    40 |         [](void *data, wl_touch *wldata) {
       |                        ~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:48:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:48:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    48 |         [](void *data, wl_touch *wldata) {
       |                        ~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:56:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:56:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    56 |         [](void *data, wl_touch *wldata, int32_t id, wl_fixed_t major,
       |                        ~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:65:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/core/wl_touch.cpp:65:34: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    65 |         [](void *data, wl_touch *wldata, int32_t id, wl_fixed_t orientation) {
       |                        ~~~~~~~~~~^~~~~~
 [ 47%] Building CXX object src/lib/fcitx/CMakeFiles/Fcitx5Core.dir/inputcontextproperty.cpp.o
@@ -322,46 +322,46 @@
 [ 54%] Generating wayland-wlr-foreign-toplevel-management-unstable-v1-client-protocol.h
 [ 54%] Generating wayland-wlr-foreign-toplevel-management-unstable-v1-protocol.c
 [ 54%] Building CXX object src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/CMakeFiles/Fcitx5WaylandWLRForeignToplevelManagement.dir/zwlr_foreign_toplevel_manager_v1.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_manager_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_manager_v1.cpp:10:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_manager_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_manager_v1.cpp:10:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    10 |             [](void *data, zwlr_foreign_toplevel_manager_v1 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_manager_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_manager_v1.cpp:20:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_manager_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_manager_v1.cpp:20:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    20 |             [](void *data, zwlr_foreign_toplevel_manager_v1 *wldata) {
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 [ 56%] Building CXX object src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/CMakeFiles/Fcitx5WaylandWLRForeignToplevelManagement.dir/zwlr_foreign_toplevel_handle_v1.cpp.o
 [ 56%] Building CXX object src/lib/fcitx/CMakeFiles/Fcitx5Core.dir/addoninstance.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:12:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:12:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    12 |             [](void *data, zwlr_foreign_toplevel_handle_v1 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:21:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:21:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    21 |             [](void *data, zwlr_foreign_toplevel_handle_v1 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:30:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:30:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    30 |             [](void *data, zwlr_foreign_toplevel_handle_v1 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:44:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:44:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    44 |             [](void *data, zwlr_foreign_toplevel_handle_v1 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:58:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:58:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    58 |             [](void *data, zwlr_foreign_toplevel_handle_v1 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:67:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:67:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    67 |             [](void *data, zwlr_foreign_toplevel_handle_v1 *wldata) {
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:75:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:75:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    75 |             [](void *data, zwlr_foreign_toplevel_handle_v1 *wldata) {
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:83:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/wlr-foreign-toplevel-management-unstable-v1/zwlr_foreign_toplevel_handle_v1.cpp:83:61: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    83 |             [](void *data, zwlr_foreign_toplevel_handle_v1 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 [ 56%] Building CXX object src/lib/fcitx/CMakeFiles/Fcitx5Core.dir/addonfactory.cpp.o
@@ -372,38 +372,38 @@
 [ 59%] Generating wayland-input-method-unstable-v1-protocol.c
 [ 59%] Building CXX object src/lib/fcitx-wayland/input-method/CMakeFiles/Fcitx5WaylandInputMethod.dir/zwp_input_method_context_v1.cpp.o
 [ 61%] Building CXX object src/lib/fcitx/CMakeFiles/Fcitx5Core.dir/inputmethodgroup.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp:10:57: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp:10:57: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    10 |             [](void *data, zwp_input_method_context_v1 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp:19:57: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp:19:57: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    19 |             [](void *data, zwp_input_method_context_v1 *wldata) {
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp:27:57: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp:27:57: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    27 |             [](void *data, zwp_input_method_context_v1 *wldata, uint32_t hint,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp:36:57: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp:36:57: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    36 |             [](void *data, zwp_input_method_context_v1 *wldata, uint32_t button,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp:45:57: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp:45:57: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    45 |             [](void *data, zwp_input_method_context_v1 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp:54:57: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_context_v1.cpp:54:57: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    54 |             [](void *data, zwp_input_method_context_v1 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 [ 61%] Building CXX object src/lib/fcitx/CMakeFiles/Fcitx5Core.dir/inputmethodmanager.cpp.o
 [ 61%] Building CXX object src/lib/fcitx-wayland/input-method/CMakeFiles/Fcitx5WaylandInputMethod.dir/zwp_input_method_v1.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_v1.cpp:9:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_v1.cpp:9:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
     9 |         [](void *data, zwp_input_method_v1 *wldata,
       |                        ~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_v1.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_v1.cpp:19:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_v1.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method/zwp_input_method_v1.cpp:19:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    19 |         [](void *data, zwp_input_method_v1 *wldata,
       |                        ~~~~~~~~~~~~~~~~~~~~~^~~~~~
 [ 63%] Building CXX object src/lib/fcitx-wayland/input-method/CMakeFiles/Fcitx5WaylandInputMethod.dir/zwp_input_panel_surface_v1.cpp.o
@@ -416,57 +416,57 @@
 [ 68%] Generating wayland-virtual-keyboard-unstable-v1-protocol.c
 [ 68%] Generating wayland-input-method-unstable-v2-protocol.c
 [ 68%] Building CXX object src/lib/fcitx-wayland/input-method-v2/CMakeFiles/Fcitx5WaylandInputMethodV2.dir/zwp_input_popup_surface_v2.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_popup_surface_v2.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_popup_surface_v2.cpp:9:56: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_popup_surface_v2.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_popup_surface_v2.cpp:9:56: warning: unused parameter ‘wldata’ [-Wunused-parameter]
     9 |             [](void *data, zwp_input_popup_surface_v2 *wldata, int32_t x,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 [ 68%] Building CXX object src/lib/fcitx-wayland/input-method-v2/CMakeFiles/Fcitx5WaylandInputMethodV2.dir/zwp_input_method_keyboard_grab_v2.cpp.o
 [ 68%] Building CXX object src/lib/fcitx/CMakeFiles/Fcitx5Core.dir/inputmethodentry.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp:9:63: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp:9:63: warning: unused parameter ‘wldata’ [-Wunused-parameter]
     9 |             [](void *data, zwp_input_method_keyboard_grab_v2 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp:18:63: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp:18:63: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    18 |             [](void *data, zwp_input_method_keyboard_grab_v2 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp:27:63: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp:27:63: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    27 |             [](void *data, zwp_input_method_keyboard_grab_v2 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp:38:63: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_keyboard_grab_v2.cpp:38:63: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    38 |             [](void *data, zwp_input_method_keyboard_grab_v2 *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 [ 70%] Building CXX object src/lib/fcitx/CMakeFiles/Fcitx5Core.dir/globalconfig.cpp.o
 [ 72%] Building CXX object src/lib/fcitx-wayland/input-method-v2/CMakeFiles/Fcitx5WaylandInputMethodV2.dir/zwp_input_method_manager_v2.cpp.o
 [ 72%] Building CXX object src/lib/fcitx-wayland/input-method-v2/CMakeFiles/Fcitx5WaylandInputMethodV2.dir/zwp_input_method_v2.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:11:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:11:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    11 |         [](void *data, zwp_input_method_v2 *wldata) {
       |                        ~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:19:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:19:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    19 |         [](void *data, zwp_input_method_v2 *wldata) {
       |                        ~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:27:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:27:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    27 |         [](void *data, zwp_input_method_v2 *wldata, const char *text,
       |                        ~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:36:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:36:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    36 |         [](void *data, zwp_input_method_v2 *wldata, uint32_t cause) {
       |                        ~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:44:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:44:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    44 |         [](void *data, zwp_input_method_v2 *wldata, uint32_t hint,
       |                        ~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:53:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:53:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    53 |         [](void *data, zwp_input_method_v2 *wldata) {
       |                        ~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:61:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/input-method-v2/zwp_input_method_v2.cpp:61:45: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    61 |         [](void *data, zwp_input_method_v2 *wldata) {
       |                        ~~~~~~~~~~~~~~~~~~~~~^~~~~~
 [ 72%] Building CXX object src/lib/fcitx-wayland/input-method-v2/CMakeFiles/Fcitx5WaylandInputMethodV2.dir/zwp_virtual_keyboard_manager_v1.cpp.o
@@ -478,108 +478,108 @@
 [ 77%] Linking CXX static library ../../../../lib/libFcitx5WaylandInputMethodV2.a
 [ 77%] Built target Fcitx5WaylandInputMethodV2
 [ 77%] Generating wayland-plasma-window-management-client-protocol.h
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/plasma-window-management.xml:64: warning: since version not increasing
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/plasma-window-management.xml:64: warning: since version not increasing
 
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/plasma-window-management.xml:194: warning: since version not increasing
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/plasma-window-management.xml:194: warning: since version not increasing
 
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/plasma-window-management.xml:281: warning: since version not increasing
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/plasma-window-management.xml:281: warning: since version not increasing
 
 [ 77%] Generating wayland-plasma-window-management-protocol.c
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/plasma-window-management.xml:64: warning: since version not increasing
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/plasma-window-management.xml:64: warning: since version not increasing
 
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/plasma-window-management.xml:194: warning: since version not increasing
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/plasma-window-management.xml:194: warning: since version not increasing
 
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/plasma-window-management.xml:281: warning: since version not increasing
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/plasma-window-management.xml:281: warning: since version not increasing
 
 [ 77%] Building CXX object src/lib/fcitx-wayland/plasma-window-management/CMakeFiles/Fcitx5WaylandPlasmaWindowManagement.dir/org_kde_plasma_window_management.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp:10:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp:10:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    10 |             [](void *data, org_kde_plasma_window_management *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp:19:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp:19:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    19 |             [](void *data, org_kde_plasma_window_management *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp:28:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp:28:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    28 |             [](void *data, org_kde_plasma_window_management *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp:37:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp:37:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    37 |             [](void *data, org_kde_plasma_window_management *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp:46:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window_management.cpp:46:62: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    46 |             [](void *data, org_kde_plasma_window_management *wldata,
       |                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 [ 79%] Building CXX object src/lib/fcitx/CMakeFiles/Fcitx5Core.dir/action.cpp.o
 [ 81%] Building CXX object src/lib/fcitx-wayland/plasma-window-management/CMakeFiles/Fcitx5WaylandPlasmaWindowManagement.dir/org_kde_plasma_window.cpp.o
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:10:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:10:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    10 |         [](void *data, org_kde_plasma_window *wldata, const char *title) {
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:18:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:18:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    18 |         [](void *data, org_kde_plasma_window *wldata, const char *appId) {
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:26:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:26:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    26 |         [](void *data, org_kde_plasma_window *wldata, uint32_t flags) {
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:34:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:34:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    34 |         [](void *data, org_kde_plasma_window *wldata, int32_t number) {
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:42:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:42:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    42 |         [](void *data, org_kde_plasma_window *wldata, const char *name) {
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:50:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:50:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    50 |         [](void *data, org_kde_plasma_window *wldata) {
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:58:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:58:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    58 |         [](void *data, org_kde_plasma_window *wldata) {
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:66:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:66:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    66 |         [](void *data, org_kde_plasma_window *wldata,
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:79:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:79:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    79 |         [](void *data, org_kde_plasma_window *wldata, int32_t x, int32_t y,
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:88:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:88:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    88 |         [](void *data, org_kde_plasma_window *wldata) {
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:96:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:96:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
    96 |         [](void *data, org_kde_plasma_window *wldata, uint32_t pid) {
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:104:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:104:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
   104 |         [](void *data, org_kde_plasma_window *wldata, const char *id) {
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:112:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:112:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
   112 |         [](void *data, org_kde_plasma_window *wldata, const char *is) {
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:120:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:120:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
   120 |         [](void *data, org_kde_plasma_window *wldata, const char *serviceName,
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:129:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:129:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
   129 |         [](void *data, org_kde_plasma_window *wldata, const char *id) {
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:137:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:137:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
   137 |         [](void *data, org_kde_plasma_window *wldata, const char *id) {
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
-/tmp/zgui-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:145:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp: In lambda function:
+/tmp/lumine-fcitx-preedit/fcitx5-5.1.19/src/lib/fcitx-wayland/plasma-window-management/org_kde_plasma_window.cpp:145:47: warning: unused parameter ‘wldata’ [-Wunused-parameter]
   145 |         [](void *data, org_kde_plasma_window *wldata,
       |                        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
 [ 81%] Building CXX object src/lib/fcitx/CMakeFiles/Fcitx5Core.dir/menu.cpp.o

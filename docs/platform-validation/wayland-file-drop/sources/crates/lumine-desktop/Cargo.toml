@@ -1,0 +1,46 @@
+[package]
+name = "lumine-desktop"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+lumine = { path = "../lumine" }
+lumine-gpu = { path = "../lumine-gpu" }
+winit = "0.30.13"
+softbuffer = "0.4.8"
+fontdue = "0.9.3"
+cosmic-text = "0.14.2"
+arboard = { version = "3.6.1", default-features = false }
+accesskit = "0.24.1"
+unicode-segmentation = "1.12"
+accesskit_winit = "0.33.2"
+rfd = "=0.17.2"
+open = "=5.4.4"
+lumine-workload = { path = "../../comparisons/workload" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+smithay-clipboard = "0.7.3"
+dbus = "=0.9.12"
+dbus-crossroads = "=0.5.3"
+calloop = "=0.14.4"
+calloop-wayland-source = "=0.4.1"
+wayland-client = "=0.31.15"
+wayland-backend = { version = "=0.3.17", features = ["client_system"] }
+wayland-protocols = { version = "=0.32.13", features = ["client", "unstable"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+muda = { version = "=0.18.0", default-features = false }
+objc2 = "=0.6.4"
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = ["std", "NSApplication", "NSResponder"] }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = ["std", "NSArray", "NSObject", "NSString", "NSURL"] }
+
+[[bin]]
+name = "lumine-demo"
+path = "src/main.rs"
+
+[dev-dependencies]
+accesskit_consumer = "0.38.0"
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+objc2-core-foundation = "0.3.2"
+objc2-core-video = "0.3.2"

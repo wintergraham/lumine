@@ -1,54 +1,54 @@
     Finished `test` profile [unoptimized] target(s) in 0.15s
-   Doc-tests zgui
+   Doc-tests lumine
 
 running 25 tests
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 11) ... ok
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 159) ... ok
-test crates/zgui/src/../../../docs/styling.md - styling_guide (line 138) ... ok
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 42) ... ok
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 239) ... ok
-test crates/zgui/src/../../../docs/styling.md - styling_guide (line 155) ... ok
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 347) ... ok
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 220) ... ok
-test crates/zgui/src/background.rs - background (line 9) - compile ... ok
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 175) ... ok
-test crates/zgui/src/../../../docs/styling.md - styling_guide (line 181) ... ok
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 500) ... ok
-test crates/zgui/src/../../../docs/styling.md - styling_guide (line 214) ... ok
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 381) ... ok
-test crates/zgui/src/../../../docs/styling.md - styling_guide (line 49) ... ok
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 432) ... ok
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 272) ... ok
-test crates/zgui/src/../../../docs/styling.md - styling_guide (line 5) ... ok
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 311) ... ok
-test crates/zgui/src/../../../docs/styling.md - styling_guide (line 57) ... ok
-test crates/zgui/src/../../../docs/styling.md - styling_guide (line 89) ... ok
-test crates/zgui/src/view.rs - view (line 6) ... ok
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 86) ... ok
-test crates/zgui/src/keyed.rs - keyed (line 6) ... ok
-test crates/zgui/src/../../../docs/composition.md - composition_guide (line 126) ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 11) ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 159) ... ok
+test crates/lumine/src/../../../docs/styling.md - styling_guide (line 138) ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 42) ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 239) ... ok
+test crates/lumine/src/../../../docs/styling.md - styling_guide (line 155) ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 347) ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 220) ... ok
+test crates/lumine/src/background.rs - background (line 9) - compile ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 175) ... ok
+test crates/lumine/src/../../../docs/styling.md - styling_guide (line 181) ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 500) ... ok
+test crates/lumine/src/../../../docs/styling.md - styling_guide (line 214) ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 381) ... ok
+test crates/lumine/src/../../../docs/styling.md - styling_guide (line 49) ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 432) ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 272) ... ok
+test crates/lumine/src/../../../docs/styling.md - styling_guide (line 5) ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 311) ... ok
+test crates/lumine/src/../../../docs/styling.md - styling_guide (line 57) ... ok
+test crates/lumine/src/../../../docs/styling.md - styling_guide (line 89) ... ok
+test crates/lumine/src/view.rs - view (line 6) ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 86) ... ok
+test crates/lumine/src/keyed.rs - keyed (line 6) ... ok
+test crates/lumine/src/../../../docs/composition.md - composition_guide (line 126) ... ok
 
 test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
 all doctests ran in 0.44s; merged doctests compilation took 0.43s
-   Doc-tests zgui_desktop
+   Doc-tests lumine_desktop
 
 running 4 tests
-test crates/zgui-desktop/src/../../../README.md - readme_examples (line 24) - compile ... ok
-test crates/zgui-desktop/src/../../../docs/window-controls.md - window_control_examples (line 5) - compile ... ok
-test crates/zgui-desktop/src/application.rs - application::TaskSpawner::spawn_scoped (line 127) - compile ... ok
-test crates/zgui-desktop/src/lib.rs - (line 4) - compile ... ok
+test crates/lumine-desktop/src/../../../README.md - readme_examples (line 24) - compile ... ok
+test crates/lumine-desktop/src/../../../docs/window-controls.md - window_control_examples (line 5) - compile ... ok
+test crates/lumine-desktop/src/application.rs - application::TaskSpawner::spawn_scoped (line 127) - compile ... ok
+test crates/lumine-desktop/src/lib.rs - (line 4) - compile ... ok
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 all doctests ran in 1.04s; merged doctests compilation took 1.04s
-   Doc-tests zgui_gpu
+   Doc-tests lumine_gpu
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-   Doc-tests zgui_workload
+   Doc-tests lumine_workload
 
 running 0 tests
 

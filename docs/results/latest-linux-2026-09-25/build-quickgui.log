@@ -38,6 +38,6 @@
   Downloaded wgpu-core v30.0.1
   Downloaded wgpu-hal v30.0.1
   Downloaded naga v30.0.1
-   Compiling zgui-workload v0.1.0 (/home/ubuntu/GitHub/zgui/comparisons/workload)
-   Compiling zgui-compare-quickgui v0.1.0 (/home/ubuntu/GitHub/zgui/comparisons/quickgui)
+   Compiling lumine-workload v0.1.0 (/home/ubuntu/GitHub/lumine/comparisons/workload)
+   Compiling lumine-compare-quickgui v0.1.0 (/home/ubuntu/GitHub/lumine/comparisons/quickgui)
     Finished `release` profile [optimized] target(s) in 2m 09s

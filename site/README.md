@@ -6,9 +6,9 @@ protocol, acceptance and environment. Publish only these intended public assets,
 not the private repository or raw host process logs.
 
 Serve with `python3 -m http.server 8788 --directory site`.
-Deploy with `wrangler pages deploy site --project-name zgui-performance --branch main`.
+Deploy with `wrangler pages deploy site --project-name lumine-performance --branch main`.
 
-Live: https://zgui-performance.pages.dev
+Live: https://lumine-performance.pages.dev
 
 Measured revision: `10b90de10aada565dd598605f7e6902a4c83ce88`. Results live in `docs/results/latest-linux-2026-09-26-10b90de`. Rebuild public data using `python3 scripts/build_performance_site.py docs/results/latest-linux-2026-09-26-10b90de`. The builder verifies complete trial identity and recomputes summaries before publishing aggregate metrics. Raw host logs and source archives stay in the private repository.
 
@@ -30,7 +30,7 @@ The builder publishes only accepted runs and recomputes every aggregate.
 ## macOS heavy dashboard
 
 `site/macos-heavy` is a separate dataset, selected with `#macos-heavy`. It
-contains 24 accepted trials of zgui and GPUI on the heavy dashboard, not the
+contains 24 accepted trials of lumine and GPUI on the heavy dashboard, not the
 three-framework lab scene. QuickGUI's heavy adapter panicked at startup and
 is excluded rather than represented by zero. The UI uses physical footprint
 and derives its chart and table frameworks from the selected data.

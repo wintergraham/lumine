@@ -19,9 +19,9 @@
   "current_build_input_mismatches": [],
   "all_three_binary_hashes_and_loader_verified": true,
   "binary_paths": {
-    "zgui": "/tmp/zgui-latest-linux-2026-09-26-10b90de-bin/component_workload",
-    "gpui": "/tmp/zgui-latest-linux-2026-09-26-10b90de-bin/zgui-compare-gpui",
-    "quickgui": "/tmp/zgui-latest-linux-2026-09-26-10b90de-bin/zgui-compare-quickgui"
+    "lumine": "/tmp/lumine-latest-linux-2026-09-26-10b90de-bin/component_workload",
+    "gpui": "/tmp/lumine-latest-linux-2026-09-26-10b90de-bin/lumine-compare-gpui",
+    "quickgui": "/tmp/lumine-latest-linux-2026-09-26-10b90de-bin/lumine-compare-quickgui"
   },
   "host_observations": 145,
   "host_observation_span_seconds": 723.1986186504364,
@@ -44,7 +44,7 @@
     }
   },
   "capture_thread_counts": {
-    "zgui": {
+    "lumine": {
       "all_threads": 16,
       "llvmpipe_workers": 4
     },

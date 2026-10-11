@@ -1,9 +1,9 @@
-   Compiling zgui v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui)
-   Compiling zgui-gpu v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-gpu)
-   Compiling zgui-desktop v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-desktop)
-   Compiling zgui-workload v0.1.0 (/home/ubuntu/GitHub/zgui/comparisons/workload)
+   Compiling lumine v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine)
+   Compiling lumine-gpu v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-gpu)
+   Compiling lumine-desktop v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-desktop)
+   Compiling lumine-workload v0.1.0 (/home/ubuntu/GitHub/lumine/comparisons/workload)
     Finished `test` profile [unoptimized] target(s) in 1m 09s
-     Running unittests src/lib.rs (/tmp/zgui-target/debug/deps/zgui-3d382db47f8f827f)
+     Running unittests src/lib.rs (/tmp/lumine-target/debug/deps/lumine-3d382db47f8f827f)
 
 running 186 tests
 test action_context::tests::malformed_and_excessive_predicates_fail ... ok
@@ -195,7 +195,7 @@ test scene::deferred_frame_tests::unflushed_node_replacement_bounds_stale_dirty_
 
 test result: ok. 186 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
 
-     Running tests/actions.rs (/tmp/zgui-target/debug/deps/actions-91dbe077989526bb)
+     Running tests/actions.rs (/tmp/lumine-target/debug/deps/actions-91dbe077989526bb)
 
 running 12 tests
 test action_callback_can_remove_its_owner_and_register_another_map ... ok
@@ -213,7 +213,7 @@ test unhandled_binding_falls_back_and_unhandled_chord_replays_complete_text ... 
 
 test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/active_disable_lifecycle.rs (/tmp/zgui-target/debug/deps/active_disable_lifecycle-c4ae4591648d0c2c)
+     Running tests/active_disable_lifecycle.rs (/tmp/lumine-target/debug/deps/active_disable_lifecycle-c4ae4591648d0c2c)
 
 running 2 tests
 test moving_focus_clears_held_keyboard_style_and_cannot_activate_old_target ... ok
@@ -221,14 +221,14 @@ test disabling_pressed_button_or_ancestor_clears_active_and_blocks_late_release 
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/active_key_ownership.rs (/tmp/zgui-target/debug/deps/active_key_ownership-1048ffe8bc3dc499)
+     Running tests/active_key_ownership.rs (/tmp/lumine-target/debug/deps/active_key_ownership-1048ffe8bc3dc499)
 
 running 1 test
 test activation_style_tracks_latest_nonrepeat_key_and_preserves_pointer_press ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/advanced_layout.rs (/tmp/zgui-target/debug/deps/advanced_layout-892f2bcd2b2888e0)
+     Running tests/advanced_layout.rs (/tmp/lumine-target/debug/deps/advanced_layout-892f2bcd2b2888e0)
 
 running 16 tests
 test axis_overflow_clips_paint_hits_and_visibility_consistently ... ok
@@ -250,7 +250,7 @@ test scroll_content_keeps_grid_layout_across_viewport_resize ... ok
 
 test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/affine_images.rs (/tmp/zgui-target/debug/deps/affine_images-9a889876eb38e609)
+     Running tests/affine_images.rs (/tmp/lumine-target/debug/deps/affine_images-9a889876eb38e609)
 
 running 2 tests
 test transformed_image_reuses_pixels_changes_hit_geometry_and_avoids_layout ... ok
@@ -258,7 +258,7 @@ test component_transform_overflows_without_changing_allocated_size_and_obeys_par
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/animation.rs (/tmp/zgui-target/debug/deps/animation-139eca2aeff7d00a)
+     Running tests/animation.rs (/tmp/lumine-target/debug/deps/animation-139eca2aeff7d00a)
 
 running 2 tests
 test timeline_skips_delayed_frames_and_retains_last_finite_frame ... ok
@@ -266,14 +266,14 @@ test hidden_offscreen_paused_and_removed_players_cancel_owned_tasks ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/canvas.rs (/tmp/zgui-target/debug/deps/canvas-219d9121ab86241f)
+     Running tests/canvas.rs (/tmp/lumine-target/debug/deps/canvas-219d9121ab86241f)
 
 running 1 test
 test canvas_callback_tracks_content_and_size_with_owned_disposal ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition.rs (/tmp/zgui-target/debug/deps/composition-0c91ba2015d97020)
+     Running tests/composition.rs (/tmp/lumine-target/debug/deps/composition-0c91ba2015d97020)
 
 running 13 tests
 test component_tasks_can_spawn_component_tasks_while_executor_is_polling ... ok
@@ -292,7 +292,7 @@ test slots_keep_lexical_providers_and_restore_receiver_scope_for_siblings ... ok
 
 test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_checkbox.rs (/tmp/zgui-target/debug/deps/composition_checkbox-8bcc8dd8149a518b)
+     Running tests/composition_checkbox.rs (/tmp/lumine-target/debug/deps/composition_checkbox-8bcc8dd8149a518b)
 
 running 4 tests
 test checkbox_indicator_expands_for_large_inherited_typography ... ok
@@ -302,7 +302,7 @@ test checkbox_rejects_extra_children_without_leaking_partial_mounts ... ok
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_editors.rs (/tmp/zgui-target/debug/deps/composition_editors-863fcf7923d03df2)
+     Running tests/composition_editors.rs (/tmp/lumine-target/debug/deps/composition_editors-863fcf7923d03df2)
 
 running 8 tests
 test inherited_editor_font_and_reactive_dimensions_update_retained_content ... ok
@@ -316,14 +316,14 @@ test multiline_wheel_scroll_preserves_selection_clamps_and_bubbles_at_edges ... 
 
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_effect_normalization.rs (/tmp/zgui-target/debug/deps/composition_effect_normalization-711ea35f11201a4d)
+     Running tests/composition_effect_normalization.rs (/tmp/lumine-target/debug/deps/composition_effect_normalization-711ea35f11201a4d)
 
 running 1 test
 test reactive_nonfinite_effects_normalize_before_equality_and_restore_sparse_base ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_event_defaults.rs (/tmp/zgui-target/debug/deps/composition_event_defaults-7c3406517ca93d25)
+     Running tests/composition_event_defaults.rs (/tmp/lumine-target/debug/deps/composition_event_defaults-7c3406517ca93d25)
 
 running 5 tests
 test ancestor_can_cancel_scrollbar_defaults_without_losing_release_cleanup ... ok
@@ -334,7 +334,7 @@ test menu_panel_can_cancel_navigation_and_escape_then_allow_them ... ok
 
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_events.rs (/tmp/zgui-target/debug/deps/composition_events-5d0019150c1dc98d)
+     Running tests/composition_events.rs (/tmp/lumine-target/debug/deps/composition_events-5d0019150c1dc98d)
 
 running 7 tests
 test custom_component_can_capture_pointer_and_handle_keyboard_without_scene_writes ... ok
@@ -347,7 +347,7 @@ test parent_capture_can_cancel_editor_text_before_model_mutation ... ok
 
 test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_focus_scroll.rs (/tmp/zgui-target/debug/deps/composition_focus_scroll-51865f92a94619e2)
+     Running tests/composition_focus_scroll.rs (/tmp/lumine-target/debug/deps/composition_focus_scroll-51865f92a94619e2)
 
 running 5 tests
 test disabled_focus_rejected_and_unmounted_reveal_handler_released ... ok
@@ -358,7 +358,7 @@ test tab_reveals_padded_viewport_and_manual_scroll_stays_put ... ok
 
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_image.rs (/tmp/zgui-target/debug/deps/composition_image-710233884bb3a9c5)
+     Running tests/composition_image.rs (/tmp/lumine-target/debug/deps/composition_image-710233884bb3a9c5)
 
 running 4 tests
 test image_same_source_is_idle_and_unmount_drops_binding_and_pixels ... ok
@@ -368,7 +368,7 @@ test image_intrinsic_size_follows_source_and_preserves_nodes ... ok
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_image_fit.rs (/tmp/zgui-target/debug/deps/composition_image_fit-b4723250d36b5b13)
+     Running tests/composition_image_fit.rs (/tmp/lumine-target/debug/deps/composition_image_fit-b4723250d36b5b13)
 
 running 4 tests
 test all_modes_center_in_padded_content_and_equal_styles_are_idle ... ok
@@ -378,7 +378,7 @@ test fixed_fill_source_aspect_change_repaints_without_relayout_but_intrinsic_and
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_initial_failure.rs (/tmp/zgui-target/debug/deps/composition_initial_failure-9b34b2ea4cccad86)
+     Running tests/composition_initial_failure.rs (/tmp/lumine-target/debug/deps/composition_initial_failure-9b34b2ea4cccad86)
 
 running 5 tests
 test deferred_render_failure_cleans_new_root_without_restoring_removed_document ... ok
@@ -389,7 +389,7 @@ test render_initial_binding_failure_preserves_previous_root_and_allows_retry ...
 
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_letter_spacing.rs (/tmp/zgui-target/debug/deps/composition_letter_spacing-2e1e12629eb75a2d)
+     Running tests/composition_letter_spacing.rs (/tmp/lumine-target/debug/deps/composition_letter_spacing-2e1e12629eb75a2d)
 
 running 4 tests
 test normalized_equivalent_spacing_is_idle_and_sparse_patch_restores_inheritance ... ok
@@ -399,7 +399,7 @@ test editor_spacing_changes_caret_and_wrapping_without_changing_selection_or_mod
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_line_height.rs (/tmp/zgui-target/debug/deps/composition_line_height-ea81066027aff2f9)
+     Running tests/composition_line_height.rs (/tmp/lumine-target/debug/deps/composition_line_height-ea81066027aff2f9)
 
 running 3 tests
 test sparse_reset_and_wrapper_override_preserve_equality_and_idle_damage ... ok
@@ -408,7 +408,7 @@ test editor_pitch_tracks_inheritance_for_caret_pointer_and_vertical_navigation .
 
 test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_measured_list.rs (/tmp/zgui-target/debug/deps/composition_measured_list-099f7d35f7c055f9)
+     Running tests/composition_measured_list.rs (/tmp/lumine-target/debug/deps/composition_measured_list-099f7d35f7c055f9)
 
 running 13 tests
 test failed_measured_constructor_discards_partial_observers_and_recovers ... ok
@@ -427,7 +427,7 @@ test huge_estimates_discover_tiny_rows_within_the_layout_feedback_budget ... ok
 
 test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
 
-     Running tests/composition_menu.rs (/tmp/zgui-target/debug/deps/composition_menu-308c4e071fe1d735)
+     Running tests/composition_menu.rs (/tmp/lumine-target/debug/deps/composition_menu-308c4e071fe1d735)
 
 running 6 tests
 test disabled_menu_items_reject_pointer_and_invalid_leaf_cleanup ... ok
@@ -439,7 +439,7 @@ test nested_menu_activation_closes_entire_chain_before_callback ... ok
 
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
-     Running tests/composition_menu_scroll.rs (/tmp/zgui-target/debug/deps/composition_menu_scroll-4c98c1e30e717817)
+     Running tests/composition_menu_scroll.rs (/tmp/lumine-target/debug/deps/composition_menu_scroll-4c98c1e30e717817)
 
 running 2 tests
 test dynamic_menu_shrinks_after_overflow_content_is_removed ... ok
@@ -447,7 +447,7 @@ test long_menu_reveals_keyboard_targets_and_scrolls_without_relayout ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
-     Running tests/composition_modal.rs (/tmp/zgui-target/debug/deps/composition_modal-f358b33717948ca5)
+     Running tests/composition_modal.rs (/tmp/lumine-target/debug/deps/composition_modal-f358b33717948ca5)
 
 running 7 tests
 test modal_focus_traps_dismisses_and_restores_without_click_through ... ok
@@ -460,7 +460,7 @@ test render_replaces_open_portal_without_losing_new_scope ... ok
 
 test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_percent.rs (/tmp/zgui-target/debug/deps/composition_percent-0827927ba2671501)
+     Running tests/composition_percent.rs (/tmp/lumine-target/debug/deps/composition_percent-0827927ba2671501)
 
 running 6 tests
 test full_size_tracks_window_and_equal_style_patches_produce_no_layout_or_damage ... ok
@@ -472,7 +472,7 @@ test growing_split_retains_full_height_siblings_through_editor_refresh_and_windo
 
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
-     Running tests/composition_popover.rs (/tmp/zgui-target/debug/deps/composition_popover-b50bd30f7659d8ee)
+     Running tests/composition_popover.rs (/tmp/lumine-target/debug/deps/composition_popover-b50bd30f7659d8ee)
 
 running 5 tests
 test popover_body_inherits_lexical_services_and_disposes_with_owner ... ok
@@ -483,7 +483,7 @@ test popover_follows_anchor_transforms_flips_and_clamps_after_resize ... ok
 
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_progress.rs (/tmp/zgui-target/debug/deps/composition_progress-ba36b0a6f2303b69)
+     Running tests/composition_progress.rs (/tmp/lumine-target/debug/deps/composition_progress-ba36b0a6f2303b69)
 
 running 2 tests
 test progress_normalizes_external_values_and_retains_disabled_semantics ... ok
@@ -491,7 +491,7 @@ test progress_values_composite_without_layout_and_follow_allocated_size ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_read_only.rs (/tmp/zgui-target/debug/deps/composition_read_only-c115edef8f861907)
+     Running tests/composition_read_only.rs (/tmp/lumine-target/debug/deps/composition_read_only-c115edef8f861907)
 
 running 3 tests
 test wrapper_override_and_event_prevention_remain_compositional ... ok
@@ -500,7 +500,7 @@ test read_only_editors_block_mutations_but_allow_selection_copy_and_external_mod
 
 test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_rich_text.rs (/tmp/zgui-target/debug/deps/composition_rich_text-a9a853e35e8ca88d)
+     Running tests/composition_rich_text.rs (/tmp/lumine-target/debug/deps/composition_rich_text-a9a853e35e8ca88d)
 
 running 9 tests
 test immutable_rich_options_are_authoritative_over_plain_text_style_options ... ok
@@ -515,7 +515,7 @@ test wrapped_links_use_real_fragments_one_tab_stop_and_owned_callbacks ... ok
 
 test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_scroll.rs (/tmp/zgui-target/debug/deps/composition_scroll-343dea8287696cd9)
+     Running tests/composition_scroll.rs (/tmp/lumine-target/debug/deps/composition_scroll-343dea8287696cd9)
 
 running 4 tests
 test disabled_scroll_blocks_input_and_unmount_releases_observers ... ok
@@ -525,7 +525,7 @@ test nested_scroll_consumes_motion_until_edge_then_bubbles ... ok
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_scroll_x.rs (/tmp/zgui-target/debug/deps/composition_scroll_x-2daa2052203a0eb3)
+     Running tests/composition_scroll_x.rs (/tmp/lumine-target/debug/deps/composition_scroll_x-2daa2052203a0eb3)
 
 running 4 tests
 test horizontal_disabled_cleanup_and_oversized_focus ... ok
@@ -535,7 +535,7 @@ test mixed_axis_batched_focus_reveals_without_rebuilding_or_layout ... ok
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_scrollbar.rs (/tmp/zgui-target/debug/deps/composition_scrollbar-ce89406bdae349ab)
+     Running tests/composition_scrollbar.rs (/tmp/lumine-target/debug/deps/composition_scrollbar-ce89406bdae349ab)
 
 running 5 tests
 test thumb_drag_survives_unrelated_button_release ... ok
@@ -546,7 +546,7 @@ test virtual_scrollbar_tracks_extent_and_leaf_validation_cleans_mount ... ok
 
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_slider.rs (/tmp/zgui-target/debug/deps/composition_slider-79116ec33058d45e)
+     Running tests/composition_slider.rs (/tmp/lumine-target/debug/deps/composition_slider-79116ec33058d45e)
 
 running 5 tests
 test slider_initial_disabled_semantics_match_input ... ok
@@ -557,7 +557,7 @@ test slider_value_only_updates_avoid_layout ... ok
 
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_submenu.rs (/tmp/zgui-target/debug/deps/composition_submenu-213d088a3770beee)
+     Running tests/composition_submenu.rs (/tmp/lumine-target/debug/deps/composition_submenu-213d088a3770beee)
 
 running 2 tests
 test outside_cascade_click_closes_every_level_without_background_activation ... ok
@@ -565,14 +565,14 @@ test batched_parent_pointer_handoff_preserves_one_activation_and_full_width_trig
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_transform_normalization.rs (/tmp/zgui-target/debug/deps/composition_transform_normalization-bc2f11f6e69df4b1)
+     Running tests/composition_transform_normalization.rs (/tmp/lumine-target/debug/deps/composition_transform_normalization-bc2f11f6e69df4b1)
 
 running 1 test
 test reactive_invalid_translation_is_idle_and_sparse_removal_restores_base ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_virtual_keyboard.rs (/tmp/zgui-target/debug/deps/composition_virtual_keyboard-0bc917089a04f980)
+     Running tests/composition_virtual_keyboard.rs (/tmp/lumine-target/debug/deps/composition_virtual_keyboard-0bc917089a04f980)
 
 running 4 tests
 test disabled_opt_in_cleanup_and_invalid_view_validation ... ok
@@ -582,7 +582,7 @@ test million_row_navigation_is_bounded_and_works_in_batches ... ok
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_virtual_list.rs (/tmp/zgui-target/debug/deps/composition_virtual_list-f9799979226ac3bd)
+     Running tests/composition_virtual_list.rs (/tmp/lumine-target/debug/deps/composition_virtual_list-f9799979226ac3bd)
 
 running 6 tests
 test scrolling_with_same_visible_rows_changes_only_composition ... ok
@@ -594,7 +594,7 @@ test virtual_rows_are_bounded_retain_keys_and_dispose_offscreen_state ... ok
 
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/composition_wrap.rs (/tmp/zgui-target/debug/deps/composition_wrap-608230f46d96668e)
+     Running tests/composition_wrap.rs (/tmp/lumine-target/debug/deps/composition_wrap-608230f46d96668e)
 
 running 5 tests
 test equal_wrap_and_idle_geometry_do_not_relayout_or_damage ... ok
@@ -605,21 +605,21 @@ test wrapped_wheel_scrolling_preserves_selection_and_keyboard_reveals_caret ... 
 
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/cursors.rs (/tmp/zgui-target/debug/deps/cursors-99d5b83840979ccc)
+     Running tests/cursors.rs (/tmp/lumine-target/debug/deps/cursors-99d5b83840979ccc)
 
 running 1 test
 test cursor_cascade_changes_without_layout_or_paint_and_disabled_regions_keep_explicit_style ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/decorations.rs (/tmp/zgui-target/debug/deps/decorations-2accede7540fdb8b)
+     Running tests/decorations.rs (/tmp/lumine-target/debug/deps/decorations-2accede7540fdb8b)
 
 running 1 test
 test fluent_paint_cascade_retains_layout_and_solid_background_clears_gradient ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/deferred_mount_failure.rs (/tmp/zgui-target/debug/deps/deferred_mount_failure-b9a25faa7deda534)
+     Running tests/deferred_mount_failure.rs (/tmp/lumine-target/debug/deps/deferred_mount_failure-b9a25faa7deda534)
 
 running 5 tests
 test binding_initial_callback_can_unmount_its_owner_without_resurrected_ownership ... ok
@@ -630,7 +630,7 @@ test initial_binding_failure_after_active_effect_cleans_returned_mount_handle ..
 
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/drag_drop.rs (/tmp/zgui-target/debug/deps/drag_drop-e0779f48a0bc3d87)
+     Running tests/drag_drop.rs (/tmp/lumine-target/debug/deps/drag_drop-e0779f48a0bc3d87)
 
 running 8 tests
 test grouped_external_paths_route_once_to_nearest_handler ... ok
@@ -644,7 +644,7 @@ test typed_drop_preview_and_click_suppression ... ok
 
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/editor_accessible_selection.rs (/tmp/zgui-target/debug/deps/editor_accessible_selection-ffaca60810bf4041)
+     Running tests/editor_accessible_selection.rs (/tmp/lumine-target/debug/deps/editor_accessible_selection-ffaca60810bf4041)
 
 running 3 tests
 test accessible_selection_clamps_unicode_preserves_direction_and_cancels_preedit ... ok
@@ -653,7 +653,7 @@ test selection_action_reveals_wrapped_caret_and_updates_committed_metadata ... o
 
 test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/editor_autoscroll.rs (/tmp/zgui-target/debug/deps/editor_autoscroll-f0deff6c59aad3c9)
+     Running tests/editor_autoscroll.rs (/tmp/lumine-target/debug/deps/editor_autoscroll-f0deff6c59aad3c9)
 
 running 10 tests
 test held_boundary_rearms_after_resize_without_another_pointer_move ... ok
@@ -669,7 +669,7 @@ test horizontal_single_line_and_multiline_nowrap_reverse_and_stop_at_edges ... o
 
 test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
 
-     Running tests/editor_ingress_normalization.rs (/tmp/zgui-target/debug/deps/editor_ingress_normalization-f8ac7737e766060c)
+     Running tests/editor_ingress_normalization.rs (/tmp/lumine-target/debug/deps/editor_ingress_normalization-f8ac7737e766060c)
 
 running 2 tests
 test native_text_control_rejection_remains_atomic_after_line_ending_normalization ... ok
@@ -677,7 +677,7 @@ test committed_editor_ingress_agrees_on_line_endings_and_preserves_tabs ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/editor_model_normalization.rs (/tmp/zgui-target/debug/deps/editor_model_normalization-dceefa52d92b4053)
+     Running tests/editor_model_normalization.rs (/tmp/lumine-target/debug/deps/editor_model_normalization-dceefa52d92b4053)
 
 running 4 tests
 test construction_normalization_respects_an_existing_outer_batch ... ok
@@ -687,7 +687,7 @@ test initial_and_external_models_are_canonical_without_initial_undo_or_equal_val
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/editor_paging.rs (/tmp/zgui-target/debug/deps/editor_paging-ef4f54e31bab9434)
+     Running tests/editor_paging.rs (/tmp/lumine-target/debug/deps/editor_paging-ef4f54e31bab9434)
 
 running 7 tests
 test capture_handler_can_prevent_paging_without_changing_selection_or_scroll ... ok
@@ -700,7 +700,7 @@ test paging_uses_padded_resized_viewport_and_preserves_history_and_shift_anchor 
 
 test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/editor_pointer_selection.rs (/tmp/zgui-target/debug/deps/editor_pointer_selection-4bc0333b1f066777)
+     Running tests/editor_pointer_selection.rs (/tmp/lumine-target/debug/deps/editor_pointer_selection-4bc0333b1f066777)
 
 running 7 tests
 test double_click_drag_extends_whole_words_and_reverses_around_original_word ... ok
@@ -713,7 +713,7 @@ test word_selection_uses_the_clicked_glyph_on_both_sides_of_caret_midpoints ... 
 
 test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/editor_read_only.rs (/tmp/zgui-target/debug/deps/editor_read_only-daa176e73eb36dd7)
+     Running tests/editor_read_only.rs (/tmp/lumine-target/debug/deps/editor_read_only-daa176e73eb36dd7)
 
 running 2 tests
 test entering_read_only_cancels_composition_once_and_preserves_undo_history ... ok
@@ -721,7 +721,7 @@ test read_only_blocks_mutations_but_keeps_selection_copy_and_external_models ...
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/editor_shape_reuse.rs (/tmp/zgui-target/debug/deps/editor_shape_reuse-729a9e8dd4cd570b)
+     Running tests/editor_shape_reuse.rs (/tmp/lumine-target/debug/deps/editor_shape_reuse-729a9e8dd4cd570b)
 
 running 6 tests
 test focus_owner_reacquires_geometry_and_retained_handle_cannot_refresh_removed_owner ... ok
@@ -733,7 +733,7 @@ test unchanged_refresh_selection_scroll_and_visual_navigation_reuse_shaping ... 
 
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/editor_streaming_history.rs (/tmp/zgui-target/debug/deps/editor_streaming_history-f50359673af04df4)
+     Running tests/editor_streaming_history.rs (/tmp/lumine-target/debug/deps/editor_streaming_history-f50359673af04df4)
 
 running 4 tests
 test unicode_model_replacements_round_trip_original_selection_and_cancel_preedit ... ok
@@ -743,7 +743,7 @@ test external_ui_model_streaming_uses_delta_history_and_commits_undo_back_to_mod
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
 
-     Running tests/editor_wrap_navigation.rs (/tmp/zgui-target/debug/deps/editor_wrap_navigation-9f7e1cc634f2f1d6)
+     Running tests/editor_wrap_navigation.rs (/tmp/lumine-target/debug/deps/editor_wrap_navigation-9f7e1cc634f2f1d6)
 
 running 2 tests
 test end_keeps_upstream_wrap_affinity_and_home_stays_on_that_visual_row ... ok
@@ -751,14 +751,14 @@ test vertical_navigation_remembers_visual_column_through_short_lines_and_resets_
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/font_default_allocations.rs (/tmp/zgui-target/debug/deps/font_default_allocations-80c14c3da21397d8)
+     Running tests/font_default_allocations.rs (/tmp/lumine-target/debug/deps/font_default_allocations-80c14c3da21397d8)
 
 running 1 test
 test default_and_empty_font_settings_allocate_nothing_per_node_after_shared_initialization ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/hidden_blur_damage.rs (/tmp/zgui-target/debug/deps/hidden_blur_damage-9c4412e106d877a2)
+     Running tests/hidden_blur_damage.rs (/tmp/lumine-target/debug/deps/hidden_blur_damage-9c4412e106d877a2)
 
 running 2 tests
 test directly_transparent_filter_is_excluded_but_positive_opacity_is_not ... ok
@@ -766,7 +766,7 @@ test transparent_ancestor_filter_does_not_expand_background_damage ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/image_cache.rs (/tmp/zgui-target/debug/deps/image_cache-ea54e2aaa9105102)
+     Running tests/image_cache.rs (/tmp/lumine-target/debug/deps/image_cache-ea54e2aaa9105102)
 
 running 4 tests
 test final_request_owns_cancellation_and_clear_does_not_poison_new_generation ... ok
@@ -776,21 +776,21 @@ test async_component_owns_loading_success_error_and_unmount_cancellation ... ok
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/image_updates.rs (/tmp/zgui-target/debug/deps/image_updates-3a71f8785b04c2d0)
+     Running tests/image_updates.rs (/tmp/lumine-target/debug/deps/image_updates-3a71f8785b04c2d0)
 
 running 1 test
 test equal_image_dimensions_repaint_without_layout_but_intrinsic_resize_reflows ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/layout_feedback.rs (/tmp/zgui-target/debug/deps/layout_feedback-ca5c62925627192b)
+     Running tests/layout_feedback.rs (/tmp/lumine-target/debug/deps/layout_feedback-ca5c62925627192b)
 
 running 1 test
 test virtual_row_mount_and_disposal_feedback_is_reported_and_can_be_repaired ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
-     Running tests/lifecycle_resources.rs (/tmp/zgui-target/debug/deps/lifecycle_resources-fdc832cd7381145f)
+     Running tests/lifecycle_resources.rs (/tmp/lumine-target/debug/deps/lifecycle_resources-fdc832cd7381145f)
 
 running 4 tests
 test completed_task_guard_destructor_can_spawn_through_retained_tasks_capability ... ok
@@ -800,7 +800,7 @@ test retained_handles_do_not_keep_keyed_rows_slots_services_or_effects_alive ...
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
-     Running tests/panel_layout.rs (/tmp/zgui-target/debug/deps/panel_layout-862c880f41e476c0)
+     Running tests/panel_layout.rs (/tmp/lumine-target/debug/deps/panel_layout-862c880f41e476c0)
 
 running 5 tests
 test decoration_changes_reuse_layout_but_layout_direction_reflows ... ok
@@ -811,7 +811,7 @@ test fluent_absolute_and_relative_update_flow_reactively ... ok
 
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/pointer_drag_buttons.rs (/tmp/zgui-target/debug/deps/pointer_drag_buttons-c444726f0ea45666)
+     Running tests/pointer_drag_buttons.rs (/tmp/lumine-target/debug/deps/pointer_drag_buttons-c444726f0ea45666)
 
 running 2 tests
 test editor_selection_survives_unrelated_release_and_cancels_on_primary_release ... ok
@@ -819,7 +819,7 @@ test legacy_and_declarative_slider_drag_survive_unrelated_release ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/portal_scope_regressions.rs (/tmp/zgui-target/debug/deps/portal_scope_regressions-4e55fb62207fdb9c)
+     Running tests/portal_scope_regressions.rs (/tmp/lumine-target/debug/deps/portal_scope_regressions-4e55fb62207fdb9c)
 
 running 6 tests
 test modal_slot_keeps_callers_provider_when_receiver_shadows_it ... ok
@@ -831,7 +831,7 @@ test render_replacement_preserves_new_modal_focus_after_disposing_old_portal ...
 
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/semantics_text_allocations.rs (/tmp/zgui-target/debug/deps/semantics_text_allocations-513328194af684f6)
+     Running tests/semantics_text_allocations.rs (/tmp/lumine-target/debug/deps/semantics_text_allocations-513328194af684f6)
 
 running 2 tests
 test text_metadata_updates_reuse_storage_and_only_advance_changed_revisions ... ok
@@ -839,7 +839,7 @@ test warmed_editor_selection_and_policy_refresh_do_not_copy_the_document ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
-     Running tests/submenu_regressions.rs (/tmp/zgui-target/debug/deps/submenu_regressions-bb769f29f77f2e25)
+     Running tests/submenu_regressions.rs (/tmp/lumine-target/debug/deps/submenu_regressions-bb769f29f77f2e25)
 
 running 6 tests
 test parent_menu_action_is_clickable_once_while_child_popup_is_open ... ok
@@ -851,14 +851,14 @@ test removing_open_submenu_branch_keeps_parent_menu_usable ... ok
 
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
-     Running tests/svg.rs (/tmp/zgui-target/debug/deps/svg-5fa207d28ff01628)
+     Running tests/svg.rs (/tmp/lumine-target/debug/deps/svg-5fa207d28ff01628)
 
 running 1 test
 test svg_component_retains_semantics_size_and_reactive_transform ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/variable_virtual_list.rs (/tmp/zgui-target/debug/deps/variable_virtual_list-6e21cf77ce10b76d)
+     Running tests/variable_virtual_list.rs (/tmp/lumine-target/debug/deps/variable_virtual_list-6e21cf77ce10b76d)
 
 running 11 tests
 test explicit_scroll_request_from_key_callback_is_not_overwritten ... ok
@@ -875,7 +875,7 @@ test heterogeneous_rows_have_prefix_geometry_and_bounded_scroll_work ... ok
 
 test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
-     Running tests/widgets.rs (/tmp/zgui-target/debug/deps/widgets-f3430ba0029d8821)
+     Running tests/widgets.rs (/tmp/lumine-target/debug/deps/widgets-f3430ba0029d8821)
 
 running 17 tests
 test checkbox_reacts_to_activation_and_external_state ... ok
@@ -898,19 +898,19 @@ test text_input_unicode_ime_clipboard_undo_and_semantics ... ok
 
 test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/core_bench.rs (/tmp/zgui-target/debug/examples/core_bench-8786c16f6f1fcb3b)
+     Running unittests examples/core_bench.rs (/tmp/lumine-target/debug/examples/core_bench-8786c16f6f1fcb3b)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/editor_streaming.rs (/tmp/zgui-target/debug/examples/editor_streaming-a3456a2026c9ddae)
+     Running unittests examples/editor_streaming.rs (/tmp/lumine-target/debug/examples/editor_streaming-a3456a2026c9ddae)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/model.rs (/tmp/zgui-target/debug/examples/model-1b6f62c44b6af68a)
+     Running unittests examples/model.rs (/tmp/lumine-target/debug/examples/model-1b6f62c44b6af68a)
 
 running 3 tests
 test tests::empty_row_access_maps_to_bounds_error ... ok
@@ -919,13 +919,13 @@ test tests::components_preserve_sample_updates_and_partial_append_errors ... ok
 
 test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/variable_list_bench.rs (/tmp/zgui-target/debug/examples/variable_list_bench-0e0c1ebc46f87d71)
+     Running unittests examples/variable_list_bench.rs (/tmp/lumine-target/debug/examples/variable_list_bench-0e0c1ebc46f87d71)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests src/lib.rs (/tmp/zgui-target/debug/deps/zgui_desktop-d1e0ad2ee9727860)
+     Running unittests src/lib.rs (/tmp/lumine-target/debug/deps/lumine_desktop-d1e0ad2ee9727860)
 
 running 69 tests
 test accessibility::editor_text_tests::equal_value_role_change_from_nontext_creates_text_runs ... ok
@@ -1000,13 +1000,13 @@ test raster::line_height_tests::changing_line_pitch_repairs_old_pixels_and_keys_
 
 test result: ok. 67 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 1.29s
 
-     Running unittests src/main.rs (/tmp/zgui-target/debug/deps/zgui_demo-bba0a115d5e00e85)
+     Running unittests src/main.rs (/tmp/lumine-target/debug/deps/lumine_demo-bba0a115d5e00e85)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/accessibility.rs (/tmp/zgui-target/debug/deps/accessibility-357b034c86164d42)
+     Running tests/accessibility.rs (/tmp/lumine-target/debug/deps/accessibility-357b034c86164d42)
 
 running 13 tests
 test composed_image_exports_alt_text_and_removes_native_identity ... ok
@@ -1025,28 +1025,28 @@ test virtual_keyboard_navigation_exports_offscreen_row_position_with_bounded_wor
 
 test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/accessibility_allocations.rs (/tmp/zgui-target/debug/deps/accessibility_allocations-3f63305871eec050)
+     Running tests/accessibility_allocations.rs (/tmp/lumine-target/debug/deps/accessibility_allocations-3f63305871eec050)
 
 running 1 test
 test unrelated_semantic_updates_do_not_reallocate_large_editor_projection ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
 
-     Running tests/affine_images.rs (/tmp/zgui-target/debug/deps/affine_images-ad890f19ef329844)
+     Running tests/affine_images.rs (/tmp/lumine-target/debug/deps/affine_images-ad890f19ef329844)
 
 running 1 test
 test affine_pixels_damage_clipping_and_isolated_coordinates ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.20s
 
-     Running tests/canvas.rs (/tmp/zgui-target/debug/deps/canvas-289891d4ea291286)
+     Running tests/canvas.rs (/tmp/lumine-target/debug/deps/canvas-289891d4ea291286)
 
 running 1 test
 test software_paths_restore_old_pixels_and_clip_in_layers ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s
 
-     Running tests/damage.rs (/tmp/zgui-target/debug/deps/damage-dde0bd700b6a13c2)
+     Running tests/damage.rs (/tmp/lumine-target/debug/deps/damage-dde0bd700b6a13c2)
 
 running 4 tests
 test styled_fonts_change_software_pixels_and_damage_matches_full_render ... ok
@@ -1056,14 +1056,14 @@ test incremental_matches_full_for_randomized_retained_mutations ... ok
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.86s
 
-     Running tests/decorations.rs (/tmp/zgui-target/debug/deps/decorations-d6964eced444f88e)
+     Running tests/decorations.rs (/tmp/lumine-target/debug/deps/decorations-d6964eced444f88e)
 
 running 1 test
 test software_asymmetric_border_and_shadow_changes_match_full_frame ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
 
-     Running tests/logical_accessibility.rs (/tmp/zgui-target/debug/deps/logical_accessibility-3cd61f34befd3dd1)
+     Running tests/logical_accessibility.rs (/tmp/lumine-target/debug/deps/logical_accessibility-3cd61f34befd3dd1)
 
 running 2 tests
 test logical_parent_connects_portal_without_changing_physical_bounds ... ok
@@ -1071,7 +1071,7 @@ test invalid_hidden_self_and_cyclic_logical_parents_keep_valid_native_tree ... o
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/menu_accessibility.rs (/tmp/zgui-target/debug/deps/menu_accessibility-bb53389ef00fb600)
+     Running tests/menu_accessibility.rs (/tmp/lumine-target/debug/deps/menu_accessibility-bb53389ef00fb600)
 
 running 4 tests
 test menu_activation_can_unmount_its_owner_without_leaving_native_nodes ... ok
@@ -1081,7 +1081,7 @@ test menu_projects_roles_disabled_actions_and_keyboard_focus_then_restores_ancho
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/overlays_accessibility.rs (/tmp/zgui-target/debug/deps/overlays_accessibility-32db669993cf2fdc)
+     Running tests/overlays_accessibility.rs (/tmp/lumine-target/debug/deps/overlays_accessibility-32db669993cf2fdc)
 
 running 4 tests
 test ordinary_dialog_role_does_not_imply_modal_interaction ... ok
@@ -1091,7 +1091,7 @@ test modal_native_projection_tracks_visibility_focus_and_modal_state ... ok
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/rich_text.rs (/tmp/zgui-target/debug/deps/rich_text-7b3fd5336aa9ca63)
+     Running tests/rich_text.rs (/tmp/lumine-target/debug/deps/rich_text-7b3fd5336aa9ca63)
 
 running 4 tests
 test native_bidi_links_use_shaped_fragments_and_expose_clickable_accessibility ... ok
@@ -1101,7 +1101,7 @@ test software_display_ellipsis_clears_previous_lines_and_restores_full_text ... 
 
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
 
-     Running tests/submenu_accessibility.rs (/tmp/zgui-target/debug/deps/submenu_accessibility-678bbc759a1ea136)
+     Running tests/submenu_accessibility.rs (/tmp/lumine-target/debug/deps/submenu_accessibility-678bbc759a1ea136)
 
 running 2 tests
 test submenu_exposes_popup_trigger_hierarchy_and_right_left_focus_transitions ... ok
@@ -1109,375 +1109,375 @@ test disabling_submenu_removes_native_popup_and_disables_trigger ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/svg.rs (/tmp/zgui-target/debug/deps/svg-741b482ce5301095)
+     Running tests/svg.rs (/tmp/lumine-target/debug/deps/svg-741b482ce5301095)
 
 running 1 test
 test software_svg_tint_transform_clip_and_removal_match_full_repaint ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.69s
 
-     Running unittests examples/actions.rs (/tmp/zgui-target/debug/examples/actions-413f4bd93b0ae123)
+     Running unittests examples/actions.rs (/tmp/lumine-target/debug/examples/actions-413f4bd93b0ae123)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/animated_image.rs (/tmp/zgui-target/debug/examples/animated_image-480a216c911e5631)
+     Running unittests examples/animated_image.rs (/tmp/lumine-target/debug/examples/animated_image-480a216c911e5631)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/atspi.rs (/tmp/zgui-target/debug/examples/atspi-99ad1ac1dc30ef24)
+     Running unittests examples/atspi.rs (/tmp/lumine-target/debug/examples/atspi-99ad1ac1dc30ef24)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/canvas.rs (/tmp/zgui-target/debug/examples/canvas-6103067908093293)
+     Running unittests examples/canvas.rs (/tmp/lumine-target/debug/examples/canvas-6103067908093293)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/checkbox.rs (/tmp/zgui-target/debug/examples/checkbox-6347f1bb84a4842d)
+     Running unittests examples/checkbox.rs (/tmp/lumine-target/debug/examples/checkbox-6347f1bb84a4842d)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/component_workload.rs (/tmp/zgui-target/debug/examples/component_workload-c427edf84a7ce782)
+     Running unittests examples/component_workload.rs (/tmp/lumine-target/debug/examples/component_workload-c427edf84a7ce782)
 
 running 1 test
 test tests::public_components_match_geometry_and_bound_virtual_rows ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
 
-     Running unittests examples/components.rs (/tmp/zgui-target/debug/examples/components-ca37125a1aa566b2)
+     Running unittests examples/components.rs (/tmp/lumine-target/debug/examples/components-ca37125a1aa566b2)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/covered_windows.rs (/tmp/zgui-target/debug/examples/covered_windows-92c2ec953ca53e9e)
+     Running unittests examples/covered_windows.rs (/tmp/lumine-target/debug/examples/covered_windows-92c2ec953ca53e9e)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/cursors.rs (/tmp/zgui-target/debug/examples/cursors-b7321bb2b7670811)
+     Running unittests examples/cursors.rs (/tmp/lumine-target/debug/examples/cursors-b7321bb2b7670811)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/disabled_interaction.rs (/tmp/zgui-target/debug/examples/disabled_interaction-5715ad93c586c0bb)
+     Running unittests examples/disabled_interaction.rs (/tmp/lumine-target/debug/examples/disabled_interaction-5715ad93c586c0bb)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/dpi_transition.rs (/tmp/zgui-target/debug/examples/dpi_transition-54a95477b8be3242)
+     Running unittests examples/dpi_transition.rs (/tmp/lumine-target/debug/examples/dpi_transition-54a95477b8be3242)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/drag_drop.rs (/tmp/zgui-target/debug/examples/drag_drop-3cf52150355f47dc)
+     Running unittests examples/drag_drop.rs (/tmp/lumine-target/debug/examples/drag_drop-3cf52150355f47dc)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/dynamic_menus.rs (/tmp/zgui-target/debug/examples/dynamic_menus-1d942b18225effd7)
+     Running unittests examples/dynamic_menus.rs (/tmp/lumine-target/debug/examples/dynamic_menus-1d942b18225effd7)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/editor_autoscroll.rs (/tmp/zgui-target/debug/examples/editor_autoscroll-ae313d57c646b4c0)
+     Running unittests examples/editor_autoscroll.rs (/tmp/lumine-target/debug/examples/editor_autoscroll-ae313d57c646b4c0)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/editor_paging.rs (/tmp/zgui-target/debug/examples/editor_paging-c6e3cfe5544e2a10)
+     Running unittests examples/editor_paging.rs (/tmp/lumine-target/debug/examples/editor_paging-c6e3cfe5544e2a10)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/editor_selection.rs (/tmp/zgui-target/debug/examples/editor_selection-ccdfe6f2459f93e9)
+     Running unittests examples/editor_selection.rs (/tmp/lumine-target/debug/examples/editor_selection-ccdfe6f2459f93e9)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/effects.rs (/tmp/zgui-target/debug/examples/effects-9584ba035300c931)
+     Running unittests examples/effects.rs (/tmp/lumine-target/debug/examples/effects-9584ba035300c931)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/event_hooks.rs (/tmp/zgui-target/debug/examples/event_hooks-c0c8110a45f93a70)
+     Running unittests examples/event_hooks.rs (/tmp/lumine-target/debug/examples/event_hooks-c0c8110a45f93a70)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/external_ime.rs (/tmp/zgui-target/debug/examples/external_ime-056b58468f488d22)
+     Running unittests examples/external_ime.rs (/tmp/lumine-target/debug/examples/external_ime-056b58468f488d22)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/focus_scroll.rs (/tmp/zgui-target/debug/examples/focus_scroll-3f6b2274cdcb0664)
+     Running unittests examples/focus_scroll.rs (/tmp/lumine-target/debug/examples/focus_scroll-3f6b2274cdcb0664)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/form.rs (/tmp/zgui-target/debug/examples/form-d8bb24a64fa51649)
+     Running unittests examples/form.rs (/tmp/lumine-target/debug/examples/form-d8bb24a64fa51649)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/gallery.rs (/tmp/zgui-target/debug/examples/gallery-6e7885d7132f5eb8)
+     Running unittests examples/gallery.rs (/tmp/lumine-target/debug/examples/gallery-6e7885d7132f5eb8)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/held_keys.rs (/tmp/zgui-target/debug/examples/held_keys-5e4dcd073eae97ab)
+     Running unittests examples/held_keys.rs (/tmp/lumine-target/debug/examples/held_keys-5e4dcd073eae97ab)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/hidden_updates.rs (/tmp/zgui-target/debug/examples/hidden_updates-34009abd9b4542e8)
+     Running unittests examples/hidden_updates.rs (/tmp/lumine-target/debug/examples/hidden_updates-34009abd9b4542e8)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/history_limits.rs (/tmp/zgui-target/debug/examples/history_limits-2064e0efbb7bea44)
+     Running unittests examples/history_limits.rs (/tmp/lumine-target/debug/examples/history_limits-2064e0efbb7bea44)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/horizontal_scroll.rs (/tmp/zgui-target/debug/examples/horizontal_scroll-ec80c3f84886d29f)
+     Running unittests examples/horizontal_scroll.rs (/tmp/lumine-target/debug/examples/horizontal_scroll-ec80c3f84886d29f)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/image_fit.rs (/tmp/zgui-target/debug/examples/image_fit-f11ef8440edadaa1)
+     Running unittests examples/image_fit.rs (/tmp/lumine-target/debug/examples/image_fit-f11ef8440edadaa1)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/images.rs (/tmp/zgui-target/debug/examples/images-567d0482c6a1ee48)
+     Running unittests examples/images.rs (/tmp/lumine-target/debug/examples/images-567d0482c6a1ee48)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/keyboard_chords.rs (/tmp/zgui-target/debug/examples/keyboard_chords-5db1a92a55c69b74)
+     Running unittests examples/keyboard_chords.rs (/tmp/lumine-target/debug/examples/keyboard_chords-5db1a92a55c69b74)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/layout.rs (/tmp/zgui-target/debug/examples/layout-423c0c4e2aa448b6)
+     Running unittests examples/layout.rs (/tmp/lumine-target/debug/examples/layout-423c0c4e2aa448b6)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/letter_spacing.rs (/tmp/zgui-target/debug/examples/letter_spacing-3716dde5a9773701)
+     Running unittests examples/letter_spacing.rs (/tmp/lumine-target/debug/examples/letter_spacing-3716dde5a9773701)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/line_height.rs (/tmp/zgui-target/debug/examples/line_height-f33a257db434da8b)
+     Running unittests examples/line_height.rs (/tmp/lumine-target/debug/examples/line_height-f33a257db434da8b)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/live_dpi_pointer.rs (/tmp/zgui-target/debug/examples/live_dpi_pointer-5812d3b3e15f905f)
+     Running unittests examples/live_dpi_pointer.rs (/tmp/lumine-target/debug/examples/live_dpi_pointer-5812d3b3e15f905f)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/measured_virtual_list.rs (/tmp/zgui-target/debug/examples/measured_virtual_list-ed17526f0fc70c7c)
+     Running unittests examples/measured_virtual_list.rs (/tmp/lumine-target/debug/examples/measured_virtual_list-ed17526f0fc70c7c)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/menus.rs (/tmp/zgui-target/debug/examples/menus-90e2ee4d44eee280)
+     Running unittests examples/menus.rs (/tmp/lumine-target/debug/examples/menus-90e2ee4d44eee280)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/model_text.rs (/tmp/zgui-target/debug/examples/model_text-72bec2d48da40eb2)
+     Running unittests examples/model_text.rs (/tmp/lumine-target/debug/examples/model_text-72bec2d48da40eb2)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/native_ime.rs (/tmp/zgui-target/debug/examples/native_ime-13493590b0446973)
+     Running unittests examples/native_ime.rs (/tmp/lumine-target/debug/examples/native_ime-13493590b0446973)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/native_platform.rs (/tmp/zgui-target/debug/examples/native_platform-b60483c2a377a646)
+     Running unittests examples/native_platform.rs (/tmp/lumine-target/debug/examples/native_platform-b60483c2a377a646)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/native_surfaces.rs (/tmp/zgui-target/debug/examples/native_surfaces-98932a966def819f)
+     Running unittests examples/native_surfaces.rs (/tmp/lumine-target/debug/examples/native_surfaces-98932a966def819f)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/overlays.rs (/tmp/zgui-target/debug/examples/overlays-bf6d64b263c5277a)
+     Running unittests examples/overlays.rs (/tmp/lumine-target/debug/examples/overlays-bf6d64b263c5277a)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/paint_styles.rs (/tmp/zgui-target/debug/examples/paint_styles-ca9171112ba46071)
+     Running unittests examples/paint_styles.rs (/tmp/lumine-target/debug/examples/paint_styles-ca9171112ba46071)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/percent_sizes.rs (/tmp/zgui-target/debug/examples/percent_sizes-af4743549cffca39)
+     Running unittests examples/percent_sizes.rs (/tmp/lumine-target/debug/examples/percent_sizes-af4743549cffca39)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/platform_services.rs (/tmp/zgui-target/debug/examples/platform_services-afe044ce81ed6eb8)
+     Running unittests examples/platform_services.rs (/tmp/lumine-target/debug/examples/platform_services-afe044ce81ed6eb8)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/pointer_chords.rs (/tmp/zgui-target/debug/examples/pointer_chords-9c406192774b0c3a)
+     Running unittests examples/pointer_chords.rs (/tmp/lumine-target/debug/examples/pointer_chords-9c406192774b0c3a)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/progress.rs (/tmp/zgui-target/debug/examples/progress-76899beebe4ce6dc)
+     Running unittests examples/progress.rs (/tmp/lumine-target/debug/examples/progress-76899beebe4ce6dc)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/read_only.rs (/tmp/zgui-target/debug/examples/read_only-e6a2c505453d8fd5)
+     Running unittests examples/read_only.rs (/tmp/lumine-target/debug/examples/read_only-e6a2c505453d8fd5)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/rich_text.rs (/tmp/zgui-target/debug/examples/rich_text-c4b3dfeed5261e83)
+     Running unittests examples/rich_text.rs (/tmp/lumine-target/debug/examples/rich_text-c4b3dfeed5261e83)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/scroll.rs (/tmp/zgui-target/debug/examples/scroll-bb1738efbce464ba)
+     Running unittests examples/scroll.rs (/tmp/lumine-target/debug/examples/scroll-bb1738efbce464ba)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/scrollbars.rs (/tmp/zgui-target/debug/examples/scrollbars-907f32d15fad5983)
+     Running unittests examples/scrollbars.rs (/tmp/lumine-target/debug/examples/scrollbars-907f32d15fad5983)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/slider.rs (/tmp/zgui-target/debug/examples/slider-a056e8c629c5f8de)
+     Running unittests examples/slider.rs (/tmp/lumine-target/debug/examples/slider-a056e8c629c5f8de)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/submenus.rs (/tmp/zgui-target/debug/examples/submenus-dbbf2ddfe3fe727c)
+     Running unittests examples/submenus.rs (/tmp/lumine-target/debug/examples/submenus-dbbf2ddfe3fe727c)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/svg_transform.rs (/tmp/zgui-target/debug/examples/svg_transform-355219edba765746)
+     Running unittests examples/svg_transform.rs (/tmp/lumine-target/debug/examples/svg_transform-355219edba765746)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/transparency.rs (/tmp/zgui-target/debug/examples/transparency-dae4cecda5ffac8b)
+     Running unittests examples/transparency.rs (/tmp/lumine-target/debug/examples/transparency-dae4cecda5ffac8b)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/variable_virtual_list.rs (/tmp/zgui-target/debug/examples/variable_virtual_list-022934a4712df5c9)
+     Running unittests examples/variable_virtual_list.rs (/tmp/lumine-target/debug/examples/variable_virtual_list-022934a4712df5c9)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/virtual_keyboard.rs (/tmp/zgui-target/debug/examples/virtual_keyboard-16ff8a22ad4c5ed3)
+     Running unittests examples/virtual_keyboard.rs (/tmp/lumine-target/debug/examples/virtual_keyboard-16ff8a22ad4c5ed3)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/wayland_ime_probe.rs (/tmp/zgui-target/debug/examples/wayland_ime_probe-524348dc857f4c9b)
+     Running unittests examples/wayland_ime_probe.rs (/tmp/lumine-target/debug/examples/wayland_ime_probe-524348dc857f4c9b)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/window_controls.rs (/tmp/zgui-target/debug/examples/window_controls-372648279ec88b2c)
+     Running unittests examples/window_controls.rs (/tmp/lumine-target/debug/examples/window_controls-372648279ec88b2c)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/windows.rs (/tmp/zgui-target/debug/examples/windows-22895eca6fa6aea3)
+     Running unittests examples/windows.rs (/tmp/lumine-target/debug/examples/windows-22895eca6fa6aea3)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/workbench.rs (/tmp/zgui-target/debug/examples/workbench-400280dbb5d79b59)
+     Running unittests examples/workbench.rs (/tmp/lumine-target/debug/examples/workbench-400280dbb5d79b59)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests examples/wrapped_editor.rs (/tmp/zgui-target/debug/examples/wrapped_editor-68c9e401c719fa8d)
+     Running unittests examples/wrapped_editor.rs (/tmp/lumine-target/debug/examples/wrapped_editor-68c9e401c719fa8d)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests src/lib.rs (/tmp/zgui-target/debug/deps/zgui_gpu-3da3a741489b7d6d)
+     Running unittests src/lib.rs (/tmp/lumine-target/debug/deps/lumine_gpu-3da3a741489b7d6d)
 
 running 36 tests
 test blur_damage_tests::chained_filters_expand_to_fixed_point_independent_of_order ... ok
@@ -1519,14 +1519,14 @@ test text::visual_line_tests::wrapped_unicode_hit_caret_and_selection_share_visu
 
 test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
 
-     Running tests/affine_images.rs (/tmp/zgui-target/debug/deps/affine_images-c5ebf617068f62dc)
+     Running tests/affine_images.rs (/tmp/lumine-target/debug/deps/affine_images-c5ebf617068f62dc)
 
 running 1 test
 test affine_pixels_damage_clipping_and_isolated_coordinates ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.96s
 
-     Running tests/canvas.rs (/tmp/zgui-target/debug/deps/canvas-d1790877145f961e)
+     Running tests/canvas.rs (/tmp/lumine-target/debug/deps/canvas-d1790877145f961e)
 
 running 2 tests
 test bounded_raster_rejects_invalid_geometry_and_preserves_alpha ... ok
@@ -1534,41 +1534,41 @@ test paths_gradients_patterns_retain_pixels_and_restore_damage ... ok
 
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
 
-     Running tests/decorations.rs (/tmp/zgui-target/debug/deps/decorations-e7dd5d45b24673ef)
+     Running tests/decorations.rs (/tmp/lumine-target/debug/deps/decorations-e7dd5d45b24673ef)
 
 running 1 test
 test detailed_panels_cache_resize_and_restore_all_shadow_extents ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
 
-     Running tests/editor_selection.rs (/tmp/zgui-target/debug/deps/editor_selection-b7e90d7ecc8c124f)
+     Running tests/editor_selection.rs (/tmp/lumine-target/debug/deps/editor_selection-b7e90d7ecc8c124f)
 
 running 1 test
 test triple_click_selects_full_logical_row_in_mixed_direction_text ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
 
-     Running tests/gif.rs (/tmp/zgui-target/debug/deps/gif-923f3db865408522)
+     Running tests/gif.rs (/tmp/lumine-target/debug/deps/gif-923f3db865408522)
 
 running 1 test
 test gif_offsets_disposal_timing_and_repeat_extension_are_preserved ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/media_limits.rs (/tmp/zgui-target/debug/deps/media_limits-e4b679793775fcb6)
+     Running tests/media_limits.rs (/tmp/lumine-target/debug/deps/media_limits-e4b679793775fcb6)
 
 running 1 test
 test finite_extreme_raster_dimensions_return_errors_without_overflow_or_allocation ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/native_surfaces.rs (/tmp/zgui-target/debug/deps/native_surfaces-331373da999fd87c)
+     Running tests/native_surfaces.rs (/tmp/lumine-target/debug/deps/native_surfaces-331373da999fd87c)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/pixels.rs (/tmp/zgui-target/debug/deps/pixels-d322f8114214900b)
+     Running tests/pixels.rs (/tmp/lumine-target/debug/deps/pixels-d322f8114214900b)
 
 running 59 tests
 test backdrop_blur_reconstructs_without_feedback ... ok
@@ -1633,14 +1633,14 @@ test zero_opacity_backdrop_blur_preserves_pixels_before_and_after_reveal ... ok
 
 test result: ok. 58 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 8.22s
 
-     Running tests/svg.rs (/tmp/zgui-target/debug/deps/svg-981c586eb53a522c)
+     Running tests/svg.rs (/tmp/lumine-target/debug/deps/svg-981c586eb53a522c)
 
 running 1 test
 test svg_resizes_at_device_scale_tints_and_transforms_without_reupload ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
 
-     Running unittests src/lib.rs (/tmp/zgui-target/debug/deps/zgui_workload-84c7378fdbabb6cf)
+     Running unittests src/lib.rs (/tmp/lumine-target/debug/deps/lumine_workload-84c7378fdbabb6cf)
 
 running 2 tests
 test tests::visible_range_uses_two_rows_of_overscan_on_each_side ... ok

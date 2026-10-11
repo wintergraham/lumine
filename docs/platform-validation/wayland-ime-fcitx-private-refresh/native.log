@@ -1,6 +1,6 @@
-zgui delay=0ms session 1: cold=delivered, warm=delivered
+lumine delay=0ms session 1: cold=delivered, warm=delivered
 {
-  "zgui-delay0": {
+  "lumine-delay0": {
     "cold": {
       "trials": 1,
       "full_preedit": 1,

@@ -2,12 +2,12 @@ Native component overlay validation
 ===================================
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p zgui-desktop --example overlays
-python3 scripts/overlays_smoke.py /tmp/zgui-target/debug/examples/overlays --output docs/platform-validation/overlays
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p lumine-desktop --example overlays
+python3 scripts/overlays_smoke.py /tmp/lumine-target/debug/examples/overlays --output docs/platform-validation/overlays
 ```
 
 The recorded run used the isolated upstream Vulkan Loader 1.4.345 through
-`LD_LIBRARY_PATH=/tmp/zgui-ci-loader-check/build/loader`, preserving debug
+`LD_LIBRARY_PATH=/tmp/lumine-ci-loader-check/build/loader`, preserving debug
 and validation. The script inherits the caller's loader configuration and owns
 its Xvfb/Openbox session.
 

@@ -1,7 +1,7 @@
-5fe380500000-5fe3808eb000 r--p 00000000 00:2c 49827913                   /tmp/zgui-latest-linux-2026-09-26-10b90de-bin/zgui-compare-quickgui
-5fe3808eb000-5fe38185b000 r-xp 003ea000 00:2c 49827913                   /tmp/zgui-latest-linux-2026-09-26-10b90de-bin/zgui-compare-quickgui
-5fe38185b000-5fe3818e5000 r--p 01359000 00:2c 49827913                   /tmp/zgui-latest-linux-2026-09-26-10b90de-bin/zgui-compare-quickgui
-5fe3818e5000-5fe3818e9000 rw-p 013e2000 00:2c 49827913                   /tmp/zgui-latest-linux-2026-09-26-10b90de-bin/zgui-compare-quickgui
+5fe380500000-5fe3808eb000 r--p 00000000 00:2c 49827913                   /tmp/lumine-latest-linux-2026-09-26-10b90de-bin/lumine-compare-quickgui
+5fe3808eb000-5fe38185b000 r-xp 003ea000 00:2c 49827913                   /tmp/lumine-latest-linux-2026-09-26-10b90de-bin/lumine-compare-quickgui
+5fe38185b000-5fe3818e5000 r--p 01359000 00:2c 49827913                   /tmp/lumine-latest-linux-2026-09-26-10b90de-bin/lumine-compare-quickgui
+5fe3818e5000-5fe3818e9000 rw-p 013e2000 00:2c 49827913                   /tmp/lumine-latest-linux-2026-09-26-10b90de-bin/lumine-compare-quickgui
 5fe3818e9000-5fe3818ed000 rw-p 00000000 00:00 0 
 5fe39bbdc000-5fe3a06a0000 rw-p 00000000 00:00 0                          [heap]
 7ff5a0000000-7ff5a0021000 rw-p 00000000 00:00 0 
@@ -261,11 +261,11 @@
 7ff61e713000-7ff61e716000 r--p 0000c000 09:03 1345334                    /usr/lib/x86_64-linux-gnu/libxcb-randr.so.0.1.0
 7ff61e716000-7ff61e717000 r--p 0000f000 09:03 1345334                    /usr/lib/x86_64-linux-gnu/libxcb-randr.so.0.1.0
 7ff61e717000-7ff61e718000 rw-p 00010000 09:03 1345334                    /usr/lib/x86_64-linux-gnu/libxcb-randr.so.0.1.0
-7ff61e718000-7ff61e720000 r--p 00000000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-7ff61e720000-7ff61e76d000 r-xp 00008000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-7ff61e76d000-7ff61e7a0000 r--p 00055000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-7ff61e7a0000-7ff61e7a1000 r--p 00088000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-7ff61e7a1000-7ff61e7a2000 rw-p 00089000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7ff61e718000-7ff61e720000 r--p 00000000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7ff61e720000-7ff61e76d000 r-xp 00008000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7ff61e76d000-7ff61e7a0000 r--p 00055000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7ff61e7a0000-7ff61e7a1000 r--p 00088000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7ff61e7a1000-7ff61e7a2000 rw-p 00089000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
 7ff61e7a2000-7ff61e7a8000 r--p 00000000 09:03 1345045                    /usr/lib/x86_64-linux-gnu/libxkbcommon.so.0.13.1
 7ff61e7a8000-7ff61e7d6000 r-xp 00006000 09:03 1345045                    /usr/lib/x86_64-linux-gnu/libxkbcommon.so.0.13.1
 7ff61e7d6000-7ff61e7fe000 r--p 00034000 09:03 1345045                    /usr/lib/x86_64-linux-gnu/libxkbcommon.so.0.13.1

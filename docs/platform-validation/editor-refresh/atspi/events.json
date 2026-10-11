@@ -1,25 +1,25 @@
 [
   {
     "type": "object:state-changed:defunct",
-    "name": "zgui accessibility probe",
+    "name": "lumine accessibility probe",
     "detail1": 1,
     "detail2": 0
   },
   {
     "type": "object:state-changed:active",
-    "name": "zgui accessibility probe",
+    "name": "lumine accessibility probe",
     "detail1": 1,
     "detail2": 0
   },
   {
     "type": "object:state-changed:focused",
-    "name": "zgui accessibility probe",
+    "name": "lumine accessibility probe",
     "detail1": 1,
     "detail2": 0
   },
   {
     "type": "object:state-changed:focusable",
-    "name": "zgui accessibility probe",
+    "name": "lumine accessibility probe",
     "detail1": 0,
     "detail2": 0
   },
@@ -37,7 +37,7 @@
   },
   {
     "type": "object:state-changed:focused",
-    "name": "zgui accessibility probe",
+    "name": "lumine accessibility probe",
     "detail1": 0,
     "detail2": 0
   },
@@ -187,13 +187,13 @@
   },
   {
     "type": "object:state-changed:focusable",
-    "name": "zgui accessibility probe",
+    "name": "lumine accessibility probe",
     "detail1": 1,
     "detail2": 0
   },
   {
     "type": "object:state-changed:focused",
-    "name": "zgui accessibility probe",
+    "name": "lumine accessibility probe",
     "detail1": 1,
     "detail2": 0
   },
@@ -223,7 +223,7 @@
   },
   {
     "type": "object:state-changed:defunct",
-    "name": "zgui accessibility probe",
+    "name": "lumine accessibility probe",
     "detail1": 1,
     "detail2": 0
   },

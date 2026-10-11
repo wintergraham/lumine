@@ -9,7 +9,7 @@ import subprocess
 import time
 
 out = Path(__file__).resolve().parent
-bins = Path('/tmp/zgui-component-comparison-bin')
+bins = Path('/tmp/lumine-component-comparison-bin')
 def stop(p):
     if p is not None and p.poll() is None:
         p.terminate()
@@ -31,7 +31,7 @@ def parse(text):
 display=next(n for n in range(140,180) if not Path(f'/tmp/.X11-unix/X{n}').exists() and not Path(f'/tmp/.X{n}-lock').exists())
 env=dict(os.environ,DISPLAY=f':{display}',WINIT_UNIX_BACKEND='x11',LIBGL_ALWAYS_SOFTWARE='1',
     VK_ICD_FILENAMES='/usr/share/vulkan/icd.d/lvp_icd.json',WGPU_BACKEND='vulkan',
-    DBUS_SESSION_BUS_ADDRESS='unix:path=/nonexistent',ZGUI_MODE='idle',ZGUI_SECONDS='5',ZGUI_INITIAL_TICKS='0')
+    DBUS_SESSION_BUS_ADDRESS='unix:path=/nonexistent',LUMINE_MODE='idle',LUMINE_SECONDS='5',LUMINE_INITIAL_TICKS='0')
 env.pop('WAYLAND_DISPLAY',None)
 x=wm=app=None
 results=[]
@@ -40,7 +40,7 @@ try:
     time.sleep(.5)
     with (out/'openbox.log').open('w') as log: wm=subprocess.Popen(['openbox'],env=env,stdout=log,stderr=subprocess.STDOUT)
     time.sleep(.5)
-    for name,binary in [('zgui','component_workload'),('gpui','zgui-compare-gpui'),('quickgui','zgui-compare-quickgui')]:
+    for name,binary in [('lumine','component_workload'),('gpui','lumine-compare-gpui'),('quickgui','lumine-compare-quickgui')]:
         with (out/f'{name}.log').open('w') as log: app=subprocess.Popen([str(bins/binary)],env=env,stdout=log,stderr=subprocess.STDOUT)
         time.sleep(2)
         base=Path(f'/proc/{app.pid}')

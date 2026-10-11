@@ -1,6 +1,6 @@
 READY
-DIALOG open Ok(Some("/tmp/zgui-native-services-escape-probe/fixture.txt"))
-DIALOG folder Ok(Some("/tmp/zgui-native-services-escape-probe/chosen-folder"))
-DIALOG save Ok(Some("/tmp/zgui-native-services-escape-probe/chosen-folder/saved.txt"))
+DIALOG open Ok(Some("/tmp/lumine-native-services-escape-probe/fixture.txt"))
+DIALOG folder Ok(Some("/tmp/lumine-native-services-escape-probe/chosen-folder"))
+DIALOG save Ok(Some("/tmp/lumine-native-services-escape-probe/chosen-folder/saved.txt"))
 DIALOG open Err(BackendUnavailable)
 CLOSED

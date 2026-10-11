@@ -9,7 +9,7 @@ A component is constructed once for each mounted instance. Its local state belon
 A view function returns a child tree. Components create state and resolve services during mounting; ordinary container builders describe their children:
 
 ```rust
-use zgui::{
+use lumine::{
     compose::{View, button, column, component, text_signal},
     style::Styled,
 };
@@ -22,7 +22,7 @@ fn counter() -> View {
                 let count = count.clone();
                 move || format!("Count: {}", count.get())
             }))
-            .child(button().child(zgui::compose::text("Increment")).on_click(move || {
+            .child(button().child(lumine::compose::text("Increment")).on_click(move || {
                 count.update(|value| *value += 1);
             }))
     })
@@ -35,12 +35,12 @@ Initial reactive bindings belong to the public mount that created them, includin
 
 The UI owns the mounted tree, so dropping a handle does not remove the view. Call `handle.unmount()` to dispose it explicitly. In a native application, `WindowContext::render(view)` supplies the window's task runner automatically.
 
-A component can call `cx.service::<Model>()` to obtain the nearest typed provider, `cx.state(initial)` for local state, and `cx.tasks()` for component-owned asynchronous work. For a headless host, wrap the tree in `provide(TaskRunner::from_executor(executor), tree)`. The [complete model example](../crates/zgui/examples/model.rs) preserves the supplied language sample, including its yielding handlers, error cases, and independent Count and Title subscriptions. Run it with `cargo run -p zgui --example model`.
+A component can call `cx.service::<Model>()` to obtain the nearest typed provider, `cx.state(initial)` for local state, and `cx.tasks()` for component-owned asynchronous work. For a headless host, wrap the tree in `provide(TaskRunner::from_executor(executor), tree)`. The [complete model example](../crates/lumine/examples/model.rs) preserves the supplied language sample, including its yielding handlers, error cases, and independent Count and Title subscriptions. Run it with `cargo run -p lumine --example model`.
 
-The native version is `cargo run -p zgui-desktop --example components`. It renders the same Model, Count, Title, and Dialog body, with fluent background, rounded corners, padding, spacing, hover, pressed, and keyboard-focus styles. The style closures return sparse overrides, so a focus border does not replace an unrelated hover background. Layout and paint changes continue through the retained scene's existing invalidation paths.
+The native version is `cargo run -p lumine-desktop --example components`. It renders the same Model, Count, Title, and Dialog body, with fluent background, rounded corners, padding, spacing, hover, pressed, and keyboard-focus styles. The style closures return sparse overrides, so a focus border does not replace an unrelated hover background. Layout and paint changes continue through the retained scene's existing invalidation paths.
 
 ```rust
-use zgui::{compose::{button, text}, scene::Color, style::Styled};
+use lumine::{compose::{button, text}, scene::Color, style::Styled};
 
 let action = button()
     .w(72.0).h(40.0).rounded(8.0)
@@ -84,7 +84,7 @@ Headless `TaskRunner::from_executor` uses a weak spawning capability: a running 
 `text_input(label, value)` and `text_area(label, value)` mount the same retained editor used by the native host. The first argument is its accessible name, and the `Signal<String>` is synchronized in both directions. IME preedit remains local until committed. Selection, undo, clipboard, and native IME placement use the mounted editor's lifecycle.
 
 ```rust
-use zgui::{compose::prelude::*, text_layout::FontFamily, widgets::Ui};
+use lumine::{compose::prelude::*, text_layout::FontFamily, widgets::Ui};
 let mut ui = Ui::new(640., 480.);
 let name = ui.signal(String::new());
 let notes = ui.signal(String::new());
@@ -162,7 +162,7 @@ the viewport; its allocated content size controls the range after layout,
 including changes from parent layout or padding.
 
 ```rust
-use zgui::{compose::prelude::*, widgets::Ui};
+use lumine::{compose::prelude::*, widgets::Ui};
 let mut ui = Ui::new(640., 480.);
 let offset = ui.signal(0.0);
 let list = virtual_list(
@@ -194,7 +194,7 @@ shared `VariableHeights` index. The same component context, fluent viewport
 styles, retained keys, scrollbars and keyboard navigation apply:
 
 ```rust
-use zgui::{compose::prelude::*, widgets::Ui};
+use lumine::{compose::prelude::*, widgets::Ui};
 let mut ui = Ui::new(640., 480.);
 let offset = ui.signal(0.);
 let heights = VariableHeights::new(&ui.runtime, 100_000, 28.);
@@ -243,7 +243,7 @@ allocating row heights from their natural layout. Give it a `VariableHeights`
 cache initialized with a reasonable estimate, then compose normal children:
 
 ```rust
-use zgui::{compose::prelude::*, widgets::Ui};
+use lumine::{compose::prelude::*, widgets::Ui};
 let mut ui = Ui::new(640., 480.);
 let heights = VariableHeights::new(&ui.runtime, 100_000, 72.);
 let message = ui.signal("A streamed message".to_owned());
@@ -292,8 +292,8 @@ still report the bounded layout feedback error described below.
 A size-dependent row constructor or disposal callback can repeatedly change its own viewport. `Ui::try_prepare_frame` returns `LayoutFeedbackError` after at most 64 stabilization passes instead of hanging. Reentrant preparation defers notifications to the outer call. Correct the model dependency before retrying; application mutations are not rolled back. `try_dispatch` also reports this error without delivering input against unstable geometry. The convenience `prepare_frame` and `dispatch` methods panic with the same diagnostic, while native drawing and input propagate it through `Application::run`.
 
 ```rust
-use zgui::{widgets::Ui, input::InputEvent};
-# fn prepare() -> Result<(), zgui::widgets::LayoutFeedbackError> {
+use lumine::{widgets::Ui, input::InputEvent};
+# fn prepare() -> Result<(), lumine::widgets::LayoutFeedbackError> {
 let mut ui = Ui::new(640., 480.);
 ui.try_prepare_frame()?;
 ui.try_dispatch(InputEvent::PointerMove { x: 10., y: 10. })?;
@@ -308,7 +308,7 @@ its indicator or label, Space, Enter, and accessibility activation toggle the
 same value. External writes update its indicator and accessible checked state.
 
 ```rust
-use zgui::{compose::prelude::*, widgets::Ui};
+use lumine::{compose::prelude::*, widgets::Ui};
 let mut ui = Ui::new(400., 200.);
 let notifications = ui.signal(false);
 let view = ui.mount(
@@ -353,7 +353,7 @@ normalizes to zero, including external writes. The component owns its fill and
 rejects extra children. Use a surrounding row or column for a visible label.
 
 ```rust
-use zgui::{compose::prelude::*, widgets::Ui};
+use lumine::{compose::prelude::*, widgets::Ui};
 let mut ui = Ui::new(640., 480.);
 let fraction = ui.signal(0.25);
 ui.mount(column().gap(8.).text_color(rgb(0x5ea5ff))
@@ -373,7 +373,7 @@ Decoded images are leaf views:
 
 ```rust
 use std::sync::Arc;
-use zgui::{compose::prelude::*, image::ImageData, widgets::Ui};
+use lumine::{compose::prelude::*, image::ImageData, widgets::Ui};
 let mut ui = Ui::new(400., 200.);
 let source = Arc::new(ImageData::new(1, 1, vec![40, 120, 220, 255]).unwrap());
 let current = ui.signal(source);
@@ -405,7 +405,7 @@ owned subscriptions and image references.
 `scroll(offset)` mounts ordinary retained children inside a vertical viewport:
 
 ```rust
-use zgui::{compose::prelude::*, widgets::Ui};
+use lumine::{compose::prelude::*, widgets::Ui};
 let mut ui = Ui::new(500., 400.);
 let offset = ui.signal(0.0_f32);
 ui.mount(scroll(offset).w(320.).h(240.).p(12.)
@@ -444,7 +444,7 @@ scroll extent, and content height follows the allocated viewport height. Use a
 nested styled `row` when content needs gaps or alignment. For example:
 
 ```rust
-use zgui::{compose::prelude::*, widgets::Ui};
+use lumine::{compose::prelude::*, widgets::Ui};
 let mut ui = Ui::new(500., 200.);
 let offset = ui.signal(0.0_f32);
 ui.mount(scroll_x(offset).w(320.).h(100.).p(8.)
@@ -480,7 +480,7 @@ their existing retention behavior.
 Opt into virtual-row keyboard navigation with `.keyboard_navigation(true)`:
 
 ```rust
-use zgui::{compose::prelude::*, widgets::Ui};
+use lumine::{compose::prelude::*, widgets::Ui};
 let mut ui = Ui::new(500., 400.);
 let offset = ui.signal(0.0_f32);
 ui.mount(virtual_list(offset, 28., 2, || 1_000_000, |index| index,
@@ -514,7 +514,7 @@ it off preserves the existing focus behavior of application-created row contents
 Modal and anchored popup panels use ordinary component children:
 
 ```rust
-use zgui::{compose::prelude::*, widgets::Ui};
+use lumine::{compose::prelude::*, widgets::Ui};
 let mut ui = Ui::new(600., 400.);
 let open = ui.signal(false);
 let launch = open.clone();
@@ -565,7 +565,7 @@ with menu-specific roles and keyboard item navigation.
 Action menus share the retained portal lifecycle:
 
 ```rust
-use zgui::{compose::prelude::*, widgets::Ui};
+use lumine::{compose::prelude::*, widgets::Ui};
 let mut ui = Ui::new(600., 400.);
 let open = ui.signal(false);
 let show = open.clone();
@@ -619,7 +619,7 @@ by click or keyboard; hovering does not automatically open a child.
 
 
 The [WAI-ARIA menu pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/)
-was used as a keyboard/semantics reference. zgui's navigation skips disabled items;
+was used as a keyboard/semantics reference. lumine's navigation skips disabled items;
 the APG web pattern keeps disabled items focusable. This native API does not claim
 full APG conformance.
 
@@ -633,7 +633,7 @@ capture and bubble phases; the hit/focused root receives the target phase. Porta
 panels route through their physical overlay rather than their logical owner.
 
 ```rust
-use zgui::{compose::prelude::*, input::{EventPhase, InputEvent, Key}, widgets::Ui};
+use lumine::{compose::prelude::*, input::{EventPhase, InputEvent, Key}, widgets::Ui};
 let ui = Ui::new(400., 300.);
 let value = ui.signal(0);
 let counter = value.clone();

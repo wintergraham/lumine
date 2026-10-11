@@ -2,9 +2,9 @@
   "binary_hashes": "binaries.json",
   "scope": "Owned native platform slice; desktop source snapshots after build, wider workspace concurrently developing. Build log and exact binary hashes retained; not a full-workspace hermetic build claim.",
   "result_sources": [
-    "/tmp/zgui-native-services-owned-portal-second",
-    "/tmp/zgui-native-services-close-owner",
-    "/tmp/zgui-native-services-escape-probe",
+    "/tmp/lumine-native-services-owned-portal-second",
+    "/tmp/lumine-native-services-close-owner",
+    "/tmp/lumine-native-services-escape-probe",
     "window-x11",
     "window-wayland"
   ],

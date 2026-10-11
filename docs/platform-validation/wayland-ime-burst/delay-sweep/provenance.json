@@ -3,7 +3,7 @@
   "binary_sha256": "152f4193eae469c5daeef292d8afae00cadb2964e7b1294a4086b7258574a167",
   "argv": [
     "scripts/wayland_ime_burst_probe.py",
-    "/tmp/zgui-target/debug/examples/wayland_ime_probe",
+    "/tmp/lumine-target/debug/examples/wayland_ime_probe",
     "--sessions",
     "1",
     "--bursts",
@@ -11,7 +11,7 @@
     "--cursor-delays-ms",
     "0,16,40,80",
     "--output",
-    "/tmp/zgui-wayland-ime-burst-delay-sweep"
+    "/tmp/lumine-wayland-ime-burst-delay-sweep"
   ],
   "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]"
 }

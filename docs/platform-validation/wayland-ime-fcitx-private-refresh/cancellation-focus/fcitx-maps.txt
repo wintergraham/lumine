@@ -242,11 +242,11 @@
 71966e5a7000-71966e5b0000 r--p 00024000 09:03 1858000                    /usr/lib/x86_64-linux-gnu/fcitx5/libunicode.so
 71966e5b0000-71966e5b1000 r--p 0002d000 09:03 1858000                    /usr/lib/x86_64-linux-gnu/fcitx5/libunicode.so
 71966e5b1000-71966e5b2000 rw-p 0002e000 09:03 1858000                    /usr/lib/x86_64-linux-gnu/fcitx5/libunicode.so
-71966e5b2000-71966e5c7000 r--p 00000000 00:2c 47842063                   /tmp/zgui-fcitx-preedit/plugin/libwaylandim.so
-71966e5c7000-71966e639000 r-xp 00015000 00:2c 47842063                   /tmp/zgui-fcitx-preedit/plugin/libwaylandim.so
-71966e639000-71966e653000 r--p 00087000 00:2c 47842063                   /tmp/zgui-fcitx-preedit/plugin/libwaylandim.so
-71966e653000-71966e658000 r--p 000a1000 00:2c 47842063                   /tmp/zgui-fcitx-preedit/plugin/libwaylandim.so
-71966e658000-71966e659000 rw-p 000a6000 00:2c 47842063                   /tmp/zgui-fcitx-preedit/plugin/libwaylandim.so
+71966e5b2000-71966e5c7000 r--p 00000000 00:2c 47842063                   /tmp/lumine-fcitx-preedit/plugin/libwaylandim.so
+71966e5c7000-71966e639000 r-xp 00015000 00:2c 47842063                   /tmp/lumine-fcitx-preedit/plugin/libwaylandim.so
+71966e639000-71966e653000 r--p 00087000 00:2c 47842063                   /tmp/lumine-fcitx-preedit/plugin/libwaylandim.so
+71966e653000-71966e658000 r--p 000a1000 00:2c 47842063                   /tmp/lumine-fcitx-preedit/plugin/libwaylandim.so
+71966e658000-71966e659000 rw-p 000a6000 00:2c 47842063                   /tmp/lumine-fcitx-preedit/plugin/libwaylandim.so
 71966e659000-71966e663000 r--p 00000000 09:03 1853832                    /usr/lib/x86_64-linux-gnu/fcitx5/libclipboard.so
 71966e663000-71966e687000 r-xp 0000a000 09:03 1853832                    /usr/lib/x86_64-linux-gnu/fcitx5/libclipboard.so
 71966e687000-71966e692000 r--p 0002e000 09:03 1853832                    /usr/lib/x86_64-linux-gnu/fcitx5/libclipboard.so

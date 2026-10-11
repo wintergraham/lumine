@@ -1,35 +1,35 @@
-zgui      idle   CPU    0.00% RSS   100.41 MiB
+lumine      idle   CPU    0.00% RSS   100.41 MiB
 gpui      idle   CPU    0.07% RSS   108.50 MiB
 quickgui  idle   CPU    0.00% RSS   131.99 MiB
-zgui      stream CPU  136.22% RSS   106.42 MiB
+lumine      stream CPU  136.22% RSS   106.42 MiB
 gpui      stream CPU  314.18% RSS   110.50 MiB
 quickgui  stream CPU  240.13% RSS   137.01 MiB
-zgui      scroll CPU  168.29% RSS   105.56 MiB
+lumine      scroll CPU  168.29% RSS   105.56 MiB
 gpui      scroll CPU  293.55% RSS   109.33 MiB
 quickgui  scroll CPU  227.73% RSS   139.45 MiB
-zgui      both   CPU  207.03% RSS   107.09 MiB
+lumine      both   CPU  207.03% RSS   107.09 MiB
 gpui      both   CPU  298.07% RSS   111.01 MiB
 quickgui  both   CPU  164.55% RSS   142.54 MiB
 gpui      idle   CPU    0.20% RSS   110.47 MiB
 quickgui  idle   CPU    0.13% RSS   131.04 MiB
-zgui      idle   CPU    0.00% RSS   102.31 MiB
+lumine      idle   CPU    0.00% RSS   102.31 MiB
 gpui      stream CPU  122.08% RSS   111.70 MiB
 quickgui  stream CPU  213.34% RSS   138.59 MiB
 Traceback (most recent call last):
-  File "/home/ubuntu/GitHub/zgui/scripts/compare.py", line 132, in <module>
+  File "/home/ubuntu/GitHub/lumine/scripts/compare.py", line 132, in <module>
     main()
     ~~~~^^
-  File "/home/ubuntu/GitHub/zgui/scripts/compare.py", line 95, in main
+  File "/home/ubuntu/GitHub/lumine/scripts/compare.py", line 95, in main
     raise RuntimeError(f"{name}/{mode} failed (exit={code}, samples={len(samples)}); inspect log")
-RuntimeError: zgui/stream failed (exit=101, samples=300); inspect log
+RuntimeError: lumine/stream failed (exit=101, samples=300); inspect log
 Traceback (most recent call last):
-  File "/home/ubuntu/GitHub/zgui/docs/results/refined-framework/run.py", line 128, in <module>
+  File "/home/ubuntu/GitHub/lumine/docs/results/refined-framework/run.py", line 128, in <module>
     main()
     ~~~~^^
-  File "/home/ubuntu/GitHub/zgui/docs/results/refined-framework/run.py", line 109, in main
+  File "/home/ubuntu/GitHub/lumine/docs/results/refined-framework/run.py", line 109, in main
     subprocess.run(command, cwd=ROOT, env=env, check=True)
     ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/usr/lib/python3.14/subprocess.py", line 578, in run
     raise CalledProcessError(retcode, process.args,
                              output=stdout, stderr=stderr)
-subprocess.CalledProcessError: Command '['python3', '/home/ubuntu/GitHub/zgui/scripts/compare.py', '--zgui', '/tmp/zgui-refined-framework-bin/component_workload', '--gpui', '/tmp/zgui-refined-framework-bin/zgui-compare-gpui', '--quickgui', '/tmp/zgui-refined-framework-bin/zgui-compare-quickgui', '--seconds', '20', '--warmup', '5', '--repeats', '3', '--output', '/home/ubuntu/GitHub/zgui/docs/results/refined-framework/current.csv']' returned non-zero exit status 1.
+subprocess.CalledProcessError: Command '['python3', '/home/ubuntu/GitHub/lumine/scripts/compare.py', '--lumine', '/tmp/lumine-refined-framework-bin/component_workload', '--gpui', '/tmp/lumine-refined-framework-bin/lumine-compare-gpui', '--quickgui', '/tmp/lumine-refined-framework-bin/lumine-compare-quickgui', '--seconds', '20', '--warmup', '5', '--repeats', '3', '--output', '/home/ubuntu/GitHub/lumine/docs/results/refined-framework/current.csv']' returned non-zero exit status 1.

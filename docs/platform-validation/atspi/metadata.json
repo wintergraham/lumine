@@ -4,7 +4,7 @@
     "cargo",
     "build",
     "-p",
-    "zgui-desktop",
+    "lumine-desktop",
     "--example",
     "atspi",
     "--locked"
@@ -12,9 +12,9 @@
   "run": [
     "/usr/bin/python3",
     "scripts/atspi_smoke.py",
-    "/tmp/zgui-target/debug/examples/atspi",
+    "/tmp/lumine-target/debug/examples/atspi",
     "--output",
-    "/home/ubuntu/GitHub/zgui/docs/platform-validation/atspi"
+    "/home/ubuntu/GitHub/lumine/docs/platform-validation/atspi"
   ],
   "binary_sha256": "b8c93faa89fc23f65d3f70cdf0134506e8e1a44d6b451e1d9fcfde9dd919a81a",
   "source_archive_sha256": "34f3157fd6c648715c2f756cd14a28cb2554c8c388224ba2d18b031ba7ce1752",
@@ -22,10 +22,10 @@
   "source_unchanged": true,
   "backend": "AccessKit Unix AT-SPI on private D-Bus and owned Xvfb/Openbox, Mesa llvmpipe Vulkan",
   "environment": {
-    "CARGO_TARGET_DIR": "/tmp/zgui-target",
+    "CARGO_TARGET_DIR": "/tmp/lumine-target",
     "CARGO_PROFILE_DEV_DEBUG": "0",
     "CARGO_INCREMENTAL": "0",
-    "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader"
+    "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader"
   },
   "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
 }

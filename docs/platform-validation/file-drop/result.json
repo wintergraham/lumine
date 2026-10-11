@@ -2,8 +2,8 @@
   "status": "passed",
   "platform": "X11/Xvfb + GTK3 Xdnd source",
   "files": [
-    "/tmp/zgui-files-native-final/first.txt",
-    "/tmp/zgui-files-native-final/second file.txt"
+    "/tmp/lumine-files-native-final/first.txt",
+    "/tmp/lumine-files-native-final/second file.txt"
   ],
   "scope": "real two-file drop, Escape cancellation into component target; percent-encoded filename space"
 }

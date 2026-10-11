@@ -3,9 +3,9 @@
   "command": [
     "/usr/bin/python3",
     "scripts/wayland_ime_smoke.py",
-    "/tmp/zgui-target/debug/examples/native_ime",
+    "/tmp/lumine-target/debug/examples/native_ime",
     "--output",
-    "/home/ubuntu/GitHub/zgui/docs/platform-validation/wayland-ime/native"
+    "/home/ubuntu/GitHub/lumine/docs/platform-validation/wayland-ime/native"
   ],
   "binary_sha256": "6d901b665ffe10d4ad4a5181091696873881fa4008a7e78a1dcc0b3b2efb9da0",
   "build": [
@@ -13,7 +13,7 @@
     "build",
     "--locked",
     "-p",
-    "zgui-desktop",
+    "lumine-desktop",
     "--example",
     "native_ime"
   ],
@@ -23,8 +23,8 @@
   "source_unchanged": true,
   "packages": "fcitx5 5.1.19-1\nfcitx5-chinese-addons 5.1.12-1\nfcitx5-pinyin 5.1.12-1\nsway 1.11-3\n",
   "environment": {
-    "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader",
-    "CARGO_TARGET_DIR": "/tmp/zgui-target",
+    "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader",
+    "CARGO_TARGET_DIR": "/tmp/lumine-target",
     "CARGO_PROFILE_DEV_DEBUG": "0",
     "CARGO_INCREMENTAL": "0",
     "CARGO_BUILD_JOBS": "1"

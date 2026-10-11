@@ -2,8 +2,8 @@ Native cascading menu validation
 ================================
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p zgui-desktop --example submenus
-LD_LIBRARY_PATH=/tmp/zgui-ci-loader-check/build/loader python3 scripts/submenus_smoke.py /tmp/zgui-target/debug/examples/submenus --output docs/platform-validation/submenus
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p lumine-desktop --example submenus
+LD_LIBRARY_PATH=/tmp/lumine-ci-loader-check/build/loader python3 scripts/submenus_smoke.py /tmp/lumine-target/debug/examples/submenus --output docs/platform-validation/submenus
 ```
 
 The owned Xvfb/Openbox session opens a parent menu, moves to its submenu trigger,

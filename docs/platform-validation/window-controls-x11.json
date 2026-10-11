@@ -7,43 +7,43 @@
     "WM_STATE Iconic after minimize, Normal after restore",
     "_NET_WM_STATE_MAXIMIZED_VERT after maximize",
     "X11 map state IsUnMapped after hide, IsViewable after show",
-    "Native title zgui controls resized"
+    "Native title lumine controls resized"
   ],
   "observations": [
     {
       "phase": "CONTROLS resized 800x600",
-      "properties": "WM_STATE(WM_STATE):\n\t\twindow state: Iconic\n\t\ticon window: 0x0\n_NET_WM_STATE(ATOM) = _NET_WM_STATE_HIDDEN\nWM_NAME(STRING) = \"zgui controls resized\"\n",
-      "map_state": "\nxwininfo: Window id: 0x400002 \"zgui controls resized\"\n\n  Absolute upper-left X:  320\n  Absolute upper-left Y:  279\n  Relative upper-left X:  1\n  Relative upper-left Y:  20\n  Width: 800\n  Height: 600\n  Depth: 24\n  Visual: 0x21\n  Visual Class: TrueColor\n  Border width: 0\n  Class: InputOutput\n  Colormap: 0x20 (installed)\n  Bit Gravity State: ForgetGravity\n  Window Gravity State: NorthWestGravity\n  Backing Store State: NotUseful\n  Save Under State: no\n  Map State: IsUnMapped\n  Override Redirect State: no\n  Corners:  +320+279  -160+279  -160-145  +320-145\n  -geometry 800x600+319+259\n\n",
+      "properties": "WM_STATE(WM_STATE):\n\t\twindow state: Iconic\n\t\ticon window: 0x0\n_NET_WM_STATE(ATOM) = _NET_WM_STATE_HIDDEN\nWM_NAME(STRING) = \"lumine controls resized\"\n",
+      "map_state": "\nxwininfo: Window id: 0x400002 \"lumine controls resized\"\n\n  Absolute upper-left X:  320\n  Absolute upper-left Y:  279\n  Relative upper-left X:  1\n  Relative upper-left Y:  20\n  Width: 800\n  Height: 600\n  Depth: 24\n  Visual: 0x21\n  Visual Class: TrueColor\n  Border width: 0\n  Class: InputOutput\n  Colormap: 0x20 (installed)\n  Bit Gravity State: ForgetGravity\n  Window Gravity State: NorthWestGravity\n  Backing Store State: NotUseful\n  Save Under State: no\n  Map State: IsUnMapped\n  Override Redirect State: no\n  Corners:  +320+279  -160+279  -160-145  +320-145\n  -geometry 800x600+319+259\n\n",
       "geometry": "WINDOW=4194306\nX=321\nY=299\nWIDTH=800\nHEIGHT=600\nSCREEN=0\n"
     },
     {
       "phase": "CONTROLS minimize requested",
-      "properties": "WM_STATE(WM_STATE):\n\t\twindow state: Iconic\n\t\ticon window: 0x0\n_NET_WM_STATE(ATOM) = _NET_WM_STATE_HIDDEN\nWM_NAME(STRING) = \"zgui controls resized\"\n",
-      "map_state": "\nxwininfo: Window id: 0x400002 \"zgui controls resized\"\n\n  Absolute upper-left X:  320\n  Absolute upper-left Y:  279\n  Relative upper-left X:  1\n  Relative upper-left Y:  20\n  Width: 800\n  Height: 600\n  Depth: 24\n  Visual: 0x21\n  Visual Class: TrueColor\n  Border width: 0\n  Class: InputOutput\n  Colormap: 0x20 (installed)\n  Bit Gravity State: ForgetGravity\n  Window Gravity State: NorthWestGravity\n  Backing Store State: NotUseful\n  Save Under State: no\n  Map State: IsUnMapped\n  Override Redirect State: no\n  Corners:  +320+279  -160+279  -160-145  +320-145\n  -geometry 800x600+319+259\n\n",
+      "properties": "WM_STATE(WM_STATE):\n\t\twindow state: Iconic\n\t\ticon window: 0x0\n_NET_WM_STATE(ATOM) = _NET_WM_STATE_HIDDEN\nWM_NAME(STRING) = \"lumine controls resized\"\n",
+      "map_state": "\nxwininfo: Window id: 0x400002 \"lumine controls resized\"\n\n  Absolute upper-left X:  320\n  Absolute upper-left Y:  279\n  Relative upper-left X:  1\n  Relative upper-left Y:  20\n  Width: 800\n  Height: 600\n  Depth: 24\n  Visual: 0x21\n  Visual Class: TrueColor\n  Border width: 0\n  Class: InputOutput\n  Colormap: 0x20 (installed)\n  Bit Gravity State: ForgetGravity\n  Window Gravity State: NorthWestGravity\n  Backing Store State: NotUseful\n  Save Under State: no\n  Map State: IsUnMapped\n  Override Redirect State: no\n  Corners:  +320+279  -160+279  -160-145  +320-145\n  -geometry 800x600+319+259\n\n",
       "geometry": "WINDOW=4194306\nX=321\nY=299\nWIDTH=800\nHEIGHT=600\nSCREEN=0\n"
     },
     {
       "phase": "CONTROLS restore requested",
-      "properties": "WM_STATE(WM_STATE):\n\t\twindow state: Normal\n\t\ticon window: 0x0\n_NET_WM_STATE(ATOM) = \nWM_NAME(STRING) = \"zgui controls resized\"\n",
-      "map_state": "\nxwininfo: Window id: 0x400002 \"zgui controls resized\"\n\n  Absolute upper-left X:  320\n  Absolute upper-left Y:  279\n  Relative upper-left X:  1\n  Relative upper-left Y:  20\n  Width: 800\n  Height: 600\n  Depth: 24\n  Visual: 0x21\n  Visual Class: TrueColor\n  Border width: 0\n  Class: InputOutput\n  Colormap: 0x20 (installed)\n  Bit Gravity State: ForgetGravity\n  Window Gravity State: NorthWestGravity\n  Backing Store State: NotUseful\n  Save Under State: no\n  Map State: IsViewable\n  Override Redirect State: no\n  Corners:  +320+279  -160+279  -160-145  +320-145\n  -geometry 800x600+319+259\n\n",
+      "properties": "WM_STATE(WM_STATE):\n\t\twindow state: Normal\n\t\ticon window: 0x0\n_NET_WM_STATE(ATOM) = \nWM_NAME(STRING) = \"lumine controls resized\"\n",
+      "map_state": "\nxwininfo: Window id: 0x400002 \"lumine controls resized\"\n\n  Absolute upper-left X:  320\n  Absolute upper-left Y:  279\n  Relative upper-left X:  1\n  Relative upper-left Y:  20\n  Width: 800\n  Height: 600\n  Depth: 24\n  Visual: 0x21\n  Visual Class: TrueColor\n  Border width: 0\n  Class: InputOutput\n  Colormap: 0x20 (installed)\n  Bit Gravity State: ForgetGravity\n  Window Gravity State: NorthWestGravity\n  Backing Store State: NotUseful\n  Save Under State: no\n  Map State: IsViewable\n  Override Redirect State: no\n  Corners:  +320+279  -160+279  -160-145  +320-145\n  -geometry 800x600+319+259\n\n",
       "geometry": "WINDOW=4194306\nX=321\nY=299\nWIDTH=800\nHEIGHT=600\nSCREEN=0\n"
     },
     {
       "phase": "CONTROLS maximize requested",
-      "properties": "WM_STATE(WM_STATE):\n\t\twindow state: Normal\n\t\ticon window: 0x0\n_NET_WM_STATE(ATOM) = _NET_WM_STATE_MAXIMIZED_VERT, _NET_WM_STATE_MAXIMIZED_HORZ\nWM_NAME(STRING) = \"zgui controls resized\"\n",
-      "map_state": "\nxwininfo: Window id: 0x400002 \"zgui controls resized\"\n\n  Absolute upper-left X:  0\n  Absolute upper-left Y:  19\n  Relative upper-left X:  0\n  Relative upper-left Y:  19\n  Width: 1280\n  Height: 1005\n  Depth: 24\n  Visual: 0x21\n  Visual Class: TrueColor\n  Border width: 0\n  Class: InputOutput\n  Colormap: 0x20 (installed)\n  Bit Gravity State: ForgetGravity\n  Window Gravity State: NorthWestGravity\n  Backing Store State: NotUseful\n  Save Under State: no\n  Map State: IsViewable\n  Override Redirect State: no\n  Corners:  +0+19  -0+19  -0-0  +0-0\n  -geometry 1280x1005+0+0\n\n",
+      "properties": "WM_STATE(WM_STATE):\n\t\twindow state: Normal\n\t\ticon window: 0x0\n_NET_WM_STATE(ATOM) = _NET_WM_STATE_MAXIMIZED_VERT, _NET_WM_STATE_MAXIMIZED_HORZ\nWM_NAME(STRING) = \"lumine controls resized\"\n",
+      "map_state": "\nxwininfo: Window id: 0x400002 \"lumine controls resized\"\n\n  Absolute upper-left X:  0\n  Absolute upper-left Y:  19\n  Relative upper-left X:  0\n  Relative upper-left Y:  19\n  Width: 1280\n  Height: 1005\n  Depth: 24\n  Visual: 0x21\n  Visual Class: TrueColor\n  Border width: 0\n  Class: InputOutput\n  Colormap: 0x20 (installed)\n  Bit Gravity State: ForgetGravity\n  Window Gravity State: NorthWestGravity\n  Backing Store State: NotUseful\n  Save Under State: no\n  Map State: IsViewable\n  Override Redirect State: no\n  Corners:  +0+19  -0+19  -0-0  +0-0\n  -geometry 1280x1005+0+0\n\n",
       "geometry": "WINDOW=4194306\nX=0\nY=38\nWIDTH=1280\nHEIGHT=1005\nSCREEN=0\n"
     },
     {
       "phase": "CONTROLS hide requested",
-      "properties": "WM_STATE:  not found.\n_NET_WM_STATE:  not found.\nWM_NAME(STRING) = \"zgui controls resized\"\n",
-      "map_state": "\nxwininfo: Window id: 0x400002 \"zgui controls resized\"\n\n  Absolute upper-left X:  319\n  Absolute upper-left Y:  259\n  Relative upper-left X:  319\n  Relative upper-left Y:  259\n  Width: 800\n  Height: 600\n  Depth: 24\n  Visual: 0x21\n  Visual Class: TrueColor\n  Border width: 0\n  Class: InputOutput\n  Colormap: 0x20 (installed)\n  Bit Gravity State: ForgetGravity\n  Window Gravity State: NorthWestGravity\n  Backing Store State: NotUseful\n  Save Under State: no\n  Map State: IsUnMapped\n  Override Redirect State: no\n  Corners:  +319+259  -161+259  -161-165  +319-165\n  -geometry 800x600+319+259\n\n",
+      "properties": "WM_STATE:  not found.\n_NET_WM_STATE:  not found.\nWM_NAME(STRING) = \"lumine controls resized\"\n",
+      "map_state": "\nxwininfo: Window id: 0x400002 \"lumine controls resized\"\n\n  Absolute upper-left X:  319\n  Absolute upper-left Y:  259\n  Relative upper-left X:  319\n  Relative upper-left Y:  259\n  Width: 800\n  Height: 600\n  Depth: 24\n  Visual: 0x21\n  Visual Class: TrueColor\n  Border width: 0\n  Class: InputOutput\n  Colormap: 0x20 (installed)\n  Bit Gravity State: ForgetGravity\n  Window Gravity State: NorthWestGravity\n  Backing Store State: NotUseful\n  Save Under State: no\n  Map State: IsUnMapped\n  Override Redirect State: no\n  Corners:  +319+259  -161+259  -161-165  +319-165\n  -geometry 800x600+319+259\n\n",
       "geometry": "WINDOW=4194306\nX=319\nY=259\nWIDTH=800\nHEIGHT=600\nSCREEN=0\n"
     },
     {
       "phase": "CONTROLS show requested",
-      "properties": "WM_STATE(WM_STATE):\n\t\twindow state: Normal\n\t\ticon window: 0x0\n_NET_WM_STATE(ATOM) = \nWM_NAME(STRING) = \"zgui controls resized\"\n",
-      "map_state": "\nxwininfo: Window id: 0x400002 \"zgui controls resized\"\n\n  Absolute upper-left X:  240\n  Absolute upper-left Y:  219\n  Relative upper-left X:  1\n  Relative upper-left Y:  20\n  Width: 800\n  Height: 600\n  Depth: 24\n  Visual: 0x21\n  Visual Class: TrueColor\n  Border width: 0\n  Class: InputOutput\n  Colormap: 0x20 (installed)\n  Bit Gravity State: ForgetGravity\n  Window Gravity State: NorthWestGravity\n  Backing Store State: NotUseful\n  Save Under State: no\n  Map State: IsViewable\n  Override Redirect State: no\n  Corners:  +240+219  -240+219  -240-205  +240-205\n  -geometry 800x600+239+199\n\n",
+      "properties": "WM_STATE(WM_STATE):\n\t\twindow state: Normal\n\t\ticon window: 0x0\n_NET_WM_STATE(ATOM) = \nWM_NAME(STRING) = \"lumine controls resized\"\n",
+      "map_state": "\nxwininfo: Window id: 0x400002 \"lumine controls resized\"\n\n  Absolute upper-left X:  240\n  Absolute upper-left Y:  219\n  Relative upper-left X:  1\n  Relative upper-left Y:  20\n  Width: 800\n  Height: 600\n  Depth: 24\n  Visual: 0x21\n  Visual Class: TrueColor\n  Border width: 0\n  Class: InputOutput\n  Colormap: 0x20 (installed)\n  Bit Gravity State: ForgetGravity\n  Window Gravity State: NorthWestGravity\n  Backing Store State: NotUseful\n  Save Under State: no\n  Map State: IsViewable\n  Override Redirect State: no\n  Corners:  +240+219  -240+219  -240-205  +240-205\n  -geometry 800x600+239+199\n\n",
       "geometry": "WINDOW=4194306\nX=241\nY=239\nWIDTH=800\nHEIGHT=600\nSCREEN=0\n"
     }
   ],

@@ -2,7 +2,7 @@
 
 Revision: `fcfcc9ac79dd3950f44ea098a661cae103bc9b8e` (latest main fetched by the parent before this run).
 
-Fresh release builds of zgui public component workload, GPUI0.2.2, and QuickGUI811d6e2816d5229711f59683c4c9dfbb6fc74133. All three adapters receive release verification builds from this revision; no prior frozen binary is reused. Every source file used by the patched `vendor/wgpu-hal` crate is hashed and archived. No old performance data substitutes for this measurement.
+Fresh release builds of lumine public component workload, GPUI0.2.2, and QuickGUI811d6e2816d5229711f59683c4c9dfbb6fc74133. All three adapters receive release verification builds from this revision; no prior frozen binary is reused. Every source file used by the patched `vendor/wgpu-hal` crate is hashed and archived. No old performance data substitutes for this measurement.
 
 36 trials: idle, streaming, scrolling, combined; each framework three times; rotated framework order. Each requests20 seconds, excludes the first5 seconds from process CPU/RSS sampling, and samples every50ms. Common private Xvfb/Openbox and Mesa software Vulkan with LP_NUM_THREADS=4 per Mesa pool. Same private loader for all frameworks. No repository builds during measurement; periodic host process observations record unrelated activity. No CPU affinity or thermal isolation.
 

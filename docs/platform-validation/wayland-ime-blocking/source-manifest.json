@@ -8,10 +8,10 @@
     "probe/src/main.rs": "91ebb6c5c1471cefba1d09ee8805cc36eee6ecd211591f71e0b202f6069f4c54",
     "analyze_ime_server.py": "3f96e3b4d857e6effbeca9121ff472f9ae78ffc6727a243987055dea40f7352f"
   },
-  "binary_path": "/tmp/zgui-target/debug/zgui-ime-blocking-probe",
+  "binary_path": "/tmp/lumine-target/debug/lumine-ime-blocking-probe",
   "binary_sha256": "808133205f3d051b51bfb69dbb600c28d7a7bb6777882295e90da03f5738a218",
   "build_environment": {
-    "CARGO_TARGET_DIR": "/tmp/zgui-target",
+    "CARGO_TARGET_DIR": "/tmp/lumine-target",
     "CARGO_PROFILE_DEV_DEBUG": "0",
     "CARGO_INCREMENTAL": "0",
     "CARGO_BUILD_JOBS": "1"

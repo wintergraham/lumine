@@ -14,8 +14,8 @@ to `seed` after paste, and ending at `seed ok`. The intercepted model ends at
 Reproduce from the repository root:
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo build -p zgui-desktop --example event_hooks
-python3 scripts/event_hooks_smoke.py /tmp/zgui-target/debug/examples/event_hooks --output docs/platform-validation/event-hooks
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo build -p lumine-desktop --example event_hooks
+python3 scripts/event_hooks_smoke.py /tmp/lumine-target/debug/examples/event_hooks --output docs/platform-validation/event-hooks
 ```
 
 This validates X11 keyboard/clipboard routing; it is not native macOS or Wayland

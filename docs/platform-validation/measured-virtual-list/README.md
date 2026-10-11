@@ -54,10 +54,10 @@ cargo test --workspace --all-targets --locked
 cargo test --workspace --doc --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo check --workspace --all-targets --target aarch64-apple-darwin --locked
-cargo build -p zgui-desktop --example measured_virtual_list --example variable_virtual_list --example virtual_keyboard --locked
-python3 scripts/measured_virtual_list_smoke.py target/debug/examples/measured_virtual_list --output /tmp/zgui-measured-list
-python3 scripts/variable_virtual_list_smoke.py target/debug/examples/variable_virtual_list --output /tmp/zgui-variable-list
-python3 scripts/virtual_keyboard_smoke.py target/debug/examples/virtual_keyboard --output /tmp/zgui-fixed-list
+cargo build -p lumine-desktop --example measured_virtual_list --example variable_virtual_list --example virtual_keyboard --locked
+python3 scripts/measured_virtual_list_smoke.py target/debug/examples/measured_virtual_list --output /tmp/lumine-measured-list
+python3 scripts/variable_virtual_list_smoke.py target/debug/examples/variable_virtual_list --output /tmp/lumine-variable-list
+python3 scripts/virtual_keyboard_smoke.py target/debug/examples/virtual_keyboard --output /tmp/lumine-fixed-list
 ```
 
 The scripts create and clean up their own Xvfb/Openbox sessions and do not connect

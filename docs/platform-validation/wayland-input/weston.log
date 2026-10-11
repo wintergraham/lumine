@@ -3,7 +3,7 @@ Date: 2026-09-22 UTC
                https://wayland.freedesktop.org
                Bug reports to: https://gitlab.freedesktop.org/wayland/weston/issues/
                Build: 14.0.2
-[10:58:34.106] Command line: weston --backend=x11 --renderer=pixman --shell=kiosk-shell.so --no-config --socket=zgui-input --width=900 --height=650 --idle-time=0
+[10:58:34.106] Command line: weston --backend=x11 --renderer=pixman --shell=kiosk-shell.so --no-config --socket=lumine-input --width=900 --height=650 --idle-time=0
 [10:58:34.106] OS: Linux, 7.0.0-28-generic, #28-Ubuntu SMP PREEMPT_DYNAMIC Sun Jun 21 01:01:36 UTC 2026, x86_64
 [10:58:34.106] Flight recorder: enabled
 [10:58:34.106] Starting with no config file.

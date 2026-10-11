@@ -1,7 +1,7 @@
-   Compiling zgui-gpu v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-gpu)
-   Compiling zgui-desktop v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-desktop)
+   Compiling lumine-gpu v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-gpu)
+   Compiling lumine-desktop v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-desktop)
     Finished `test` profile [unoptimized] target(s) in 3.54s
-     Running unittests src/lib.rs (/tmp/zgui-target/debug/deps/zgui_desktop-9c876ebdde359ec6)
+     Running unittests src/lib.rs (/tmp/lumine-target/debug/deps/lumine_desktop-9c876ebdde359ec6)
 
 running 60 tests
 test application::tests::host_suspend_recreates_native_resources_and_retains_editor_state ... ignored, requires an owned X11 display and GPU; run alone with --test-threads=1

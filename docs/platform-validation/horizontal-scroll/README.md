@@ -2,8 +2,8 @@ Native horizontal scrolling validation
 ======================================
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p zgui-desktop --example horizontal_scroll
-python3 scripts/horizontal_scroll_smoke.py /tmp/zgui-target/debug/examples/horizontal_scroll --output docs/platform-validation/horizontal-scroll
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p lumine-desktop --example horizontal_scroll
+python3 scripts/horizontal_scroll_smoke.py /tmp/lumine-target/debug/examples/horizontal_scroll --output docs/platform-validation/horizontal-scroll
 ```
 
 The owned Xvfb/Openbox session presents eight 80px buttons in a padded 240px

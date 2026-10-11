@@ -1,6 +1,6 @@
-   Compiling zgui-gpu v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-gpu)
+   Compiling lumine-gpu v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-gpu)
     Finished `test` profile [unoptimized] target(s) in 1.28s
-     Running tests/pixels.rs (/tmp/zgui-target/debug/deps/pixels-6d784e015f9db18b)
+     Running tests/pixels.rs (/tmp/lumine-target/debug/deps/pixels-6d784e015f9db18b)
 
 running 30 tests
 test image_and_svg_decoding_are_bounded_and_alpha_correct ... ok

@@ -1,8 +1,8 @@
 {
   "status": "passed",
   "verified_at_utc": "2026-09-25T09:49:02.821538+00:00",
-  "url": "https://zgui-performance.pages.dev",
-  "deployment_url": "https://d1f86b1d.zgui-performance.pages.dev",
+  "url": "https://lumine-performance.pages.dev",
+  "deployment_url": "https://d1f86b1d.lumine-performance.pages.dev",
   "measured_commit": "ed0d277623e5dcbe74640fd80276bfd2fa2f0084",
   "viewports": [
     1440,

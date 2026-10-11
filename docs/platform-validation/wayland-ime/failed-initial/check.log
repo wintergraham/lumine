@@ -1,8 +1,8 @@
 Traceback (most recent call last):
-  File "/home/ubuntu/GitHub/zgui/scripts/wayland_ime_smoke.py", line 171, in <module>
+  File "/home/ubuntu/GitHub/lumine/scripts/wayland_ime_smoke.py", line 171, in <module>
     main()
     ~~~~^^
-  File "/home/ubuntu/GitHub/zgui/scripts/wayland_ime_smoke.py", line 132, in main
+  File "/home/ubuntu/GitHub/lumine/scripts/wayland_ime_smoke.py", line 132, in main
     if time.monotonic()>deadline: raise RuntimeError('Pinyin preedit timed out')
                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 RuntimeError: Pinyin preedit timed out

@@ -4,9 +4,9 @@
     [
       "/usr/bin/python3",
       "scripts/wayland_transparency_smoke.py",
-      "/tmp/zgui-target/debug/examples/transparency",
+      "/tmp/lumine-target/debug/examples/transparency",
       "--output",
-      "/home/ubuntu/GitHub/zgui/docs/platform-validation/wayland-transparency/native"
+      "/home/ubuntu/GitHub/lumine/docs/platform-validation/wayland-transparency/native"
     ],
     [
       "python3",
@@ -21,7 +21,7 @@
   "source_archive_sha256": "9b7c2e3fb22028a80f104aae51053905710bf25ef934423b42a48c854fb07e89",
   "source_unchanged": true,
   "environment": {
-    "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader"
+    "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader"
   },
   "scope": "Native Wayland compositor pixel checks and six Python sampler regressions; no Rust source changes or new Rust test run"
 }

@@ -1,6 +1,6 @@
 # Building a desktop application
 
-Linux and macOS are the first target platforms. `zgui` contains retained state, layout, input, editing, semantics, and widgets; `zgui-gpu` supplies wgpu rendering and shaped text; `zgui-desktop` hosts native windows, IME, clipboard, and accessibility. Linux native smoke tests run in this repository's development environment. A Linux build does not prove macOS runtime behavior: run the same examples and platform CI on macOS before shipping there.
+Linux and macOS are the first target platforms. `lumine` contains retained state, layout, input, editing, semantics, and widgets; `lumine-gpu` supplies wgpu rendering and shaped text; `lumine-desktop` hosts native windows, IME, clipboard, and accessibility. Linux native smoke tests run in this repository's development environment. A Linux build does not prove macOS runtime behavior: run the same examples and platform CI on macOS before shipping there.
 
 Dynamic window title, size, visibility and window-manager requests are documented in [native window controls](window-controls.md).
 
@@ -9,9 +9,9 @@ For application code, start with [components, children, providers and slots](com
 Run the component example, widget gallery or notes workspace:
 
 ```sh
-cargo run -p zgui-desktop --example components
-cargo run -p zgui-desktop --example gallery
-cargo run -p zgui-desktop --example workbench
+cargo run -p lumine-desktop --example components
+cargo run -p lumine-desktop --example gallery
+cargo run -p lumine-desktop --example workbench
 ```
 
 ![Notes workspace](images/workbench.png)
@@ -21,8 +21,8 @@ The workbench has a 10,000-row virtual library, a selection-driven detail form, 
 ## A window and reactive widgets
 
 ```rust,no_run
-use zgui::compose::prelude::*;
-use zgui_desktop::{Application, WindowOptions};
+use lumine::compose::prelude::*;
+use lumine_desktop::{Application, WindowOptions};
 
 fn greeting() -> View {
     component(|cx| {
@@ -116,11 +116,11 @@ For low-level integration, `Ui` owns widget bindings and subscriptions. Returned
 
 `ViewScope` provides a smaller RAII owner for template-generated or custom subtrees. It owns descendants, effects, inherited typed services, and resources retained with `retain`. Dropping it disposes resources and subscriptions before removing its scene root. `KeyedChildren` adds key validation, retained reorder, and keyed disposal. Duplicate input keys are rejected before mutation. Scopes share their scene through `Rc<RefCell<_>>`; do not keep a scene borrow across a scope drop, a signal write, or a user callback.
 
-`cx.tasks.spawn(async move { ... })` schedules local futures and wakes the native loop when work becomes ready. `zgui::timer::sleep` is an awaitable timer; `yield_now` yields to another executor turn. Do not hold a reactive batch guard or scene borrow across `.await`. UI objects stay on the UI thread; use the host's thread-safe request interfaces and channels for background work instead of moving `Rc`-backed state between threads. Window tasks are dropped when that window closes. For native view-owned work, use `scope.retain(cx.tasks.spawn_scoped(async move { ... }))`. Its `ScopedTask` guard releases future captures when canceled, even before the host drains its pending queue, and wakes sleeping executor entries for cleanup. See [scoped native tasks](scoped-tasks.md) for a complete example. `ViewScope::spawn` and `LocalExecutor::spawn_scoped` remain available when you own the executor directly; their cancellation releases the future on its next ready turn. Plain `cx.tasks.spawn` is window-owned, so removing a widget does not cancel it.
+`cx.tasks.spawn(async move { ... })` schedules local futures and wakes the native loop when work becomes ready. `lumine::timer::sleep` is an awaitable timer; `yield_now` yields to another executor turn. Do not hold a reactive batch guard or scene borrow across `.await`. UI objects stay on the UI thread; use the host's thread-safe request interfaces and channels for background work instead of moving `Rc`-backed state between threads. Window tasks are dropped when that window closes. For native view-owned work, use `scope.retain(cx.tasks.spawn_scoped(async move { ... }))`. Its `ScopedTask` guard releases future captures when canceled, even before the host drains its pending queue, and wakes sleeping executor entries for cleanup. See [scoped native tasks](scoped-tasks.md) for a complete example. `ViewScope::spawn` and `LocalExecutor::spawn_scoped` remain available when you own the executor directly; their cancellation releases the future on its next ready turn. Plain `cx.tasks.spawn` is window-owned, so removing a widget does not cancel it.
 
 ## Animation frames
 
-Animate from the window's frame clock rather than a timer. `cx.frames()` in a component (or `WindowContext::frames`) returns a `zgui::frame::FrameClock`; awaiting `frames.next()` resolves once per display refresh with a `Frame` whose `time` is the expected presentation time. Drive animations from that value, not `Instant::now()`, so they advance by whole refreshes even when the UI thread runs late. The host only ticks while a request is waiting, so an idle window does no work, and hidden, minimized or occluded windows pause until they are shown again.
+Animate from the window's frame clock rather than a timer. `cx.frames()` in a component (or `WindowContext::frames`) returns a `lumine::frame::FrameClock`; awaiting `frames.next()` resolves once per display refresh with a `Frame` whose `time` is the expected presentation time. Drive animations from that value, not `Instant::now()`, so they advance by whole refreshes even when the UI thread runs late. The host only ticks while a request is waiting, so an idle window does no work, and hidden, minimized or occluded windows pause until they are shown again.
 
 ```rust,ignore
 let frames = cx.frames();
@@ -136,14 +136,14 @@ cx.tasks().spawn(async move {
 });
 ```
 
-`max_rate(hz)` limits one request. Limited requests are spaced by whole refreshes (30 Hz on a 120 Hz display is every fourth refresh; a limit that does not divide the display rate rounds down, never exceeding it), and requests with the same effective rate tick together. `WindowOptions::max_frame_rate` and `WindowHandle::set_max_frame_rate` cap every animation in a window, for example to save power; input-driven redraws are not limited. On macOS the frames come from a `CADisplayLink` on the window's view, which follows the window across displays and lets ProMotion panels lower their rate when every waiting request accepts fewer frames. Wayland paces through compositor frame callbacks. X11 and other platforms tick on event-loop deadlines at the display's reported refresh rate (`DisplayInfo::refresh_rate_hz`, 60 Hz when unknown). A native source that stops ticking while frames are wanted is backed by the same timer after 250 ms. The [frame clock example](../crates/zgui-desktop/examples/frame_clock.rs) shows the cap and a limited request; `--smoke-test` measures the delivered rates.
+`max_rate(hz)` limits one request. Limited requests are spaced by whole refreshes (30 Hz on a 120 Hz display is every fourth refresh; a limit that does not divide the display rate rounds down, never exceeding it), and requests with the same effective rate tick together. `WindowOptions::max_frame_rate` and `WindowHandle::set_max_frame_rate` cap every animation in a window, for example to save power; input-driven redraws are not limited. On macOS the frames come from a `CADisplayLink` on the window's view, which follows the window across displays and lets ProMotion panels lower their rate when every waiting request accepts fewer frames. Wayland paces through compositor frame callbacks. X11 and other platforms tick on event-loop deadlines at the display's reported refresh rate (`DisplayInfo::refresh_rate_hz`, 60 Hz when unknown). A native source that stops ticking while frames are wanted is backed by the same timer after 250 ms. The [frame clock example](../crates/lumine-desktop/examples/frame_clock.rs) shows the cap and a limited request; `--smoke-test` measures the delivered rates.
 
 ## Background work and window lifecycle
 
 `BackgroundPool::new(workers, queue_capacity)` creates an explicitly bounded worker pool. Its `spawn` method returns either a result future or `SpawnError::QueueFull`; it never grows an unbounded work queue. Await the future from a UI task, then update local signals. A panic in a job becomes `TaskError::Panicked`; a worker continues accepting work. Dropping a result skips queued work or discards a running result. Running closures cannot be forcibly interrupted. Dropping the last pool cancels queued jobs and lets running jobs finish without blocking the UI.
 
 ```rust,ignore
-let pool = zgui::background::BackgroundPool::new(2, 16)?;
+let pool = lumine::background::BackgroundPool::new(2, 16)?;
 let job = pool.spawn(move || std::fs::read(path))?;
 cx.tasks.spawn(async move {
     match job.await {

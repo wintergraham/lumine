@@ -8,7 +8,7 @@
   ],
   "failed_trials": [
     {
-      "framework": "zgui",
+      "framework": "lumine",
       "mode": "scroll",
       "repeat": "1",
       "wall_seconds": "15.011048779822886",

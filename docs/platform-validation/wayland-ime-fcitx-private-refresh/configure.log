@@ -1,4 +1,4 @@
-CMake Warning (dev) at /tmp/zgui-fcitx-preedit/tools/usr/share/ECM/modules/ECMFindModuleHelpers.cmake:113 (message):
+CMake Warning (dev) at /tmp/lumine-fcitx-preedit/tools/usr/share/ECM/modules/ECMFindModuleHelpers.cmake:113 (message):
   Your project should require at least CMake 3.16.0 to use
   FindXKBCommon.cmake
 Call Stack (most recent call first):
@@ -6,18 +6,18 @@ Call Stack (most recent call first):
   CMakeLists.txt:150 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
 
-CMake Warning (dev) at /tmp/zgui-fcitx-preedit/tools/usr/share/ECM/modules/ECMFindModuleHelpers.cmake:113 (message):
+CMake Warning (dev) at /tmp/lumine-fcitx-preedit/tools/usr/share/ECM/modules/ECMFindModuleHelpers.cmake:113 (message):
   Your project should require at least CMake 3.16.0 to use FindWayland.cmake
 Call Stack (most recent call first):
-  /tmp/zgui-fcitx-preedit/tools/usr/share/ECM/find-modules/FindWayland.cmake:63 (ecm_find_package_version_check)
+  /tmp/lumine-fcitx-preedit/tools/usr/share/ECM/find-modules/FindWayland.cmake:63 (ecm_find_package_version_check)
   CMakeLists.txt:178 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
 
-CMake Warning (dev) at /tmp/zgui-fcitx-preedit/tools/usr/share/ECM/modules/ECMFindModuleHelpers.cmake:113 (message):
+CMake Warning (dev) at /tmp/lumine-fcitx-preedit/tools/usr/share/ECM/modules/ECMFindModuleHelpers.cmake:113 (message):
   Your project should require at least CMake 3.16.0 to use
   FindWaylandScanner.cmake
 Call Stack (most recent call first):
-  /tmp/zgui-fcitx-preedit/tools/usr/share/ECM/find-modules/FindWaylandScanner.cmake:82 (ecm_find_package_version_check)
+  /tmp/lumine-fcitx-preedit/tools/usr/share/ECM/find-modules/FindWaylandScanner.cmake:82 (ecm_find_package_version_check)
   CMakeLists.txt:179 (find_package)
 This warning is for project developers.  Use -Wno-dev to suppress it.
 
@@ -46,4 +46,4 @@ This warning is for project developers.  Use -Wno-dev to suppress it.
 
 -- Configuring done (0.7s)
 -- Generating done (0.1s)
--- Build files have been written to: /tmp/zgui-fcitx-preedit/build
+-- Build files have been written to: /tmp/lumine-fcitx-preedit/build

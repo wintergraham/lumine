@@ -1,7 +1,7 @@
 {
   "/usr/bin/fcitx5": "f55185cbcaa95dd9185837abe895e0f714e3992282d61f3f2ba9452ee028c38c",
   "/usr/lib/x86_64-linux-gnu/fcitx5/libwaylandim.so": "38499f035c2e1c931911e6a3d38b65fc1fa1bb857ac4f3de012acf91d18a1f2b",
-  "/tmp/zgui-fcitx-preedit/plugin/libwaylandim.so": "33664afc554488c56529dfa838b7572c223682faf9ffc99ad309235efa3abca9",
-  "/tmp/zgui-target/debug/examples/native_ime": "89d70c52c1a0c2b1908caaf7bab6739646757dfd1262de6f07a8d3aaf26b40bb",
-  "/tmp/zgui-target/debug/zgui-ime-blocking-probe": "808133205f3d051b51bfb69dbb600c28d7a7bb6777882295e90da03f5738a218"
+  "/tmp/lumine-fcitx-preedit/plugin/libwaylandim.so": "33664afc554488c56529dfa838b7572c223682faf9ffc99ad309235efa3abca9",
+  "/tmp/lumine-target/debug/examples/native_ime": "89d70c52c1a0c2b1908caaf7bab6739646757dfd1262de6f07a8d3aaf26b40bb",
+  "/tmp/lumine-target/debug/lumine-ime-blocking-probe": "808133205f3d051b51bfb69dbb600c28d7a7bb6777882295e90da03f5738a218"
 }

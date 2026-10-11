@@ -10,9 +10,9 @@
    Compiling gif v0.14.2
    Compiling is-wsl v0.4.0
    Compiling dbus v0.9.12
-   Compiling zgui v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui)
-   Compiling zgui-gpu v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-gpu)
+   Compiling lumine v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine)
+   Compiling lumine-gpu v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-gpu)
    Compiling dbus-crossroads v0.5.3
    Compiling open v5.4.4
-   Compiling zgui-desktop v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-desktop)
+   Compiling lumine-desktop v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-desktop)
     Finished `release` profile [optimized] target(s) in 2m 21s

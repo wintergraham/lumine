@@ -1,4 +1,4 @@
-    Checking zgui-desktop v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-desktop)
-    Checking zgui-gpu v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-gpu)
-    Checking zgui v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui)
+    Checking lumine-desktop v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-desktop)
+    Checking lumine-gpu v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-gpu)
+    Checking lumine v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine)
     Finished `dev` profile [unoptimized] target(s) in 12.45s

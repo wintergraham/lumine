@@ -19,9 +19,9 @@
   "current_build_input_mismatches": [],
   "all_three_binary_hashes_and_loader_verified": true,
   "binary_paths": {
-    "zgui": "/tmp/zgui-gpui-parity-workers4-bin/component_workload",
-    "gpui": "/tmp/zgui-gpui-parity-workers4-bin/zgui-compare-gpui",
-    "quickgui": "/tmp/zgui-gpui-parity-workers4-bin/zgui-compare-quickgui"
+    "lumine": "/tmp/lumine-gpui-parity-workers4-bin/component_workload",
+    "gpui": "/tmp/lumine-gpui-parity-workers4-bin/lumine-compare-gpui",
+    "quickgui": "/tmp/lumine-gpui-parity-workers4-bin/lumine-compare-quickgui"
   },
   "host_observations": 144,
   "host_observation_span_seconds": 720.6201918125153,
@@ -44,7 +44,7 @@
     }
   },
   "capture_thread_counts": {
-    "zgui": {
+    "lumine": {
       "all_threads": 16,
       "llvmpipe_workers": 4
     },

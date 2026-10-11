@@ -1,6 +1,6 @@
 {
   "session_address": "unix:path=/tmp/dbus-FfhRE4s0KL,guid=4eaae3721f0b405f6edb073e6ab288fe",
-  "accessibility_address": "unix:path=/tmp/zgui-atspi-8hqx847f/at-spi/bus_0,guid=dead3d3f6bcfb2c65363ea136ab288ff",
+  "accessibility_address": "unix:path=/tmp/lumine-atspi-8hqx847f/at-spi/bus_0,guid=dead3d3f6bcfb2c65363ea136ab288ff",
   "status": {
     "IsEnabled": true,
     "ScreenReaderEnabled": true

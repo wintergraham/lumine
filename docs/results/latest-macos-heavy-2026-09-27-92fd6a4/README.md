@@ -1,4 +1,4 @@
-# Heavy dashboard: zgui and GPUI on an M5 Max
+# Heavy dashboard: lumine and GPUI on an M5 Max
 
 `scripts/run_macos_comparison.py --scene heavy`, 2026-09-27. Apple M5 Max
 (Mac17,6), macOS 26.4 (25E246), Metal, on AC power. A personal Mac in use:
@@ -6,10 +6,10 @@ other applications kept running, so the host was not isolated.
 
 ## The scene
 
-`zgui_workload::heavy`: a 1280×800 window (2560×1600 pixels on this Retina
+`lumine_workload::heavy`: a 1280×800 window (2560×1600 pixels on this Retina
 display) where most content changes every tick. All values derive from shared
 deterministic functions, so both adapters draw the same pixels
-([zgui](zgui.png), [GPUI](gpui.png)):
+([lumine](lumine.png), [GPUI](gpui.png)):
 
 - 6 stat tiles with live values;
 - 30 rounded, bordered service cards, each with a live value, a progress bar
@@ -24,7 +24,7 @@ updates per second.
 
 Adapters, each in its framework's idiomatic best case:
 
-- zgui ([`heavy_workload`](../../../crates/zgui-desktop/examples/heavy_workload.rs)):
+- lumine ([`heavy_workload`](../../../crates/lumine-desktop/examples/heavy_workload.rs)):
   retained views; every live value is a reactive text or style, and the table
   is a `virtual_list`.
 - GPUI 0.2.2 ([`bin/heavy`](../../../comparisons/gpui/src/bin/heavy.rs)):
@@ -44,7 +44,7 @@ framework, 20 s each, the first 5 s excluded and the next 15 s sampled every
 requested second (gate 58–61); idle trials none.
 
 Both adapters drew every update. Separately from the timed trials, over 10 s
-of `both`, zgui presented 60–61 frames per second (`ZGUI_GPU_STATS`) and GPUI
+of `both`, lumine presented 60–61 frames per second (`LUMINE_GPU_STATS`) and GPUI
 rendered its dashboard view 592 times for 591 ticks (a temporary counter,
 removed; the rebuilt GPUI binary's hash matches the one measured).
 
@@ -52,21 +52,21 @@ removed; the rebuilt GPUI binary's hash matches the one measured).
 
 Medians of three repeats (range in parentheses).
 
-| Mode | zgui CPU | GPUI CPU | zgui vs GPUI |
+| Mode | lumine CPU | GPUI CPU | lumine vs GPUI |
 |---|---|---|---|
 | idle | 0.00% (0.00–0.00) | 0.37% (0.37–0.37) | — |
 | stream | 10.91% (10.61–11.20) | 20.56% (19.89–20.99) | −47% |
 | scroll | 3.98% (3.98–3.99) | 13.22% (13.15–13.95) | −70% |
 | both | 11.48% (11.28–11.53) | 20.94% (20.94–21.27) | −45% |
 
-| Mode | zgui footprint | GPUI footprint | zgui RSS | GPUI RSS |
+| Mode | lumine footprint | GPUI footprint | lumine RSS | GPUI RSS |
 |---|---|---|---|---|
 | idle | 91.2 MiB | 104.0 MiB | 103.1 MiB | 73.2 MiB |
 | stream | 295.3 MiB | 267.4 MiB | 106.7 MiB | 73.8 MiB |
 | scroll | 290.3 MiB | 267.3 MiB | 105.0 MiB | 74.1 MiB |
 | both | 295.8 MiB | 270.4 MiB | 107.3 MiB | 74.9 MiB |
 
-zgui used about half GPUI's CPU with live data and under a third while
+lumine used about half GPUI's CPU with live data and under a third while
 scrolling. GPUI used less memory while active: about 25–28 MiB less physical
 footprint and 33 MiB less resident memory. Idle footprint varied between runs
 (GPUI 84–104 MiB across the two runs made today) and does not rank either.
@@ -82,7 +82,7 @@ which that audit's `source_diff_sha256` does not cover (the runner now
 includes them); their SHA-256:
 
 ```
-276f112d35df1957e8f62de9bdf850f50aaac7efc173d8f55dc9ae7f68dbb17e  crates/zgui-desktop/examples/heavy_workload.rs
+276f112d35df1957e8f62de9bdf850f50aaac7efc173d8f55dc9ae7f68dbb17e  crates/lumine-desktop/examples/heavy_workload.rs
 0e5232a4f2e5b13e6a088e93990f626dbe149a66210cf0b1f26c4c19db67a0c3  comparisons/gpui/src/bin/heavy.rs
 29220325b70179b0d6794efa427f0fabd221b2c660519056d0eb669d7fdce374  comparisons/quickgui/src/bin/heavy.rs
 d7fb4f9f435bd8121034d7a1237704c965b2c9f1737adfab28e501c01c193614  comparisons/workload/src/lib.rs

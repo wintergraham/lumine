@@ -22,7 +22,7 @@
   "rust": "rustc 1.96.0 (ac68faa20 2026-05-25)"
  },
  "binaries": {
-  "zgui": {
+  "lumine": {
    "sha256": "bb10c80115f89f0d27b3a737fd9ed3af84e3a0d71175efdcca4e0cc1c358ebe8",
    "bytes": 10845408
   },
@@ -38,7 +38,7 @@
   "interval_seconds": 0.05,
   "repeats": 3,
   "frameworks": [
-   "zgui",
+   "lumine",
    "gpui"
   ],
   "acceptance_updates_per_second": [

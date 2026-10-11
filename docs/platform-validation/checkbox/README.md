@@ -4,8 +4,8 @@ Native declarative checkbox validation
 Run from the repository root:
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p zgui-desktop --example checkbox
-python3 scripts/checkbox_smoke.py /tmp/zgui-target/debug/examples/checkbox --output docs/platform-validation/checkbox
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p lumine-desktop --example checkbox
+python3 scripts/checkbox_smoke.py /tmp/lumine-target/debug/examples/checkbox --output docs/platform-validation/checkbox
 ```
 
 The script creates and cleans up its own Xvfb display and Openbox window manager.

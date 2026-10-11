@@ -1,32 +1,32 @@
-# zgui
+# lumine
 
 A retained Rust GUI framework for **Linux, macOS and Windows**, focused on fine-grained updates, bounded rendering resources, and low idle CPU usage. It has a platform-independent core, a wgpu renderer, and a desktop host with native input, clipboard, IME, accessibility, and multiple windows.
 
 ```sh
-cargo run --release -p zgui-desktop --example components
-cargo run --release -p zgui-desktop --example form
-cargo run --release -p zgui-desktop --example wrapped_editor
-cargo run --release -p zgui-desktop --example line_height
-cargo run --release -p zgui-desktop --example letter_spacing
-cargo run --release -p zgui-desktop --example percent_sizes
-cargo run --release -p zgui-desktop --example overlays
-cargo run --release -p zgui-desktop --example menus
-cargo run --release -p zgui-desktop --example submenus
-ZGUI_MODE=both ZGUI_SECONDS=10 cargo run --release -p zgui-desktop --example component_workload
-cargo run --release -p zgui-desktop --example gallery
-cargo run --release -p zgui-desktop --example workbench
-cargo run --release -p zgui-desktop --example windows
-cargo run --release -p zgui-desktop --example effects
-cargo run --release -p zgui-desktop --example layout
-cargo run --release -p zgui-desktop --example rich_text
-cargo run --release -p zgui-desktop --example paint_styles
-cargo run --release -p zgui-desktop --example canvas
-cargo run --release -p zgui-desktop --example svg_transform
-cargo run --release -p zgui-desktop --example animated_image
-cargo run --release -p zgui-desktop --example cursors
-cargo run --release -p zgui-desktop --example drag_drop
-cargo run --release -p zgui-desktop --example dynamic_menus
-cargo run --release -p zgui-desktop --example platform_services
+cargo run --release -p lumine-desktop --example components
+cargo run --release -p lumine-desktop --example form
+cargo run --release -p lumine-desktop --example wrapped_editor
+cargo run --release -p lumine-desktop --example line_height
+cargo run --release -p lumine-desktop --example letter_spacing
+cargo run --release -p lumine-desktop --example percent_sizes
+cargo run --release -p lumine-desktop --example overlays
+cargo run --release -p lumine-desktop --example menus
+cargo run --release -p lumine-desktop --example submenus
+LUMINE_MODE=both LUMINE_SECONDS=10 cargo run --release -p lumine-desktop --example component_workload
+cargo run --release -p lumine-desktop --example gallery
+cargo run --release -p lumine-desktop --example workbench
+cargo run --release -p lumine-desktop --example windows
+cargo run --release -p lumine-desktop --example effects
+cargo run --release -p lumine-desktop --example layout
+cargo run --release -p lumine-desktop --example rich_text
+cargo run --release -p lumine-desktop --example paint_styles
+cargo run --release -p lumine-desktop --example canvas
+cargo run --release -p lumine-desktop --example svg_transform
+cargo run --release -p lumine-desktop --example animated_image
+cargo run --release -p lumine-desktop --example cursors
+cargo run --release -p lumine-desktop --example drag_drop
+cargo run --release -p lumine-desktop --example dynamic_menus
+cargo run --release -p lumine-desktop --example platform_services
 ```
 
 Linux builds need the native development libraries for fontconfig, xkbcommon and
@@ -42,8 +42,8 @@ behavior and cancellation guarantees.
 Applications describe components and children. They mount once; reactive properties update only their retained targets:
 
 ```rust,no_run
-use zgui::compose::prelude::*;
-use zgui_desktop::Application;
+use lumine::compose::prelude::*;
+use lumine_desktop::Application;
 
 fn counter() -> View {
     component(|cx| {
@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-Components resolve typed services with `cx.service::<Model>()`, initialize local state with `cx.state`, and capture caller-owned lexical providers in `cx.slot`. Rows, columns, buttons and slots take child views; `text_input` and `text_area` bind editable values with fluent styles and inherited typography; application components do not manipulate scene parent IDs. `provide`/`provide_with`, keyed children and conditional regions preserve ownership across fine-grained updates. See the [exact model example](crates/zgui/examples/model.rs), [component architecture](docs/composition.md), and [fluent styling](docs/styling.md).
+Components resolve typed services with `cx.service::<Model>()`, initialize local state with `cx.state`, and capture caller-owned lexical providers in `cx.slot`. Rows, columns, buttons and slots take child views; `text_input` and `text_area` bind editable values with fluent styles and inherited typography; application components do not manipulate scene parent IDs. `provide`/`provide_with`, keyed children and conditional regions preserve ownership across fine-grained updates. See the [exact model example](crates/lumine/examples/model.rs), [component architecture](docs/composition.md), and [fluent styling](docs/styling.md).
 
 The framework includes:
 
@@ -84,21 +84,21 @@ Read [components and slots](docs/composition.md), [styling](docs/styling.md), [a
 
 ## Performance comparison
 
-The same deterministic streaming-text and 100,000-row virtual-list UI is implemented in zgui, GPUI and QuickGUI. Only viewport rows are mounted. All adapters have locked dependencies and share the workload source.
+The same deterministic streaming-text and 100,000-row virtual-list UI is implemented in lumine, GPUI and QuickGUI. Only viewport rows are mounted. All adapters have locked dependencies and share the workload source.
 
 ```sh
-ZGUI_MODE=both ZGUI_SECONDS=10 cargo run --release -p zgui-desktop --example component_workload
-ZGUI_MODE=idle ZGUI_SECONDS=0 cargo run --release -p zgui-desktop --example component_workload
+LUMINE_MODE=both LUMINE_SECONDS=10 cargo run --release -p lumine-desktop --example component_workload
+LUMINE_MODE=idle LUMINE_SECONDS=0 cargo run --release -p lumine-desktop --example component_workload
 ```
 
-The component workload uses the native GPU host and owned declarative views. `ZGUI_MODE` accepts `idle`, `stream`, `scroll`, or `both`; zero seconds keeps the window open.
+The component workload uses the native GPU host and owned declarative views. `LUMINE_MODE` accepts `idle`, `stream`, `scroll`, or `both`; zero seconds keeps the window open.
 
-A heavier scene, `heavy_workload` (with a GPUI adapter), is a 1280×800 live dashboard where most content changes every tick: 30 cards with scrolling sparklines, stat tiles, a scrolling 100,000-row status table and a streaming log. On an M5 Max, zgui used 45–47% less CPU than GPUI with live data and 70% less while scrolling, and 25–33 MiB more memory ([results](docs/results/latest-macos-heavy-2026-09-27-92fd6a4/README.md); `python3 scripts/run_macos_comparison.py --scene heavy`). The older `zgui-demo` executable remains available for low-level renderer diagnostics, including `ZGUI_RENDERER=software` and display-free `--headless` checks.
+A heavier scene, `heavy_workload` (with a GPUI adapter), is a 1280×800 live dashboard where most content changes every tick: 30 cards with scrolling sparklines, stat tiles, a scrolling 100,000-row status table and a streaming log. On an M5 Max, lumine used 45–47% less CPU than GPUI with live data and 70% less while scrolling, and 25–33 MiB more memory ([results](docs/results/latest-macos-heavy-2026-09-27-92fd6a4/README.md); `python3 scripts/run_macos_comparison.py --scene heavy`). The older `lumine-demo` executable remains available for low-level renderer diagnostics, including `LUMINE_RENDERER=software` and display-free `--headless` checks.
 
 See [benchmark commands and methodology](docs/benchmarking.md). The
 [parity-expansion comparison](docs/results/gpui-parity-workers4/README.md) records
 36 matched trials and 10,808 audited samples on Mesa llvmpipe. Active trials
-delivered 59.6–59.95 model updates per requested second. zgui's active CPU medians
+delivered 59.6–59.95 model updates per requested second. lumine's active CPU medians
 were 28.5–53.6% below GPUI and 9.3–41.9% below QuickGUI in this condition. Mean RSS
 medians were 103.35 MiB idle and 108.16–108.39 MiB active; scrolling RSS was nearly
 tied with GPUI. Idle CPU tied QuickGUI at zero sampled ticks. Full repeat ranges,
@@ -122,6 +122,10 @@ GPU tests require a Vulkan or Metal adapter, including software Vulkan for CI. T
 
 On the tested Sway/Fcitx Wayland stack, very rapid input can leave preedit stale; the same failure reproduces in an independent winit program. Unicode commits succeeded in these tests. See the [protocol evidence and open compatibility issue](docs/validation.md#wayland-burst-input-serial-diagnosis).
 
-Development remains active. The [capability matrix](docs/gpui-parity.md) tracks implementation and target-platform evidence separately. See [layout](docs/layout.md), [rich text](docs/rich-text.md), [canvas drawing](docs/canvas.md), [paint styles](docs/paint-styles.md), [SVG transforms](docs/affine-images.md), [media loading/playback](docs/images-and-animation.md), [actions](docs/actions.md), and [native services](docs/platform-services.md), and [macOS CoreVideo surfaces](docs/native-surfaces.md). Backdrop blur reconstructs the affected backdrop when its dependency region changes. Core-only text measurement uses a fallback until a native shaper is installed. See the [GPU renderer's precise resource limits](crates/zgui-gpu/README.md) and [completion plan](docs/ROADMAP.md) for unresolved work; the project does not claim that every GUI feature is finished or that minimum possible CPU/RAM use has been proved.
+Development remains active. The [capability matrix](docs/gpui-parity.md) tracks implementation and target-platform evidence separately. See [layout](docs/layout.md), [rich text](docs/rich-text.md), [canvas drawing](docs/canvas.md), [paint styles](docs/paint-styles.md), [SVG transforms](docs/affine-images.md), [media loading/playback](docs/images-and-animation.md), [actions](docs/actions.md), and [native services](docs/platform-services.md), and [macOS CoreVideo surfaces](docs/native-surfaces.md). Backdrop blur reconstructs the affected backdrop when its dependency region changes. Core-only text measurement uses a fallback until a native shaper is installed. See the [GPU renderer's precise resource limits](crates/lumine-gpu/README.md) and [completion plan](docs/ROADMAP.md) for unresolved work; the project does not claim that every GUI feature is finished or that minimum possible CPU/RAM use has been proved.
 
-References: [GPUI](https://gpui.rs/), [zui](https://github.com/zeronsh/zui), [QuickGUI](https://github.com/egoist/quickgui), [React](https://github.com/react/react). Their designs informed this framework. zgui uses direct dependency subscriptions instead of rerunning whole component functions. Font and dependency licenses are retained alongside their assets and manifests.
+References: [GPUI](https://gpui.rs/), [zui](https://github.com/zeronsh/zui), [QuickGUI](https://github.com/egoist/quickgui), [React](https://github.com/react/react). Their designs informed this framework. lumine uses direct dependency subscriptions instead of rerunning whole component functions. Font and dependency licenses are retained alongside their assets and manifests.
+
+## Licensing and provenance
+
+Lumine provides no repository-wide license for fork-specific additions or modifications. Required upstream, dependency and font notices are retained. See [third-party notices](third-party/README.md).

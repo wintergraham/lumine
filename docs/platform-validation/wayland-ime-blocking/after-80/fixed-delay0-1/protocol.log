@@ -118,7 +118,7 @@
 [ 366067.676]  -> wl_region#34.add(0, 0, 2147483647, 2147483647)
 [ 366067.683]  -> wl_surface#28.set_opaque_region(wl_region#34)
 [ 366067.688]  -> wl_region#34.destroy()
-[ 366067.697]  -> xdg_toplevel#30.set_title("zgui direct winit IME probe")
+[ 366067.697]  -> xdg_toplevel#30.set_title("lumine direct winit IME probe")
 [ 366067.709]  -> xdg_toplevel#30.set_min_size(2, 1)
 [ 366067.719]  -> xdg_toplevel#30.set_max_size(0, 0)
 [ 366067.725]  -> wl_surface#28.commit()

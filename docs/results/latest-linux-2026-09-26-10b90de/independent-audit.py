@@ -2,11 +2,11 @@ import collections,csv,hashlib,json,math,pathlib,re,statistics,tarfile
 ROOT=pathlib.Path(__file__).resolve().parents[3]; OUT=pathlib.Path(__file__).resolve().parent
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 rows=list(csv.DictReader((OUT/'current.csv').open()));meta=json.loads((OUT/'current.csv.metadata.json').read_text());summary=json.loads((OUT/'summary.json').read_text())
-expected={(f,m,r) for f in ['zgui','gpui','quickgui'] for m in ['idle','stream','scroll','both'] for r in range(3)}
+expected={(f,m,r) for f in ['lumine','gpui','quickgui'] for m in ['idle','stream','scroll','both'] for r in range(3)}
 actual=[(x['framework'],x['mode'],int(x['repeat'])) for x in rows]
 assert len(rows)==36 and set(actual)==expected
 # Verify the exact preregistered order rather than merely inventory.
-order=[]; frameworks=['zgui','gpui','quickgui']
+order=[]; frameworks=['lumine','gpui','quickgui']
 for repeat in range(3):
  for mode in ['idle','stream','scroll','both']:
   order.extend((f,mode,repeat) for f in frameworks[repeat:]+frameworks[:repeat])
@@ -27,8 +27,8 @@ for row in rows:
  ticks=int(next(v for v in match.groups() if v is not None));assert ticks==int(row['workload_ticks'])==raw['summary']['workload_ticks']
  if row['mode']=='idle':assert ticks==0
  else: rates.append(ticks/20);assert 58<=ticks/20<=61
- if row['framework']=='zgui':
-  reports=[v for v in raw['application_reports'] if v.get('framework')=='zgui'];assert len(reports)==1 and reports[0]['adapter']=='components' and reports[0]['renderer']=='gpu'
+ if row['framework']=='lumine':
+  reports=[v for v in raw['application_reports'] if v.get('framework')=='lumine'];assert len(reports)==1 and reports[0]['adapter']=='components' and reports[0]['renderer']=='gpu'
   assert 0<=reports[0]['mounted_rows']<=19
  sample_count+=len(s);wall.append(duration)
 assert len(summary['groups'])==12
@@ -46,15 +46,15 @@ with tarfile.open(OUT/'source.tar.gz','r:gz') as archive:
  for entry in entries:assert hashlib.sha256(archive.extractfile(entry).read()).hexdigest()==hashes[entry.name],entry.name
 current_mismatches=[name for name,expected in hashes.items() if sha(ROOT/name)!=expected]
 # Do not silently treat post-measurement documentation edits as source identity.
-builds=[json.loads((OUT/name).read_text()) for name in ['zgui-build-manifest.json','reference-build-manifest.json']]
+builds=[json.loads((OUT/name).read_text()) for name in ['lumine-build-manifest.json','reference-build-manifest.json']]
 build_input_mismatches=[]
 for manifest in builds:
  for name,expected in manifest['source_sha256'].items():
   assert hashes[name]==expected,name
   if sha(ROOT/name)!=expected:build_input_mismatches.append(name)
 preflight=json.loads((OUT/'preflight.json').read_text());binary_paths={}
-for f,filename in {'zgui':'component_workload','gpui':'zgui-compare-gpui','quickgui':'zgui-compare-quickgui'}.items():
- manifest=builds[0] if f=='zgui' else builds[1];path=pathlib.Path('/tmp/zgui-latest-linux-2026-09-26-10b90de-bin')/filename
+for f,filename in {'lumine':'component_workload','gpui':'lumine-compare-gpui','quickgui':'lumine-compare-quickgui'}.items():
+ manifest=builds[0] if f=='lumine' else builds[1];path=pathlib.Path('/tmp/lumine-latest-linux-2026-09-26-10b90de-bin')/filename
  assert sha(path)==manifest['binaries'][f]['sha256']==preflight['binary_sha256'][f]==meta['binary_sha256'][f];binary_paths[f]=str(path)
 loader=pathlib.Path(preflight['loader_path']);assert sha(loader)==preflight['loader_sha256']
 env=json.loads((OUT/'measurement-environment.json').read_text());assert env['LP_NUM_THREADS']=='4' and env['LIBGL_ALWAYS_SOFTWARE']=='1' and env['WGPU_BACKEND']=='vulkan' and env['WINIT_UNIX_BACKEND']=='x11'

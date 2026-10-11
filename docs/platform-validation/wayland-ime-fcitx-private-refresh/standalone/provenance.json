@@ -3,7 +3,7 @@
   "binary_sha256": "808133205f3d051b51bfb69dbb600c28d7a7bb6777882295e90da03f5738a218",
   "argv": [
     "docs/platform-validation/wayland-ime-fcitx-private-refresh/sources/standalone_refresh.py",
-    "/tmp/zgui-target/debug/zgui-ime-blocking-probe",
+    "/tmp/lumine-target/debug/lumine-ime-blocking-probe",
     "--sessions",
     "1",
     "--bursts",
@@ -12,7 +12,7 @@
     "0",
     "--present-on-ime",
     "--addon-dir",
-    "/tmp/zgui-fcitx-preedit/plugin",
+    "/tmp/lumine-fcitx-preedit/plugin",
     "--output",
     "docs/platform-validation/wayland-ime-fcitx-private-refresh/standalone"
   ],

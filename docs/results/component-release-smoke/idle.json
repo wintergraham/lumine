@@ -8,7 +8,7 @@
     "sample_count": 82,
     "application_reports": [
       {
-        "framework": "zgui",
+        "framework": "lumine",
         "adapter": "components",
         "renderer": "gpu",
         "ticks": 0,

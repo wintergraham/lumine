@@ -19,7 +19,7 @@
     "interval_seconds": 0.05,
     "repeats": 3,
     "frameworks": [
-      "zgui",
+      "lumine",
       "gpui"
     ],
     "acceptance_updates_per_second": [
@@ -28,13 +28,13 @@
     ]
   },
   "frameworks": {
-    "zgui": "92fd6a41161e51f00b369906ef07409403f06e94",
+    "lumine": "92fd6a41161e51f00b369906ef07409403f06e94",
     "gpui": "0.2.2"
   },
   "csv_sha256": "1fd0a45faa6a3018daf1fef246ee7ec7aa44c3d6b996012a9629e5718ddc2f73",
   "source_csv_sha256": "1fd0a45faa6a3018daf1fef246ee7ec7aa44c3d6b996012a9629e5718ddc2f73",
   "binaries": {
-    "zgui": {
+    "lumine": {
       "sha256": "bb10c80115f89f0d27b3a737fd9ed3af84e3a0d71175efdcca4e0cc1c358ebe8",
       "bytes": 10845408
     },

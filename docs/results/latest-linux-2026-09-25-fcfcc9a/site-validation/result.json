@@ -2,8 +2,8 @@
   "site_validation_status": "passed",
   "benchmark_status": "rejected_workload_parity",
   "verified_at_utc": "2026-09-25T20:44:36.592834+00:00",
-  "url": "https://zgui-performance.pages.dev",
-  "deployment_url": "https://d269e053.zgui-performance.pages.dev",
+  "url": "https://lumine-performance.pages.dev",
+  "deployment_url": "https://d269e053.lumine-performance.pages.dev",
   "attempted_commit": "fcfcc9ac79dd3950f44ea098a661cae103bc9b8e",
   "accepted_graph_commit": "ed0d277623e5dcbe74640fd80276bfd2fa2f0084",
   "viewports": [

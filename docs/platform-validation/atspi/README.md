@@ -20,9 +20,9 @@ values and TextRun children, without editor selection actions.
 Run from the repository root:
 
 ```sh
-cargo build -p zgui-desktop --example atspi --locked
+cargo build -p lumine-desktop --example atspi --locked
 /usr/bin/python3 scripts/atspi_smoke.py target/debug/examples/atspi \
-  --output /tmp/zgui-atspi
+  --output /tmp/lumine-atspi
 ```
 
 Dependencies include Xvfb, Openbox, xdotool, ImageMagick, D-Bus, `at-spi2-core`,

@@ -28,7 +28,7 @@
         "Anonymous": 13248
       },
       {
-        "name": "/tmp/zgui-primary-backend-bin/component_workload",
+        "name": "/tmp/lumine-primary-backend-bin/component_workload",
         "Rss": 10688,
         "Pss": 10688,
         "Anonymous": 444
@@ -376,7 +376,7 @@
         "Anonymous": 23472
       },
       {
-        "name": "/tmp/zgui-primary-backend-bin/component_workload",
+        "name": "/tmp/lumine-primary-backend-bin/component_workload",
         "Rss": 10688,
         "Pss": 10688,
         "Anonymous": 444
@@ -784,7 +784,7 @@
         "Anonymous": 23372
       },
       {
-        "name": "/tmp/zgui-primary-backend-bin/component_workload",
+        "name": "/tmp/lumine-primary-backend-bin/component_workload",
         "Rss": 10752,
         "Pss": 10752,
         "Anonymous": 444
@@ -1192,7 +1192,7 @@
         "Anonymous": 13344
       },
       {
-        "name": "/tmp/zgui-primary-backend-bin/component_workload",
+        "name": "/tmp/lumine-primary-backend-bin/component_workload",
         "Rss": 10872,
         "Pss": 10872,
         "Anonymous": 444
@@ -1540,7 +1540,7 @@
         "Anonymous": 13264
       },
       {
-        "name": "/tmp/zgui-primary-backend-bin/component_workload",
+        "name": "/tmp/lumine-primary-backend-bin/component_workload",
         "Rss": 10752,
         "Pss": 10752,
         "Anonymous": 444
@@ -1888,7 +1888,7 @@
         "Anonymous": 23468
       },
       {
-        "name": "/tmp/zgui-primary-backend-bin/component_workload",
+        "name": "/tmp/lumine-primary-backend-bin/component_workload",
         "Rss": 10688,
         "Pss": 10688,
         "Anonymous": 444

@@ -67,7 +67,7 @@
         "cargo",
         "build",
         "-p",
-        "zgui-desktop",
+        "lumine-desktop",
         "--example",
         "measured_virtual_list",
         "--example",
@@ -84,9 +84,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/measured_virtual_list_smoke.py",
-        "/tmp/zgui-target/debug/examples/measured_virtual_list",
+        "/tmp/lumine-target/debug/examples/measured_virtual_list",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/measured-virtual-list/measured_virtual_list"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/measured-virtual-list/measured_virtual_list"
       ],
       "binary_sha256": "698961ea8f083ec13380201e63d614641997f27aebe656535eff7901f445ae96"
     },
@@ -94,9 +94,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/variable_virtual_list_smoke.py",
-        "/tmp/zgui-target/debug/examples/variable_virtual_list",
+        "/tmp/lumine-target/debug/examples/variable_virtual_list",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/measured-virtual-list/variable_virtual_list"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/measured-virtual-list/variable_virtual_list"
       ],
       "binary_sha256": "9e9ee65dcf732397788ec75055a683ba12c5d01627e84ccb65e60447cb72481e"
     },
@@ -104,9 +104,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/virtual_keyboard_smoke.py",
-        "/tmp/zgui-target/debug/examples/virtual_keyboard",
+        "/tmp/lumine-target/debug/examples/virtual_keyboard",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/measured-virtual-list/virtual_keyboard"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/measured-virtual-list/virtual_keyboard"
       ],
       "binary_sha256": "f7603db0f6e6065305d0408245eda7a567df6940038e4968aba04d9dcb40e990"
     }
@@ -116,10 +116,10 @@
   "source_unchanged": true,
   "backend": "owned Xvfb/Openbox; Mesa llvmpipe Vulkan with private patched loader",
   "environment": {
-    "CARGO_TARGET_DIR": "/tmp/zgui-target",
+    "CARGO_TARGET_DIR": "/tmp/lumine-target",
     "CARGO_PROFILE_DEV_DEBUG": "0",
     "CARGO_INCREMENTAL": "0",
-    "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader",
+    "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader",
     "CARGO_BUILD_JOBS": "1"
   },
   "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"

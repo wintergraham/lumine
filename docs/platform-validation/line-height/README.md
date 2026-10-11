@@ -14,8 +14,8 @@ compiler and commands. All owned test processes are cleaned up on success/failur
 This is native X11 software-GPU evidence, not macOS or hardware validation.
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo build -p zgui-desktop --example line_height --locked
-python3 scripts/line_height_smoke.py /tmp/zgui-target/debug/examples/line_height --output docs/platform-validation/line-height
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 cargo build -p lumine-desktop --example line_height --locked
+python3 scripts/line_height_smoke.py /tmp/lumine-target/debug/examples/line_height --output docs/platform-validation/line-height
 ```
 
 The adjacent consolidated logs record 378 passing tests, 26 doctests, strict

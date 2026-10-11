@@ -3,7 +3,7 @@
 An owned Xvfb/Openbox session runs `live_dpi_pointer` and a minimal script-local
 XSETTINGS provider. The provider publishes the standard `Xft/DPI` setting and
 changes it from 96 to 192. Winit receives the real property notification and
-emits its native scale/resize events. No zgui input or scale event is injected.
+emits its native scale/resize events. No lumine input or scale event is injected.
 
 The physical window doubles from 500×200 to 1000×400. The pointer remains
 stationary over physical client coordinate (300,60), which should become logical
@@ -17,6 +17,6 @@ after Winit's live XSETTINGS notification. This is an X11-specific observation;
 Wayland/macOS start with logical pointer coordinates and must preserve them.
 
 The archived `test-runner.py` matches its result hash. The executable hash is in
-`results.json`; a frozen copy was kept at `/tmp/zgui-live-dpi-pointer-before` during
+`results.json`; a frozen copy was kept at `/tmp/lumine-live-dpi-pointer-before` during
 this development session. The script imports the repository's `platform_smoke`
 process-cleanup helper. The post-fix comparison is recorded separately.

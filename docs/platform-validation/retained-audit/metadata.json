@@ -4,7 +4,7 @@
     "cargo",
     "build",
     "-p",
-    "zgui-desktop",
+    "lumine-desktop",
     "--example",
     "atspi",
     "--example",
@@ -18,9 +18,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/image_fit_smoke.py",
-        "/tmp/zgui-target/debug/examples/image_fit",
+        "/tmp/lumine-target/debug/examples/image_fit",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/retained-audit/image_fit"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/retained-audit/image_fit"
       ],
       "binary_sha256": "564de4654abe920e0fd5fe6292c5936de66545a749564bbbd253bc07aa0a6b0f"
     },
@@ -28,9 +28,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/atspi_smoke.py",
-        "/tmp/zgui-target/debug/examples/atspi",
+        "/tmp/lumine-target/debug/examples/atspi",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/retained-audit/atspi"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/retained-audit/atspi"
       ],
       "binary_sha256": "871140866ed94785867814d1f8013ea8574a00d894120f6d8cc1a18b635f408f"
     },
@@ -38,9 +38,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/native_ime_smoke.py",
-        "/tmp/zgui-target/debug/examples/native_ime",
+        "/tmp/lumine-target/debug/examples/native_ime",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/retained-audit/native_ime"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/retained-audit/native_ime"
       ],
       "binary_sha256": "1695640dc498e923026f5da00022da174627a034b9de978cf42a865e0e3c50dc"
     }
@@ -50,10 +50,10 @@
   "source_unchanged": true,
   "backend": "owned Xvfb/Openbox, private services, Mesa llvmpipe Vulkan",
   "environment": {
-    "CARGO_TARGET_DIR": "/tmp/zgui-target",
+    "CARGO_TARGET_DIR": "/tmp/lumine-target",
     "CARGO_PROFILE_DEV_DEBUG": "0",
     "CARGO_INCREMENTAL": "0",
-    "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader"
+    "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader"
   },
   "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
 }

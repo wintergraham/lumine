@@ -54,10 +54,10 @@ cargo test --workspace --all-targets --locked
 cargo test --workspace --doc --locked
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo check --workspace --all-targets --target aarch64-apple-darwin --locked
-cargo build -p zgui-desktop --example variable_virtual_list --example virtual_keyboard --locked
-python3 scripts/variable_virtual_list_smoke.py target/debug/examples/variable_virtual_list --output /tmp/zgui-variable-list
-python3 scripts/virtual_keyboard_smoke.py target/debug/examples/virtual_keyboard --output /tmp/zgui-fixed-list
-cargo run --release -p zgui --example variable_list_bench --locked
+cargo build -p lumine-desktop --example variable_virtual_list --example virtual_keyboard --locked
+python3 scripts/variable_virtual_list_smoke.py target/debug/examples/variable_virtual_list --output /tmp/lumine-variable-list
+python3 scripts/virtual_keyboard_smoke.py target/debug/examples/virtual_keyboard --output /tmp/lumine-fixed-list
+cargo run --release -p lumine --example variable_list_bench --locked
 ```
 
 The native scripts own their Xvfb/Openbox processes and clean up their test

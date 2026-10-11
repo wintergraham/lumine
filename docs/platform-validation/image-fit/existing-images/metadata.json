@@ -3,9 +3,9 @@
   "command": [
     "python3",
     "scripts/images_smoke.py",
-    "/tmp/zgui-target/debug/examples/images",
+    "/tmp/lumine-target/debug/examples/images",
     "--output",
-    "/tmp/zgui-image-fit-existing"
+    "/tmp/lumine-image-fit-existing"
   ],
   "source_archive": "../source.tar.gz",
   "runner_sha256": "2e5bff471039524fecc13ba0c15a177b79c77b0e8ccf384996883570534a0baf"

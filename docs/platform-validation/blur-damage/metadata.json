@@ -4,7 +4,7 @@
     "cargo",
     "build",
     "-p",
-    "zgui-desktop",
+    "lumine-desktop",
     "--example",
     "effects",
     "--example",
@@ -18,9 +18,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/effects_smoke.py",
-        "/tmp/zgui-target/debug/examples/effects",
+        "/tmp/lumine-target/debug/examples/effects",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/blur-damage/effects"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/blur-damage/effects"
       ],
       "binary_sha256": "38efe6cd8c5568ea94e2465de186e7d7bb2880beeb52b8276c2519e08e971962"
     },
@@ -28,9 +28,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/model_text_smoke.py",
-        "/tmp/zgui-target/debug/examples/model_text",
+        "/tmp/lumine-target/debug/examples/model_text",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/blur-damage/model_text"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/blur-damage/model_text"
       ],
       "binary_sha256": "07fa44afd32b5fe3a3c64b0199236def7b5b38c75c18bca416f7bae9c2cfd318"
     },
@@ -38,9 +38,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/image_fit_smoke.py",
-        "/tmp/zgui-target/debug/examples/image_fit",
+        "/tmp/lumine-target/debug/examples/image_fit",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/blur-damage/image_fit"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/blur-damage/image_fit"
       ],
       "binary_sha256": "eb2c449ff4707c59a64f29eead56ccc1daceb95f2d7a313fd5922e4e95ef3bbc"
     }
@@ -50,10 +50,10 @@
   "source_unchanged": true,
   "backend": "owned Xvfb/Openbox, private services, Mesa llvmpipe Vulkan",
   "environment": {
-    "CARGO_TARGET_DIR": "/tmp/zgui-target",
+    "CARGO_TARGET_DIR": "/tmp/lumine-target",
     "CARGO_PROFILE_DEV_DEBUG": "0",
     "CARGO_INCREMENTAL": "0",
-    "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader",
+    "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader",
     "CARGO_BUILD_JOBS": "1"
   },
   "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"

@@ -1,5 +1,5 @@
 {
-  "renderer": "zgui wgpu Vulkan via Mesa llvmpipe LLVM 21.1.8",
+  "renderer": "lumine wgpu Vulkan via Mesa llvmpipe LLVM 21.1.8",
   "build_profile": "release optimized, Cargo workspace defaults",
   "baseline": "before shared device/context and lazy atlas changes",
   "atlas": {

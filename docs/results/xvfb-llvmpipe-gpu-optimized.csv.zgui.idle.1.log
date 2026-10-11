@@ -1,5 +1,0 @@
-zgui GPU adapter: AdapterInfo { name: "llvmpipe (LLVM 21.1.8, 256 bits)", vendor: 65541, device: 0, device_type: Cpu, device_pci_bus_id: "", driver: "llvmpipe", driver_info: "Mesa 26.0.8-1ubuntu0.3 (LLVM 21.1.8)", backend: Vulkan, subgroup_min_size: 8, subgroup_max_size: 8, transient_saves_memory: false }
-
-thread 'main' (2108253) panicked at /home/ubuntu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/winit-0.30.13/src/platform_impl/linux/x11/mod.rs:963:14:
-Failed to update device event filter: Connection(IoError(Custom { kind: Other, error: UnknownError }))
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

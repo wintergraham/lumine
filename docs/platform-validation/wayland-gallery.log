@@ -5,7 +5,7 @@ SEMANTIC "Notes" Some("Tab moves focus. Shift+Tab moves back.\nTry selecting Uni
 SEMANTIC "Name" Some("Hello, 世界 👋")
 SEMANTIC "Increment" None
 SEMANTIC "Volume level" None
-SEMANTIC "zgui · Linux & macOS" None
+SEMANTIC "lumine · Linux & macOS" None
 SEMANTIC "Async update" None
 SEMANTIC "Ready" None
 SEMANTIC "Notes — multiline editing" None

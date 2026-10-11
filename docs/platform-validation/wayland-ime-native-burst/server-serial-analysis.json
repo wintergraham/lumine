@@ -1,5 +1,5 @@
 {
-  "run/zgui-delay0-1/sway.log": {
+  "run/lumine-delay0-1/sway.log": {
     "transactions": [
       {
         "line": 3017,
@@ -128,7 +128,7 @@
     ],
     "serial_mismatches": 0
   },
-  "run/zgui-delay0-2/sway.log": {
+  "run/lumine-delay0-2/sway.log": {
     "transactions": [
       {
         "line": 3017,

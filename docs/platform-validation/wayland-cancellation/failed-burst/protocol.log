@@ -120,7 +120,7 @@
 [2456596.673]  -> wl_region#36.add(0, 0, 2147483647, 2147483647)
 [2456596.686]  -> wl_surface#28.set_opaque_region(wl_region#36)
 [2456596.692]  -> wl_region#36.destroy()
-[2456596.718]  -> xdg_toplevel#30.set_title("zgui external IME model")
+[2456596.718]  -> xdg_toplevel#30.set_title("lumine external IME model")
 [2456596.733]  -> xdg_toplevel#30.set_min_size(2, 1)
 [2456596.741]  -> xdg_toplevel#30.set_max_size(0, 0)
 [2456596.753]  -> wl_surface#28.commit()

@@ -120,7 +120,7 @@ I2026-09-22 17:22:50.055545 dbusmodule.cpp:841] Service name change: org.fcitx.F
 I2026-09-22 17:22:50.056473 kimpanel.cpp:116] Kimpanel new owner: 
 I2026-09-22 17:22:50.056496 virtualkeyboard.cpp:218] VirtualKeyboard new owner: 
 [2646094.818] {Default Queue} zwlr_foreign_toplevel_manager_v1#7.toplevel(new id zwlr_foreign_toplevel_handle_v1#4278190080)
-[2646094.843] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.title("zgui native IME")
+[2646094.843] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.title("lumine native IME")
 [2646094.852] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.state(array[4])
 [2646094.858] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.state(array[8])
 [2646094.866] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.done()

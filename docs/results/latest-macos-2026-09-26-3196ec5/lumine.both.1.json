@@ -1,0 +1,16 @@
+{
+ "framework": "lumine",
+ "mode": "both",
+ "repeat": 1,
+ "wall_seconds": 15.0337,
+ "cpu_seconds": 0.8259,
+ "cpu_percent_one_core": 5.4937,
+ "mean_footprint_bytes": 279946925,
+ "peak_footprint_bytes": 281871176,
+ "mean_rss_bytes": 102008398,
+ "peak_rss_bytes": 102072320,
+ "samples": 264,
+ "workload_ticks": 1198,
+ "exit_code": 0,
+ "terminated_after_report": false
+}

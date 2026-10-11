@@ -2,7 +2,7 @@
   "workers": 24,
   "iterations_per_worker": 10,
   "context_lifecycles": 240,
-  "binary_path": "/tmp/zgui-target/debug/deps/pixels-6d784e015f9db18b",
+  "binary_path": "/tmp/lumine-target/debug/deps/pixels-6d784e015f9db18b",
   "binary_sha256": "3704f50eca946a564b793d8535741bc8952655148e32c9d77ee45c3fdc34275d",
   "source_archive_sha256": "afdff3e27a5c4310cbddf19016af4bb1e490ee78f5621c104bdfa6b917575699",
   "system_loader_path": "/usr/lib/x86_64-linux-gnu/libvulkan.so.1",
@@ -23,7 +23,7 @@
   "fixed_loader_runs": 3,
   "fixed_loader_lifecycles": 720,
   "fixed_loader_override": {
-    "LD_LIBRARY_PATH": "/tmp/zgui-vulkan-loader-1.4.345/build/loader"
+    "LD_LIBRARY_PATH": "/tmp/lumine-vulkan-loader-1.4.345/build/loader"
   },
   "fixed_loader_binary_unchanged": true
 }

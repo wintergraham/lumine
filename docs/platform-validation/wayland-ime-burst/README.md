@@ -1,11 +1,11 @@
 # Direct winit input-method burst diagnostic
 
-A direct winit/softbuffer window, independent of zgui editors and rendering,
+A direct winit/softbuffer window, independent of lumine editors and rendering,
 received every final preedit and Unicode commit in this bounded experiment:
 **12/12 baseline bursts** and **10/10 cursor-delay sweep bursts**. Some intermediate
 preedit states did not arrive, but the final state did. This does not reproduce
 or resolve the stuck final preedit observed in the
-[real zgui failure](../wayland-ime/failed-initial/README.md).
+[real lumine failure](../wayland-ime/failed-initial/README.md).
 
 The baseline alternates moving/fixed candidate geometry across two fresh sessions
 per mode, with one cold and two warm bursts per session. The sweep uses moving
@@ -32,7 +32,7 @@ cross-checks for macOS ARM64; native macOS execution is not established.
 
 ## Protocol investigation
 
-The failed zgui trace contains full engine-side preedit requests but only the
+The failed lumine trace contains full engine-side preedit requests but only the
 first client-side preedit. Thus the missing events did not reach the editor
 handler. Serial mismatch is a supported explanation, not a complete experimental
 attribution of the original failure.

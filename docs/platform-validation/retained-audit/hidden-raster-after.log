@@ -1,7 +1,7 @@
-   Compiling zgui-gpu v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-gpu)
-   Compiling zgui-desktop v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-desktop)
+   Compiling lumine-gpu v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-gpu)
+   Compiling lumine-desktop v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-desktop)
     Finished `test` profile [unoptimized] target(s) in 1.83s
-     Running unittests src/lib.rs (/tmp/zgui-target/debug/deps/zgui_desktop-fc5b67b08eede3c2)
+     Running unittests src/lib.rs (/tmp/lumine-target/debug/deps/lumine_desktop-fc5b67b08eede3c2)
 
 running 1 test
 test raster::hidden_effect_tests::transparent_subtrees_do_not_blur_backdrop_or_rasterize_text ... ok

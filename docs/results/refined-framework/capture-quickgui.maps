@@ -1,7 +1,7 @@
-5ab1190d7000-5ab1194c2000 r--p 00000000 00:2c 47747694                   /tmp/zgui-refined-framework-bin/zgui-compare-quickgui
-5ab1194c2000-5ab11a432000 r-xp 003ea000 00:2c 47747694                   /tmp/zgui-refined-framework-bin/zgui-compare-quickgui
-5ab11a432000-5ab11a4bc000 r--p 01359000 00:2c 47747694                   /tmp/zgui-refined-framework-bin/zgui-compare-quickgui
-5ab11a4bc000-5ab11a4c0000 rw-p 013e2000 00:2c 47747694                   /tmp/zgui-refined-framework-bin/zgui-compare-quickgui
+5ab1190d7000-5ab1194c2000 r--p 00000000 00:2c 47747694                   /tmp/lumine-refined-framework-bin/lumine-compare-quickgui
+5ab1194c2000-5ab11a432000 r-xp 003ea000 00:2c 47747694                   /tmp/lumine-refined-framework-bin/lumine-compare-quickgui
+5ab11a432000-5ab11a4bc000 r--p 01359000 00:2c 47747694                   /tmp/lumine-refined-framework-bin/lumine-compare-quickgui
+5ab11a4bc000-5ab11a4c0000 rw-p 013e2000 00:2c 47747694                   /tmp/lumine-refined-framework-bin/lumine-compare-quickgui
 5ab11a4c0000-5ab11a4c4000 rw-p 00000000 00:00 0 
 5ab14dcfe000-5ab152821000 rw-p 00000000 00:00 0                          [heap]
 70ea04000000-70ea04021000 rw-p 00000000 00:00 0 
@@ -465,11 +465,11 @@
 70ebf06fa000-70ebf06fb000 r--p 00002000 09:03 1345332                    /usr/lib/x86_64-linux-gnu/libxcb-present.so.0.0.0
 70ebf06fb000-70ebf06fc000 r--p 00002000 09:03 1345332                    /usr/lib/x86_64-linux-gnu/libxcb-present.so.0.0.0
 70ebf06fc000-70ebf06fd000 rw-p 00003000 09:03 1345332                    /usr/lib/x86_64-linux-gnu/libxcb-present.so.0.0.0
-70ebf06fd000-70ebf0705000 r--p 00000000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-70ebf0705000-70ebf0752000 r-xp 00008000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-70ebf0752000-70ebf0785000 r--p 00055000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-70ebf0785000-70ebf0786000 r--p 00088000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-70ebf0786000-70ebf0787000 rw-p 00089000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
+70ebf06fd000-70ebf0705000 r--p 00000000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+70ebf0705000-70ebf0752000 r-xp 00008000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+70ebf0752000-70ebf0785000 r--p 00055000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+70ebf0785000-70ebf0786000 r--p 00088000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+70ebf0786000-70ebf0787000 rw-p 00089000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
 70ebf0787000-70ebf0791000 r--p 00000000 09:03 1314023                    /usr/lib/x86_64-linux-gnu/libxcb-xkb.so.1.0.0
 70ebf0791000-70ebf079f000 r-xp 0000a000 09:03 1314023                    /usr/lib/x86_64-linux-gnu/libxcb-xkb.so.1.0.0
 70ebf079f000-70ebf07a4000 r--p 00018000 09:03 1314023                    /usr/lib/x86_64-linux-gnu/libxcb-xkb.so.1.0.0

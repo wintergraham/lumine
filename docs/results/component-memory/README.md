@@ -2,11 +2,11 @@
 
 The first snapshots compare the frozen normalized-release binaries at idle, two seconds after process start, using `/proc/PID/smaps` and `smaps_rollup`. All processes exited successfully. These are single OS mapping snapshots, not allocator profiles or repeated whole-framework rankings. RSS, proportional set size (PSS), anonymous pages, and private pages measure different things; shared driver mappings make RSS particularly different from private memory.
 
-The original zgui process had 104 threads and loaded both Vulkan and Gallium/EGL libraries even though its selected adapter was Vulkan. GPUI had 80 threads and no Gallium mapping. QuickGUI had 105 threads and loaded Gallium too. This identified an avoidable backend-initialization path in zgui: its wgpu instance enabled every backend and did not apply `WGPU_BACKEND`.
+The original lumine process had 104 threads and loaded both Vulkan and Gallium/EGL libraries even though its selected adapter was Vulkan. GPUI had 80 threads and no Gallium mapping. QuickGUI had 105 threads and loaded Gallium too. This identified an avoidable backend-initialization path in lumine: its wgpu instance enabled every backend and did not apply `WGPU_BACKEND`.
 
 ## Controlled backend ablation
 
-Zgui now defaults to wgpu's primary backends (Vulkan on Linux, Metal on macOS) and applies the wgpu environment overrides. A fresh release binary was run three times with `WGPU_BACKEND=vulkan` and three times with `WGPU_BACKEND=vulkan,gl`, alternating order. Every other application/environment setting was identical. All six records have the same executable SHA-256, and the archived source hashes were verified. Processes were idle, bounded to three seconds, with a snapshot at two seconds; all exited successfully.
+Lumine now defaults to wgpu's primary backends (Vulkan on Linux, Metal on macOS) and applies the wgpu environment overrides. A fresh release binary was run three times with `WGPU_BACKEND=vulkan` and three times with `WGPU_BACKEND=vulkan,gl`, alternating order. Every other application/environment setting was identical. All six records have the same executable SHA-256, and the archived source hashes were verified. Processes were idle, bounded to three seconds, with a snapshot at two seconds; all exited successfully.
 
 | Enabled backends | Median RSS [range], MiB | Threads | Gallium RSS, MiB |
 | --- | ---: | ---: | ---: |

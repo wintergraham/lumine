@@ -2,7 +2,7 @@ signal time=1790113472.066647 sender=org.freedesktop.DBus -> destination=:1.0 se
    string ":1.0"
 signal time=1790113472.066663 sender=org.freedesktop.DBus -> destination=:1.0 serial=4 path=/org/freedesktop/DBus; interface=org.freedesktop.DBus; member=NameLost
    string ":1.0"
-signal time=1790113474.968616 sender=:1.1 -> destination=:1.5 serial=97 path=/org/freedesktop/portal/desktop/request/1_5/zgui_b1af8d291250048c89a5ea96e92ddca1; interface=org.freedesktop.portal.Request; member=Response
+signal time=1790113474.968616 sender=:1.1 -> destination=:1.5 serial=97 path=/org/freedesktop/portal/desktop/request/1_5/lumine_b1af8d291250048c89a5ea96e92ddca1; interface=org.freedesktop.portal.Request; member=Response
    uint32 0
    array [
       dict entry(
@@ -25,11 +25,11 @@ signal time=1790113474.968616 sender=:1.1 -> destination=:1.5 serial=97 path=/or
       dict entry(
          string "uris"
          variant             array [
-               string "file:///tmp/zgui-native-services-escape-probe/fixture.txt"
+               string "file:///tmp/lumine-native-services-escape-probe/fixture.txt"
             ]
       )
    ]
-signal time=1790113475.563469 sender=:1.1 -> destination=:1.6 serial=105 path=/org/freedesktop/portal/desktop/request/1_6/zgui_26c14b084b32acc833d4e945a137c7f0; interface=org.freedesktop.portal.Request; member=Response
+signal time=1790113475.563469 sender=:1.1 -> destination=:1.6 serial=105 path=/org/freedesktop/portal/desktop/request/1_6/lumine_26c14b084b32acc833d4e945a137c7f0; interface=org.freedesktop.portal.Request; member=Response
    uint32 0
    array [
       dict entry(
@@ -40,11 +40,11 @@ signal time=1790113475.563469 sender=:1.1 -> destination=:1.6 serial=105 path=/o
       dict entry(
          string "uris"
          variant             array [
-               string "file:///tmp/zgui-native-services-escape-probe/chosen-folder"
+               string "file:///tmp/lumine-native-services-escape-probe/chosen-folder"
             ]
       )
    ]
-signal time=1790113476.678092 sender=:1.1 -> destination=:1.7 serial=113 path=/org/freedesktop/portal/desktop/request/1_7/zgui_84720adeaa911e186d9e3abbd8fd6fc6; interface=org.freedesktop.portal.Request; member=Response
+signal time=1790113476.678092 sender=:1.1 -> destination=:1.7 serial=113 path=/org/freedesktop/portal/desktop/request/1_7/lumine_84720adeaa911e186d9e3abbd8fd6fc6; interface=org.freedesktop.portal.Request; member=Response
    uint32 0
    array [
       dict entry(
@@ -55,11 +55,11 @@ signal time=1790113476.678092 sender=:1.1 -> destination=:1.7 serial=113 path=/o
       dict entry(
          string "uris"
          variant             array [
-               string "file:///tmp/zgui-native-services-escape-probe/chosen-folder/saved.txt"
+               string "file:///tmp/lumine-native-services-escape-probe/chosen-folder/saved.txt"
             ]
       )
    ]
-signal time=1790113477.211950 sender=:1.1 -> destination=:1.8 serial=120 path=/org/freedesktop/portal/desktop/request/1_8/zgui_1521c05966d03042ac10bc6ab4458e64; interface=org.freedesktop.portal.Request; member=Response
+signal time=1790113477.211950 sender=:1.1 -> destination=:1.8 serial=120 path=/org/freedesktop/portal/desktop/request/1_8/lumine_1521c05966d03042ac10bc6ab4458e64; interface=org.freedesktop.portal.Request; member=Response
    uint32 2
    array [
       dict entry(

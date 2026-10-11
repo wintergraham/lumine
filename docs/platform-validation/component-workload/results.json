@@ -2,21 +2,21 @@
   {
     "mode": "idle",
     "exit_code": 0,
-    "log": "{\"framework\":\"zgui\",\"adapter\":\"components\",\"renderer\":\"gpu\",\"ticks\":0,\"mounted_rows\":17,\"elapsed_seconds\":3.001}\n"
+    "log": "{\"framework\":\"lumine\",\"adapter\":\"components\",\"renderer\":\"gpu\",\"ticks\":0,\"mounted_rows\":17,\"elapsed_seconds\":3.001}\n"
   },
   {
     "mode": "stream",
     "exit_code": 0,
-    "log": "{\"framework\":\"zgui\",\"adapter\":\"components\",\"renderer\":\"gpu\",\"ticks\":59,\"mounted_rows\":17,\"elapsed_seconds\":3.037}\n"
+    "log": "{\"framework\":\"lumine\",\"adapter\":\"components\",\"renderer\":\"gpu\",\"ticks\":59,\"mounted_rows\":17,\"elapsed_seconds\":3.037}\n"
   },
   {
     "mode": "scroll",
     "exit_code": 0,
-    "log": "{\"framework\":\"zgui\",\"adapter\":\"components\",\"renderer\":\"gpu\",\"ticks\":179,\"mounted_rows\":19,\"elapsed_seconds\":3.002}\n"
+    "log": "{\"framework\":\"lumine\",\"adapter\":\"components\",\"renderer\":\"gpu\",\"ticks\":179,\"mounted_rows\":19,\"elapsed_seconds\":3.002}\n"
   },
   {
     "mode": "both",
     "exit_code": 0,
-    "log": "{\"framework\":\"zgui\",\"adapter\":\"components\",\"renderer\":\"gpu\",\"ticks\":57,\"mounted_rows\":19,\"elapsed_seconds\":3.035}\n"
+    "log": "{\"framework\":\"lumine\",\"adapter\":\"components\",\"renderer\":\"gpu\",\"ticks\":57,\"mounted_rows\":19,\"elapsed_seconds\":3.035}\n"
   }
 ]

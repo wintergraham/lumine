@@ -4,7 +4,7 @@
     "cargo",
     "build",
     "-p",
-    "zgui-desktop",
+    "lumine-desktop",
     "--example",
     "transparency",
     "--example",
@@ -18,9 +18,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/transparency_smoke.py",
-        "/tmp/zgui-target/debug/examples/transparency",
+        "/tmp/lumine-target/debug/examples/transparency",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/transparency/transparency"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/transparency/transparency"
       ],
       "binary_sha256": "5f308516aa984a267a501923b47a7986f962977a75b307b24acde8d3645884b8"
     },
@@ -28,9 +28,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/editor_autoscroll_smoke.py",
-        "/tmp/zgui-target/debug/examples/editor_autoscroll",
+        "/tmp/lumine-target/debug/examples/editor_autoscroll",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/transparency/editor_autoscroll"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/transparency/editor_autoscroll"
       ],
       "binary_sha256": "61e17e097422031df2971399cbce5df4df99884d9c640f363926286b4a8747a6"
     },
@@ -38,9 +38,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/hidden_updates_smoke.py",
-        "/tmp/zgui-target/debug/examples/hidden_updates",
+        "/tmp/lumine-target/debug/examples/hidden_updates",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/transparency/hidden_updates"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/transparency/hidden_updates"
       ],
       "binary_sha256": "fcdddc9a950a8f9a51f2dc17024d3e6a55e32dd25a764c7543160a3a16695c7d"
     }
@@ -50,10 +50,10 @@
   "source_unchanged": true,
   "backend": "owned Xvfb/Openbox, picom xrender for transparency, Mesa llvmpipe Vulkan",
   "environment": {
-    "CARGO_TARGET_DIR": "/tmp/zgui-target",
+    "CARGO_TARGET_DIR": "/tmp/lumine-target",
     "CARGO_PROFILE_DEV_DEBUG": "0",
     "CARGO_INCREMENTAL": "0",
-    "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader",
+    "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader",
     "CARGO_BUILD_JOBS": "1"
   },
   "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"

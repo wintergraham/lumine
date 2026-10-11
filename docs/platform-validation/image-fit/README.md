@@ -17,9 +17,9 @@ window and checks actual rendered colors and placement for a nonsquare source.
 The test records screenshots and results beside this document.
 
 ```sh
-cargo build -p zgui-desktop --example image_fit --locked
+cargo build -p lumine-desktop --example image_fit --locked
 python3 scripts/image_fit_smoke.py target/debug/examples/image_fit \
-  --output /tmp/zgui-image-fit
+  --output /tmp/lumine-image-fit
 ```
 
 GPU pixel and incremental/full-redraw comparisons exercise fit transitions,

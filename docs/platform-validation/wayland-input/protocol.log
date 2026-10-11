@@ -70,7 +70,7 @@
 [1064998.617]  -> wl_region#22.add(0, 0, 2147483647, 2147483647)
 [1064998.627]  -> wl_surface#18.set_opaque_region(wl_region#22)
 [1064998.633]  -> wl_region#22.destroy()
-[1064998.643]  -> xdg_toplevel#20.set_title("zgui declarative form")
+[1064998.643]  -> xdg_toplevel#20.set_title("lumine declarative form")
 [1064998.653]  -> xdg_toplevel#20.set_min_size(2, 1)
 [1064998.659]  -> xdg_toplevel#20.set_max_size(0, 0)
 [1064998.665]  -> wl_surface#18.commit()

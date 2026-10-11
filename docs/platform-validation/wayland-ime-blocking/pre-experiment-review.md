@@ -1,6 +1,6 @@
 Read-only review of the preserved Wayland IME failure
 
-Status: diagnostic assessment only. No repository edits, builds, tests, native applications, or compositor sessions were performed for this review. The companion `/tmp/zgui-wayland-ime-blocking-probe.rs` is an **UNBUILT, UNEXECUTED diagnostic draft**. Rustfmt parsed/formatted that temporary copy; that is not a compile or runtime check.
+Status: diagnostic assessment only. No repository edits, builds, tests, native applications, or compositor sessions were performed for this review. The companion `/tmp/lumine-wayland-ime-blocking-probe.rs` is an **UNBUILT, UNEXECUTED diagnostic draft**. Rustfmt parsed/formatted that temporary copy; that is not a compile or runtime check.
 
 The most specific demonstrated gap is a stuck final composition preview during a queued Pinyin burst. The failed harness stopped before pressing Space, so this artifact does **not** demonstrate loss of a committed Unicode string. It does demonstrate that the final engine preedit did not reach the application protocol connection. The passing paced tests and 22 direct-winit burst observations do not resolve that gap.
 
@@ -21,15 +21,15 @@ No later preedit appears on the failed application protocol stream. Importantly,
 
 Relevant inspected sources:
 
-- `crates/zgui-desktop/src/application.rs`, `Host::draw` around lines 500–590: settle UI geometry, synchronize cancellation, flush scene, render/present, drop scene borrow, then update candidate rectangle. The same function retains caret deduplication and X11 baseline/Wayland rectangle coordinate distinctions.
+- `crates/lumine-desktop/src/application.rs`, `Host::draw` around lines 500–590: settle UI geometry, synchronize cancellation, flush scene, render/present, drop scene borrow, then update candidate rectangle. The same function retains caret deduplication and X11 baseline/Wayland rectangle coordinate distinctions.
 - The same file, `WindowManager::about_to_wait` and `Host::update`: ordinary drawing follows the native event batch; `RedrawRequested` also draws. It is **not** called after every IME callback. A blocking preedit-handler probe stresses related main-thread behavior but does not exactly reproduce this batching.
-- `crates/zgui/src/scene.rs:1306`, `Scene::prepare_layout`, and `widgets.rs`, `Ui::try_prepare_frame`: authoritative layout/world geometry is ready before GPU rendering; render completion does not compute the caret's logical rectangle.
+- `crates/lumine/src/scene.rs:1306`, `Scene::prepare_layout`, and `widgets.rs`, `Ui::try_prepare_frame`: authoritative layout/world geometry is ready before GPU rendering; render completion does not compute the caret's logical rectangle.
 - Local winit 0.30.13 registry source `src/platform_impl/linux/wayland/window/state.rs:1038`: `set_ime_cursor_area` requests `set_cursor_rectangle` and `text_input.commit`. It does not explicitly flush. `event_loop/mod.rs:284` flushes the connection before polling. Mesa/softbuffer may also affect shared-connection flushing; the current evidence does not identify each flush boundary.
 - Local wayland-protocols 0.32.12 `protocols/unstable/text-input/text-input-unstable-v3.xml:257`: rectangle coordinates are surface-local and applied by text-input commit, independently of `wl_surface` presentation.
-- `/tmp/zgui-ime-upstream-research/sway-1.11.c:213`: client state commits relay IM state and send `done`, including cursor-only changes.
-- `/tmp/zgui-ime-upstream-research/wlroots-0.19.2.c:87` and `:499`: IM commit with a noncurrent serial discards pending state and returns; sending IM `done` increments current_serial.
-- `/tmp/zgui-ime-upstream-research/fcitx-5.1.19.cpp:168` and `:645–691`: ordinary `done` increments the engine serial without republishing current preedit; preedit updates call `commit(serial_)`.
-- `/tmp/zgui-ime-upstream-research/protocol.xml:298`: input-method commit serial is checked against the number of issued IM done events. IM serials and application text-input done serials are separate counters, even though both happen to be 2 at this point.
+- `/tmp/lumine-ime-upstream-research/sway-1.11.c:213`: client state commits relay IM state and send `done`, including cursor-only changes.
+- `/tmp/lumine-ime-upstream-research/wlroots-0.19.2.c:87` and `:499`: IM commit with a noncurrent serial discards pending state and returns; sending IM `done` increments current_serial.
+- `/tmp/lumine-ime-upstream-research/fcitx-5.1.19.cpp:168` and `:645–691`: ordinary `done` increments the engine serial without republishing current preedit; preedit updates call `commit(serial_)`.
+- `/tmp/lumine-ime-upstream-research/protocol.xml:298`: input-method commit serial is checked against the number of issued IM done events. IM serials and application text-input done serials are separate counters, even though both happen to be 2 at this point.
 
 Moving candidate synchronization before GPU work is semantically valid **after** successful `try_prepare_frame` and the second cancellation/permission synchronization, outside scene borrows, preserving coordinate conversion, focus gating, and deduplication. It can remove render/present latency from request construction. It is not a proven serial fix: constructing the commit sooner does not guarantee flushing it sooner, timely Fcitx dispatch of the next done, or acceptance of queued serial-2 commits. It might improve or worsen the race depending on ordering. Treat it as a testable latency/refactoring option, not recovery logic or a correctness guarantee.
 
@@ -46,6 +46,6 @@ Next actionable experiment, only after the performance run: retain the unchanged
 
 Source provenance for the temporary diagnostic:
 
-- Derived from `crates/zgui-desktop/examples/wayland_ime_probe.rs`, SHA256 `faf47184d39e68085fa418683eb405e6a184c6ef931704e91ff2b8a6c1a791ab`.
-- Staged copy `/tmp/zgui-wayland-ime-blocking-probe.rs`, SHA256 `498d4825cf3adf7e317efbd9ce67725d64a420ad5a7103fd8bd96d93db63ad8e`.
+- Derived from `crates/lumine-desktop/examples/wayland_ime_probe.rs`, SHA256 `faf47184d39e68085fa418683eb405e6a184c6ef931704e91ff2b8a6c1a791ab`.
+- Staged copy `/tmp/lumine-wayland-ime-blocking-probe.rs`, SHA256 `498d4825cf3adf7e317efbd9ce67725d64a420ad5a7103fd8bd96d93db63ad8e`.
 - No executable corresponds to the staged copy yet. No outcome is claimed for the proposed experiment.

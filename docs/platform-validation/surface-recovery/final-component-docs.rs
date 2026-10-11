@@ -2,8 +2,8 @@
 //! and IME. A software raster backend is available for reference and headless tests.
 //!
 //! ```no_run
-//! use zgui::compose::prelude::*;
-//! use zgui_desktop::{Application, WindowOptions};
+//! use lumine::compose::prelude::*;
+//! use lumine_desktop::{Application, WindowOptions};
 //! fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     Application::new().window(WindowOptions {
 //!         title: "Example".into(), ..Default::default()

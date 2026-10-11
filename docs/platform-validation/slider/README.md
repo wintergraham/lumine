@@ -4,8 +4,8 @@ Native declarative slider validation
 Run from the repository root:
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p zgui-desktop --example slider
-python3 scripts/slider_smoke.py /tmp/zgui-target/debug/examples/slider --output docs/platform-validation/slider
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p lumine-desktop --example slider
+python3 scripts/slider_smoke.py /tmp/lumine-target/debug/examples/slider --output docs/platform-validation/slider
 ```
 
 The script owns and cleans up its Xvfb display and Openbox window manager. Six

@@ -1,7 +1,7 @@
 [
   {
     "mode": "idle",
-    "framework": "zgui",
+    "framework": "lumine",
     "adapter": "components",
     "renderer": "gpu",
     "ticks": 0,
@@ -10,7 +10,7 @@
   },
   {
     "mode": "both",
-    "framework": "zgui",
+    "framework": "lumine",
     "adapter": "components",
     "renderer": "gpu",
     "ticks": 37,

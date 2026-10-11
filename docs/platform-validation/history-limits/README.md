@@ -22,9 +22,9 @@ composed editor uses actual typing and shortcuts: type `abc`, undo to `ab`, redu
 limits to one entry, redo to `abc`, undo to `ab`, then verify a second undo is inert.
 
 ```sh
-cargo build -p zgui-desktop --example history_limits --locked
+cargo build -p lumine-desktop --example history_limits --locked
 python3 scripts/history_limits_smoke.py target/debug/examples/history_limits \
-  --output /tmp/zgui-history-limits
+  --output /tmp/lumine-history-limits
 ```
 
 Build inputs and runner are archived with hashes and commands. Native logs,

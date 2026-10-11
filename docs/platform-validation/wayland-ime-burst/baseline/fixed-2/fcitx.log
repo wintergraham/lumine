@@ -120,7 +120,7 @@ I2026-09-22 17:28:37.398888 virtualkeyboard.cpp:218] VirtualKeyboard new owner:
 [2993067.601] {Default Queue} wl_keyboard#19.keymap(1, fd 21, 34206)
 [2993067.611] {Default Queue} wl_keyboard#19.repeat_info(25, 600)
 [2993096.211] {Default Queue} zwlr_foreign_toplevel_manager_v1#7.toplevel(new id zwlr_foreign_toplevel_handle_v1#4278190080)
-[2993096.264] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.title("zgui direct winit IME probe")
+[2993096.264] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.title("lumine direct winit IME probe")
 [2993096.269] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.state(array[4])
 [2993096.273] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.state(array[8])
 [2993096.276] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.done()

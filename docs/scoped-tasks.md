@@ -3,8 +3,8 @@
 `WindowContext.tasks.spawn` runs until completion or its window closes. Use `spawn_scoped` when a task belongs to a view that may disappear first. Keep its returned `ScopedTask` guard in the view's resource list:
 
 ```rust
-use zgui::{scene::{Layout, Style}, view::ViewScope};
-use zgui_desktop::WindowContext;
+use lumine::{scene::{Layout, Style}, view::ViewScope};
+use lumine_desktop::WindowContext;
 
 fn mount_status(cx: &mut WindowContext) -> ViewScope {
     let mut scope = ViewScope::mount(
@@ -17,7 +17,7 @@ fn mount_status(cx: &mut WindowContext) -> ViewScope {
         move || status.get()
     });
     scope.retain(cx.tasks.spawn_scoped(async move {
-        zgui::timer::sleep(std::time::Duration::from_secs(1)).await;
+        lumine::timer::sleep(std::time::Duration::from_secs(1)).await;
         status.set(String::from("Ready"));
     }));
     scope

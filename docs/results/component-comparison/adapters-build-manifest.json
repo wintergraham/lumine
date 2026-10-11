@@ -16,18 +16,18 @@
   "workload": "400px viewport, 28px rows, two overscan rows each side; initial17, max19 rows",
   "binaries": {
     "gpui": {
-      "path": "/tmp/zgui-component-comparison-bin/zgui-compare-gpui",
+      "path": "/tmp/lumine-component-comparison-bin/lumine-compare-gpui",
       "sha256": "e4fc6caa468c9e1e2a3b7fac9ee7b3c9f0613f187788194cee318c93a4434b00",
       "bytes": 17801944,
       "build_exit_code": 0,
-      "build_command": "CARGO_TARGET_DIR=/tmp/zgui-gpui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build --release --locked --manifest-path comparisons/gpui/Cargo.toml"
+      "build_command": "CARGO_TARGET_DIR=/tmp/lumine-gpui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build --release --locked --manifest-path comparisons/gpui/Cargo.toml"
     },
     "quickgui": {
-      "path": "/tmp/zgui-component-comparison-bin/zgui-compare-quickgui",
+      "path": "/tmp/lumine-component-comparison-bin/lumine-compare-quickgui",
       "sha256": "059c3906311373166313d39dba78eb9f244ffb8e532209ab88bc4f71e3735b51",
       "bytes": 25245568,
       "build_exit_code": 0,
-      "build_command": "CARGO_TARGET_DIR=/tmp/zgui-quickgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build --release --locked --manifest-path comparisons/quickgui/Cargo.toml"
+      "build_command": "CARGO_TARGET_DIR=/tmp/lumine-quickgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build --release --locked --manifest-path comparisons/quickgui/Cargo.toml"
     }
   },
   "source_archive_sha256": "a6dd6537c1a3f4f16376278d3e83922cf50c3819d5970d11f870c3e0cc423e82",

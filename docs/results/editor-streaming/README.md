@@ -26,7 +26,7 @@ To run a new comparison from the repository root:
 ```sh
 python3 scripts/editor_streaming_compare.py \
   --archive docs/platform-validation/initialization/source.tar.gz \
-  --output /tmp/zgui-editor-streaming --repeats 5
+  --output /tmp/lumine-editor-streaming --repeats 5
 ```
 
 The `run.py` copy is a provenance snapshot of the repository script, whose default source root is derived from its original `scripts/` location. Use the repository script for a fresh working-tree comparison. A future source change produces a new measurement; it does not change the archived result above.

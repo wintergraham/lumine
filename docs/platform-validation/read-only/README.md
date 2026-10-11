@@ -39,9 +39,9 @@ All four native checks pass. All 153 source hashes match both archive and
 workspace after execution. Build concurrency is limited to one job in this run.
 
 ```sh
-cargo build -p zgui-desktop --example read_only --example external_ime --locked
+cargo build -p lumine-desktop --example read_only --example external_ime --locked
 python3 scripts/read_only_smoke.py target/debug/examples/read_only \
-  --output /tmp/zgui-read-only
+  --output /tmp/lumine-read-only
 python3 scripts/external_ime_smoke.py target/debug/examples/external_ime \
-  --read-only-test --output /tmp/zgui-readonly-ime
+  --read-only-test --output /tmp/lumine-readonly-ime
 ```

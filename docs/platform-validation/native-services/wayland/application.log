@@ -1,7 +1,7 @@
 READY
-DIALOG open Ok(Some("/tmp/zgui-native-services-owned-portal-second/fixture.txt"))
-DIALOG folder Ok(Some("/tmp/zgui-native-services-owned-portal-second/chosen-folder"))
-DIALOG save Ok(Some("/tmp/zgui-native-services-owned-portal-second/chosen-folder/saved.txt"))
+DIALOG open Ok(Some("/tmp/lumine-native-services-owned-portal-second/fixture.txt"))
+DIALOG folder Ok(Some("/tmp/lumine-native-services-owned-portal-second/chosen-folder"))
+DIALOG save Ok(Some("/tmp/lumine-native-services-owned-portal-second/chosen-folder/saved.txt"))
 DIALOG open Ok(None)
 PROMPT Ok(Ok)
 URL Ok(())

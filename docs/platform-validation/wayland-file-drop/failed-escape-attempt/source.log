@@ -132,7 +132,7 @@
 [3089406.979] {Default Queue}  -> xdg_wm_base#30.get_xdg_surface(new id xdg_surface#36, wl_surface#35)
 [3089406.983] {Default Queue}  -> xdg_surface#36.get_toplevel(new id xdg_toplevel#37)
 [3089406.986] {Default Queue}  -> xdg_toplevel#37.set_parent(nil)
-[3089406.988] {Default Queue}  -> xdg_toplevel#37.set_title("zgui file source")
+[3089406.988] {Default Queue}  -> xdg_toplevel#37.set_title("lumine file source")
 [3089406.990] {Default Queue}  -> xdg_toplevel#37.set_app_id("native_file_source.py")
 [3089406.992] {Default Queue}  -> wl_surface#35.commit()
 [3089406.995] {Default Queue}  -> org_kde_kwin_server_decoration_manager#11.create(new id org_kde_kwin_server_decoration#38, wl_surface#35)
@@ -756,7 +756,7 @@
 [3090181.023] {Default Queue} wl_data_source#43.action(1)
 [3090181.033] {Default Queue}  -> wp_cursor_shape_device_v1#32.set_shape(16, 12)
 [3090181.036] {Default Queue} wl_data_source#43.send("text/uri-list", fd 14)
-SOURCE_DATA ['file:///tmp/zgui-wayland-files-first/first.txt', 'file:///tmp/zgui-wayland-files-first/second%20file.txt']
+SOURCE_DATA ['file:///tmp/lumine-wayland-files-first/first.txt', 'file:///tmp/lumine-wayland-files-first/second%20file.txt']
 [3090189.709] {Default Queue} wl_buffer#51.release()
 [3090189.714] {Default Queue}  -> wl_buffer#51.destroy()
 [3090189.717] {Default Queue}  -> wl_shm_pool#53.destroy()
@@ -1459,7 +1459,7 @@ SOURCE_END
 [3091244.253] {Default Queue} wl_data_source#41.action(1)
 [3091244.264] {Default Queue}  -> wp_cursor_shape_device_v1#32.set_shape(32, 12)
 [3091244.268] {Default Queue} wl_data_source#41.send("text/uri-list", fd 14)
-SOURCE_DATA ['file:///tmp/zgui-wayland-files-first/first.txt', 'file:///tmp/zgui-wayland-files-first/second%20file.txt']
+SOURCE_DATA ['file:///tmp/lumine-wayland-files-first/first.txt', 'file:///tmp/lumine-wayland-files-first/second%20file.txt']
 [3091244.502] {Default Queue} wl_buffer#49.release()
 [3091244.508] {Default Queue}  -> wl_buffer#49.destroy()
 [3091244.511] {Default Queue}  -> wl_shm_pool#46.destroy()

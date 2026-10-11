@@ -1,0 +1,1132 @@
+//! Prepared text: shape once, lay out at any width many times.
+//!
+//! Measuring a paragraph used to build, shape and discard a cosmic-text buffer
+//! on every call, and the renderer then shaped it again. Here a text is
+//! prepared once, keyed by what determines its shapes (the text and its font
+//! runs, not colours or other paint), and kept in two tiers:
+//!
+//! - Shaped lines, for the renderer and for text the compact tier cannot
+//!   describe. Measuring at a new width re-runs cosmic-text's line breaking
+//!   over the kept shapes. About 190 bytes per character, so these go first.
+//! - Compact measurements, in the spirit of Pretext: each word's advance,
+//!   blank flag and line height, and glyph advances for words too long for a
+//!   line. Breaking lines at any width is arithmetic over these, replaying
+//!   cosmic-text's word-or-glyph wrapping exactly (the same values added in
+//!   the same order). About 8 bytes per character, so the heights of a whole
+//!   long transcript stay at hand. Only left-to-right, unjustified lines
+//!   qualify; the rest measure from shaped lines.
+//!
+//! Sizes are memoised per width, and layout and the renderer break lines from
+//! the same data. A text that grows (streaming) reuses every line it shares
+//! with a recently prepared text.
+use cosmic_text::{
+    Align, BufferLine, Ellipsize, FontSystem, Hinting, LayoutRunIter, Metrics, Wrap,
+};
+use rustc_hash::{FxHashMap, FxHasher};
+use std::{
+    collections::VecDeque,
+    hash::{Hash, Hasher},
+    ops::Range,
+    sync::Arc,
+};
+use lumine::{rich_text::RichText, text_layout::FontStyle};
+
+/// Shaped lines are kept at most this many bytes (estimated), and compact
+/// measurements at most `COMPACT_BUDGET`. Past either, the least recently used
+/// go, down to three quarters of it at once so eviction runs rarely.
+const SHAPED_BUDGET: usize = 32 * 1024 * 1024;
+const COMPACT_BUDGET: usize = 16 * 1024 * 1024;
+/// Shaped text a renderer does not draw is kept to this (see `trim`).
+const UNDRAWN_BUDGET: usize = 512 * 1024;
+/// Estimated bytes per character of shaped lines: a shape glyph and a layout
+/// glyph (96 + 88 bytes), and words and line text.
+const SHAPED_BYTES_PER_CHAR: usize = 190;
+/// Recently prepared entries a new text may reuse lines from.
+const RECENT: usize = 6;
+/// Widths whose sizes an entry remembers.
+const SIZES: usize = 4;
+/// As `Buffer` lays out.
+const TAB_WIDTH: u16 = 8;
+/// Texts at least this long (bytes) that a new text extends are dropped as a
+/// stream's previous states.
+const SUPERSEDED: usize = 32;
+
+/// The spans that determine shapes: merged runs of one font and size.
+#[derive(Clone, PartialEq)]
+struct Key {
+    text: Arc<str>,
+    spans: Vec<(Range<usize>, FontStyle, f32)>,
+    /// Plain text keeps a row after a final line break, for an editor's
+    /// caret (as `ShapedText::with_font` lays it out); rich text does not.
+    caret_row: bool,
+    unwrapped: bool,
+}
+impl Key {
+    fn of(rich: &RichText, caret_row: bool, unwrapped: bool) -> Self {
+        let mut spans: Vec<(Range<usize>, FontStyle, f32)> = Vec::new();
+        for run in rich.runs() {
+            match spans.last_mut() {
+                Some((range, font, size))
+                    if *font == run.font
+                        && *size == run.font_size
+                        && range.end == run.range.start =>
+                {
+                    range.end = run.range.end;
+                }
+                _ => spans.push((run.range.clone(), run.font.clone(), run.font_size)),
+            }
+        }
+        Self {
+            text: rich.text_arc(),
+            spans,
+            caret_row,
+            unwrapped,
+        }
+    }
+    fn hash(&self) -> u64 {
+        let mut hasher = FxHasher::default();
+        self.text.hash(&mut hasher);
+        self.caret_row.hash(&mut hasher);
+        self.unwrapped.hash(&mut hasher);
+        for (range, font, size) in &self.spans {
+            range.hash(&mut hasher);
+            size.to_bits().hash(&mut hasher);
+            font.hash(&mut hasher);
+        }
+        hasher.finish()
+    }
+}
+
+/// A shaped word, reduced to what line breaking reads.
+#[derive(Clone, Copy)]
+struct Word {
+    width: f32,
+    blank: bool,
+    /// The first of its glyph advances in `Compact::glyphs`; the next word's
+    /// first ends them.
+    glyphs: u32,
+    /// The line height its glyphs set, if they set one.
+    line_height: Option<f32>,
+}
+
+/// A text's line breaking inputs, without glyphs.
+struct Compact {
+    words: Vec<Word>,
+    glyphs: Vec<f32>,
+    /// Per line: its spans as ranges of `words`, and the height it takes
+    /// when empty.
+    lines: Vec<(Vec<Range<u32>>, Option<f32>)>,
+}
+impl Compact {
+    /// The measurements of shaped `lines`, or None where arithmetic over them
+    /// would not match cosmic-text: right-to-left or mixed-direction lines,
+    /// justified lines, or a word whose glyphs set different line heights.
+    fn of(lines: &[BufferLine], font_size: f32) -> Option<Self> {
+        let mut compact = Self {
+            words: Vec::new(),
+            glyphs: Vec::new(),
+            lines: Vec::with_capacity(lines.len()),
+        };
+        for line in lines {
+            let shape = line.shape_opt()?;
+            if shape.rtl || line.align() == Some(Align::Justified) {
+                return None;
+            }
+            let mut spans = Vec::with_capacity(shape.spans.len());
+            for span in &shape.spans {
+                if span.level.is_rtl() {
+                    return None;
+                }
+                let first = compact.words.len() as u32;
+                for word in &span.words {
+                    let glyphs = compact.glyphs.len() as u32;
+                    let line_height = word
+                        .glyphs
+                        .first()
+                        .and_then(|glyph| glyph.metrics_opt)
+                        .map(|metrics| metrics.line_height);
+                    for glyph in &word.glyphs {
+                        if glyph.metrics_opt.map(|metrics| metrics.line_height) != line_height {
+                            return None;
+                        }
+                        compact.glyphs.push(glyph.width(font_size));
+                    }
+                    compact.words.push(Word {
+                        width: word.width(font_size),
+                        blank: word.blank,
+                        glyphs,
+                        line_height,
+                    });
+                }
+                spans.push(first..compact.words.len() as u32);
+            }
+            compact
+                .lines
+                .push((spans, shape.metrics_opt.map(|metrics| metrics.line_height)));
+        }
+        compact.words.shrink_to_fit();
+        compact.glyphs.shrink_to_fit();
+        Some(compact)
+    }
+    fn bytes(&self) -> usize {
+        self.words.capacity() * size_of::<Word>()
+            + self.glyphs.capacity() * size_of::<f32>()
+            + self.lines.capacity() * size_of::<(Vec<Range<u32>>, Option<f32>)>()
+            + self
+                .lines
+                .iter()
+                .map(|(spans, _)| spans.capacity() * size_of::<Range<u32>>())
+                .sum::<usize>()
+    }
+    fn advances(&self, word: usize) -> &[f32] {
+        let end = self
+            .words
+            .get(word + 1)
+            .map_or(self.glyphs.len(), |next| next.glyphs as usize);
+        &self.glyphs[self.words[word].glyphs as usize..end]
+    }
+    /// The size cosmic-text's word-or-glyph wrapping gives these lines at
+    /// `width`: the widest line, and the sum of line heights. This follows
+    /// its congruent-direction branch step by step.
+    fn size(&self, width: Option<f32>, line_height: f32) -> (f32, f32) {
+        let limit = width.unwrap_or(f32::INFINITY);
+        let (mut widest, mut height) = (0_f32, 0_f32);
+        for (spans, empty) in &self.lines {
+            let mut line = Visual::default();
+            let mut any = false;
+            let mut push = |line: &mut Visual| {
+                if line.nonempty {
+                    widest = widest.max(line.w);
+                    height += line.height.unwrap_or(line_height);
+                    any = true;
+                }
+                *line = Visual::default();
+            };
+            for span in spans {
+                let offset = span.start as usize;
+                let words = &self.words[offset..span.end as usize];
+                // Where the words not yet added start: (word, glyph).
+                let mut fitting = (0, 0);
+                let mut range_width = 0_f32;
+                let mut before_last_blank = 0_f32;
+                for (i, word) in words.iter().enumerate() {
+                    if line.w + (range_width + word.width) <= limit
+                        || (word.blank && line.w + range_width <= limit)
+                    {
+                        if word.blank {
+                            before_last_blank = range_width;
+                        }
+                        range_width += word.width;
+                    } else if word.width > limit {
+                        // Too wide for any line: finish the line, then break
+                        // the word between glyphs.
+                        if range_width > 0. {
+                            line.add(words, fitting, (i, 0), range_width);
+                            push(&mut line);
+                            range_width = 0.;
+                            fitting = (i, 0);
+                        }
+                        for (glyph, advance) in self.advances(offset + i).iter().enumerate() {
+                            if line.w + (range_width + advance) <= limit {
+                                range_width += advance;
+                            } else {
+                                line.add(words, fitting, (i, glyph), range_width);
+                                push(&mut line);
+                                range_width = *advance;
+                                fitting = (i, glyph);
+                            }
+                        }
+                    } else {
+                        if range_width > 0. {
+                            // A blank before the break is left out.
+                            if i > 0 && words[i - 1].blank {
+                                line.add(words, fitting, (i - 1, 0), before_last_blank);
+                            } else {
+                                line.add(words, fitting, (i, 0), range_width);
+                            }
+                        }
+                        push(&mut line);
+                        if word.blank {
+                            range_width = 0.;
+                            fitting = (i + 1, 0);
+                        } else {
+                            range_width = word.width;
+                            fitting = (i, 0);
+                        }
+                    }
+                }
+                line.add(words, fitting, (words.len(), 0), range_width);
+            }
+            push(&mut line);
+            if !any {
+                height += empty.unwrap_or(line_height);
+            }
+        }
+        (widest, height)
+    }
+}
+
+/// A line being filled while breaking.
+#[derive(Default)]
+struct Visual {
+    w: f32,
+    height: Option<f32>,
+    nonempty: bool,
+}
+impl Visual {
+    /// Add the words from `start` to `end` ((word, glyph) positions), as
+    /// cosmic-text's `add_to_visual_line` does.
+    fn add(&mut self, words: &[Word], start: (usize, usize), end: (usize, usize), width: f32) {
+        if start == end {
+            return;
+        }
+        self.nonempty = true;
+        self.w += width;
+        for word in &words[start.0..end.0 + usize::from(end.1 != 0)] {
+            if let Some(height) = word.line_height {
+                self.height = Some(self.height.map_or(height, |line| line.max(height)));
+            }
+        }
+    }
+}
+
+struct Entry {
+    key: Key,
+    /// Shaped lines; None once evicted.
+    lines: Option<Vec<BufferLine>>,
+    /// None if the text does not qualify.
+    compact: Option<Compact>,
+    metrics: Metrics,
+    /// The width `lines` are laid out at, if any.
+    laid: Option<Option<f32>>,
+    sizes: Vec<(Option<f32>, (f32, f32))>,
+    used: u64,
+}
+impl Entry {
+    fn shaped_bytes(&self) -> usize {
+        self.lines
+            .as_ref()
+            .map_or(0, |_| self.key.text.len() * SHAPED_BYTES_PER_CHAR + 512)
+    }
+    fn compact_bytes(&self) -> usize {
+        std::mem::size_of::<Self>()
+            + self.key.text.len()
+            + self.key.spans.capacity() * std::mem::size_of::<(Range<usize>, FontStyle, f32)>()
+            + self
+                .key
+                .spans
+                .iter()
+                .map(|(_, font, _)| font.storage_bytes())
+                .sum::<usize>()
+            + self.sizes.capacity() * std::mem::size_of::<(Option<f32>, (f32, f32))>()
+            + self.compact.as_ref().map_or(0, Compact::bytes)
+    }
+    fn lay_out(&mut self, fonts: &mut FontSystem, width: Option<f32>) {
+        if self.laid == Some(width) {
+            return;
+        }
+        let lines = self.lines.as_mut().expect("shaped lines");
+        for line in lines.iter_mut() {
+            line.reset_layout();
+            line.layout(
+                fonts,
+                self.metrics.font_size,
+                width,
+                if self.key.unwrapped {
+                    Wrap::None
+                } else {
+                    Wrap::WordOrGlyph
+                },
+                Ellipsize::None,
+                None,
+                TAB_WIDTH,
+                Hinting::default(),
+            );
+        }
+        self.laid = Some(width);
+    }
+    fn size(&mut self, fonts: &mut FontSystem, width: Option<f32>) -> (f32, f32) {
+        if let Some((_, size)) = self.sizes.iter().find(|(w, _)| *w == width) {
+            return *size;
+        }
+        let size = match &self.compact {
+            Some(compact) => compact.size(width, self.metrics.line_height),
+            None => {
+                self.lay_out(fonts, width);
+                let lines = self.lines.as_deref().expect("laid out");
+                LayoutRunIter::from_lines(lines, None, self.metrics.line_height, 0., 0)
+                    .fold((0_f32, 0_f32), |(w, h), run| {
+                        (w.max(run.line_w), h.max(run.line_top + run.line_height))
+                    })
+            }
+        };
+        if self.sizes.len() == SIZES {
+            self.sizes.remove(0);
+        }
+        self.sizes.push((width, size));
+        size
+    }
+}
+
+/// Plain text as one run, laid out as rich text is.
+fn plain(text: &Arc<str>, font_size: f32, font: &FontStyle) -> RichText {
+    let run = lumine::rich_text::TextRun {
+        range: 0..text.len(),
+        font: font.clone(),
+        font_size,
+        ..Default::default()
+    };
+    RichText::new(text.clone(), vec![run]).expect("one valid run")
+}
+
+/// What a caller needs of an entry.
+#[derive(Clone, Copy, PartialEq)]
+enum Need {
+    Layout,
+    Measure,
+    Detached,
+}
+
+/// Lines of a prepared text laid out at one width.
+pub struct Laid<'a> {
+    lines: &'a [BufferLine],
+    line_height: f32,
+    key: u64,
+}
+impl<'a> Laid<'a> {
+    /// Identifies the prepared text, for `TextCache::trim`.
+    pub fn key(&self) -> u64 {
+        self.key
+    }
+    /// Runs from the top, stopping below `height` as a sized buffer would.
+    pub fn runs(&self, height: Option<f32>) -> LayoutRunIter<'a> {
+        LayoutRunIter::from_lines(self.lines, height, self.line_height, 0., 0)
+    }
+    /// Where each line starts in the source text.
+    pub fn line_starts(&self) -> Vec<usize> {
+        let mut offset = 0;
+        self.lines
+            .iter()
+            .map(|line| {
+                let start = offset;
+                offset += line.text().len() + line.ending().as_str().len();
+                start
+            })
+            .collect()
+    }
+}
+
+/// Prepared rich texts, shared by layout measurement and the renderer.
+#[derive(Default)]
+pub struct TextCache {
+    entries: FxHashMap<u64, Entry>,
+    recent: VecDeque<u64>,
+    clock: u64,
+    shaped_bytes: usize,
+    compact_bytes: usize,
+    /// Shaped bytes drawn at the last `trim`.
+    drawn_bytes: usize,
+    /// Texts shaped, and requests served without shaping, for tests and stats.
+    pub shaped: u64,
+    pub hits: u64,
+}
+impl TextCache {
+    /// Whether `rich` goes through the cache: clamped or ellipsized text is
+    /// laid out by its own path.
+    pub fn handles(rich: &RichText) -> bool {
+        rich.options() == Default::default()
+    }
+    /// `rich`'s size wrapped at `width`, as `ShapedText::with_runs` measures.
+    pub fn measure(
+        &mut self,
+        fonts: &mut FontSystem,
+        rich: &RichText,
+        width: Option<f32>,
+    ) -> (f32, f32) {
+        if !Self::handles(rich) {
+            return crate::text::ShapedText::with_runs(fonts, rich, width).size();
+        }
+        self.sized(fonts, rich, false, Need::Measure, width)
+    }
+    /// As `measure`, for text that is not drawn (the estimated heights of
+    /// rows a virtualized list has not mounted): a text prepared here keeps
+    /// only its compact measurements, not glyphs, unless it needs them to be
+    /// measured at all.
+    pub fn measure_detached(
+        &mut self,
+        fonts: &mut FontSystem,
+        rich: &RichText,
+        width: Option<f32>,
+    ) -> (f32, f32) {
+        if !Self::handles(rich) {
+            return crate::text::ShapedText::with_runs(fonts, rich, width).size();
+        }
+        self.sized(fonts, rich, false, Need::Detached, width)
+    }
+    /// `rich` laid out at `width`. Only for texts `handles` accepts.
+    pub fn layout(
+        &mut self,
+        fonts: &mut FontSystem,
+        rich: &RichText,
+        width: Option<f32>,
+    ) -> Laid<'_> {
+        self.laid_out(fonts, rich, false, width, width.is_none())
+    }
+    pub(crate) fn layout_unwrapped(
+        &mut self,
+        fonts: &mut FontSystem,
+        rich: &RichText,
+        width: f32,
+    ) -> Laid<'_> {
+        self.laid_out(fonts, rich, false, Some(width), true)
+    }
+    /// Whether plain text goes through the cache: nonempty, at a valid size.
+    pub fn handles_plain(text: &str, font_size: f32) -> bool {
+        !text.is_empty() && font_size.is_finite() && font_size > 0.
+    }
+    /// Plain text's size wrapped at `width`, as `ShapedText::with_font`
+    /// measures it.
+    pub fn measure_plain(
+        &mut self,
+        fonts: &mut FontSystem,
+        text: &Arc<str>,
+        font_size: f32,
+        font: &FontStyle,
+        width: Option<f32>,
+    ) -> (f32, f32) {
+        if !Self::handles_plain(text, font_size) {
+            return crate::text::ShapedText::with_font(fonts, text.clone(), font_size, width, font)
+                .size();
+        }
+        let rich = plain(text, font_size, font);
+        self.sized(fonts, &rich, true, Need::Measure, width)
+    }
+    /// Plain text laid out at `width`. Only for text `handles_plain` accepts.
+    pub fn layout_plain(
+        &mut self,
+        fonts: &mut FontSystem,
+        text: &Arc<str>,
+        font_size: f32,
+        font: &FontStyle,
+        width: Option<f32>,
+    ) -> Laid<'_> {
+        let rich = plain(text, font_size, font);
+        self.laid_out(fonts, &rich, true, width, width.is_none())
+    }
+    pub(crate) fn layout_plain_unwrapped(
+        &mut self,
+        fonts: &mut FontSystem,
+        text: &Arc<str>,
+        font_size: f32,
+        font: &FontStyle,
+        width: f32,
+    ) -> Laid<'_> {
+        let rich = plain(text, font_size, font);
+        self.laid_out(fonts, &rich, true, Some(width), true)
+    }
+    fn sized(
+        &mut self,
+        fonts: &mut FontSystem,
+        rich: &RichText,
+        caret_row: bool,
+        need: Need,
+        width: Option<f32>,
+    ) -> (f32, f32) {
+        let hash = self.entry(fonts, rich, caret_row, need, width.is_none());
+        let size = self.update(hash, |entry| entry.size(fonts, width));
+        self.evict(hash);
+        size
+    }
+    fn laid_out(
+        &mut self,
+        fonts: &mut FontSystem,
+        rich: &RichText,
+        caret_row: bool,
+        width: Option<f32>,
+        unwrapped: bool,
+    ) -> Laid<'_> {
+        let hash = self.entry(fonts, rich, caret_row, Need::Layout, unwrapped);
+        self.update(hash, |entry| entry.lay_out(fonts, width));
+        self.evict(hash);
+        let entry = &self.entries[&hash];
+        Laid {
+            lines: entry.lines.as_deref().expect("laid out"),
+            line_height: entry.metrics.line_height,
+            key: hash,
+        }
+    }
+    /// Whether texts are held past what `trim` keeps.
+    pub fn needs_trim(&self) -> bool {
+        self.shaped_bytes > self.drawn_bytes + UNDRAWN_BUDGET
+    }
+    /// Keep the texts `drawn` (glyphs a renderer holds), and of the rest the
+    /// most recently used within a small budget: text that changed or left
+    /// the screen goes, keeping memory to what is shown. Measurements of
+    /// text that is not drawn (`measure_detached`) are kept apart.
+    pub fn trim(&mut self, drawn: impl IntoIterator<Item = u64>) {
+        let drawn: rustc_hash::FxHashSet<u64> = drawn.into_iter().collect();
+        self.drawn_bytes = drawn
+            .iter()
+            .filter_map(|hash| self.entries.get(hash))
+            .map(Entry::shaped_bytes)
+            .sum();
+        let mut undrawn: Vec<(u64, u64)> = self
+            .entries
+            .iter()
+            .filter(|(hash, entry)| entry.lines.is_some() && !drawn.contains(hash))
+            .map(|(hash, entry)| (entry.used, *hash))
+            .collect();
+        // Newest first; keep those within the budget.
+        undrawn.sort_unstable_by(|a, b| b.cmp(a));
+        let mut kept = 0;
+        for (_, hash) in undrawn {
+            let entry = &self.entries[&hash];
+            kept += entry.shaped_bytes();
+            if kept > UNDRAWN_BUDGET {
+                self.remove(hash);
+            }
+        }
+    }
+    /// Estimated bytes held: shaped lines, and compact measurements.
+    pub fn bytes(&self) -> (usize, usize) {
+        (self.shaped_bytes, self.compact_bytes)
+    }
+    /// Run `change` on an entry, keeping the compact byte count.
+    fn update<R>(&mut self, hash: u64, change: impl FnOnce(&mut Entry) -> R) -> R {
+        let entry = self.entries.get_mut(&hash).expect("prepared");
+        let before = entry.compact_bytes();
+        let result = change(entry);
+        self.compact_bytes = self.compact_bytes - before + entry.compact_bytes();
+        result
+    }
+    /// The entry for `rich`, shaped unless it is cached with what is needed:
+    /// shaped lines for layout, or either tier for measuring.
+    fn entry(
+        &mut self,
+        fonts: &mut FontSystem,
+        rich: &RichText,
+        caret_row: bool,
+        need: Need,
+        unwrapped: bool,
+    ) -> u64 {
+        self.clock += 1;
+        let key = Key::of(rich, caret_row, unwrapped);
+        let hash = key.hash();
+        let cached = self.entries.get_mut(&hash).filter(|entry| entry.key == key);
+        if let Some(entry) = &cached
+            && (entry.lines.is_some() || (need != Need::Layout && entry.compact.is_some()))
+        {
+            let entry = cached.expect("cached");
+            entry.used = self.clock;
+            self.hits += 1;
+            return hash;
+        }
+        let known = cached.is_some();
+        self.shaped += 1;
+        let (lines, metrics) = self.shape(fonts, rich, caret_row, unwrapped);
+        if known {
+            // Evicted lines, shaped again for drawing; measurements stay.
+            let entry = self.entries.get_mut(&hash).expect("cached");
+            entry.lines = Some(lines);
+            entry.laid = None;
+            entry.used = self.clock;
+            self.shaped_bytes += entry.shaped_bytes();
+        } else {
+            // Shaping is all measuring needs: no line breaking by cosmic-text
+            // unless the text does not qualify for arithmetic.
+            let mut lines = lines;
+            for line in &mut lines {
+                line.shape(fonts, TAB_WIDTH);
+            }
+            let compact = Compact::of(&lines, metrics.font_size);
+            // Text that is not drawn keeps no glyphs it can be measured without.
+            let detached = need == Need::Detached && compact.is_some();
+            let entry = Entry {
+                key,
+                compact,
+                lines: (!detached).then_some(lines),
+                metrics,
+                laid: None,
+                sizes: Vec::new(),
+                used: self.clock,
+            };
+            self.shaped_bytes += entry.shaped_bytes();
+            self.compact_bytes += entry.compact_bytes();
+            if let Some(old) = self.entries.insert(hash, entry) {
+                // A hash collision: the newer text wins.
+                self.shaped_bytes -= old.shaped_bytes();
+                self.compact_bytes -= old.compact_bytes();
+            }
+            if detached {
+                return hash;
+            }
+        }
+        self.recent.retain(|recent| *recent != hash);
+        self.recent.push_back(hash);
+        if self.recent.len() > RECENT {
+            self.recent.pop_front();
+        }
+        hash
+    }
+    /// Unshaped lines for `rich`, with the shapes of the lines it shares with
+    /// a recently prepared text: a streaming text shares all but its last
+    /// lines with what it was a moment ago. That text is superseded, so its
+    /// lines move rather than copy, and it goes.
+    fn shape(
+        &mut self,
+        fonts: &mut FontSystem,
+        rich: &RichText,
+        caret_row: bool,
+        unwrapped: bool,
+    ) -> (Vec<BufferLine>, Metrics) {
+        // `ShapedText::with_runs` adds an unshaped row for an editor's caret
+        // after a final line break, which its size leaves out: so is it here.
+        // `ShapedText::with_font` shapes it, so plain text keeps it.
+        let mut buffer = match rich.runs() {
+            // Plain text without per-span attributes, which cosmic-text looks
+            // up for every word: shaped as `ShapedText::with_font` shapes it.
+            [run] if caret_row => crate::text::plain_buffer_unshaped(
+                fonts,
+                rich.text(),
+                run.font_size,
+                &run.font,
+                unwrapped,
+            ),
+            _ => crate::text::rich_buffer_unshaped(fonts, rich, false, unwrapped),
+        };
+        if caret_row
+            && rich.text().ends_with(['\r', '\n'])
+            && crate::text::ends_open(&buffer)
+            && let Some(run) = rich.runs().last()
+        {
+            let size = run.font_size.max(1.);
+            let mut line = BufferLine::new(
+                "",
+                cosmic_text::LineEnding::None,
+                cosmic_text::AttrsList::new(&crate::text::attrs(&run.font, size)),
+                crate::text::shaping(unwrapped),
+            );
+            line.set_align(crate::text::alignment(&run.font));
+            buffer.lines.push(line);
+        }
+        let metrics = buffer.metrics();
+        let mut lines = std::mem::take(&mut buffer.lines);
+        let donor = self
+            .recent
+            .iter()
+            .filter_map(|recent| Some((*recent, self.entries.get(recent)?)))
+            .filter(|(_, entry)| entry.metrics == metrics && entry.key.unwrapped == unwrapped)
+            .filter_map(|(hash, entry)| {
+                let shared = entry
+                    .lines
+                    .as_ref()?
+                    .iter()
+                    .zip(&lines)
+                    .take_while(|(old, new)| {
+                        old.text() == new.text()
+                            && old.ending() == new.ending()
+                            && old.attrs_list() == new.attrs_list()
+                            && old.align() == new.align()
+                    })
+                    .count();
+                (shared > 0).then_some((shared, hash))
+            })
+            .max_by_key(|(shared, _)| *shared);
+        if let Some((shared, hash)) = donor {
+            let entry = self.remove(hash);
+            let old = entry.lines.expect("donor lines");
+            for (line, old) in lines.iter_mut().zip(old).take(shared) {
+                if old.shape_opt().is_some() {
+                    *line = old;
+                }
+            }
+        }
+        // A text this one extends is a stream's previous state: it goes too.
+        // Short texts (labels, where "1" and "12" can both show) stay.
+        let text = rich.text();
+        let extended: Vec<u64> = self
+            .recent
+            .iter()
+            .copied()
+            .filter(|recent| {
+                self.entries.get(recent).is_some_and(|entry| {
+                    entry.metrics == metrics
+                        && entry.key.unwrapped == unwrapped
+                        && entry.key.text.len() >= SUPERSEDED
+                        && entry.key.text.len() < text.len()
+                        && text.starts_with(&*entry.key.text)
+                })
+            })
+            .collect();
+        for hash in extended {
+            self.remove(hash);
+        }
+        (lines, metrics)
+    }
+    fn remove(&mut self, hash: u64) -> Entry {
+        let entry = self.entries.remove(&hash).expect("cached");
+        self.shaped_bytes -= entry.shaped_bytes();
+        self.compact_bytes -= entry.compact_bytes();
+        self.recent.retain(|recent| *recent != hash);
+        entry
+    }
+    /// Past a budget, drop the least recently used (never `keep`): shaped
+    /// lines first, keeping measurements where the text has them.
+    fn evict(&mut self, keep: u64) {
+        if self.shaped_bytes > SHAPED_BUDGET {
+            for hash in self.by_age(keep, |entry| entry.lines.is_some()) {
+                if self.shaped_bytes <= SHAPED_BUDGET / 4 * 3 {
+                    break;
+                }
+                let entry = self.entries.get_mut(&hash).expect("listed");
+                self.shaped_bytes -= entry.shaped_bytes();
+                entry.lines = None;
+                entry.laid = None;
+                if entry.compact.is_none() {
+                    // Nothing left to measure from.
+                    self.compact_bytes -= entry.compact_bytes();
+                    self.entries.remove(&hash);
+                }
+            }
+            self.recent.retain(|hash| self.entries.contains_key(hash));
+        }
+        if self.compact_bytes > COMPACT_BUDGET {
+            for hash in self.by_age(keep, |_| true) {
+                if self.compact_bytes <= COMPACT_BUDGET / 4 * 3 {
+                    break;
+                }
+                let entry = self.entries.remove(&hash).expect("listed");
+                self.shaped_bytes -= entry.shaped_bytes();
+                self.compact_bytes -= entry.compact_bytes();
+            }
+            self.recent.retain(|hash| self.entries.contains_key(hash));
+        }
+    }
+    /// Entries matching `filter`, least recently used first, except `keep`.
+    fn by_age(&self, keep: u64, filter: impl Fn(&Entry) -> bool) -> Vec<u64> {
+        let mut by_age: Vec<(u64, u64)> = self
+            .entries
+            .iter()
+            .filter(|(hash, entry)| **hash != keep && filter(entry))
+            .map(|(hash, entry)| (entry.used, *hash))
+            .collect();
+        by_age.sort_unstable();
+        by_age.into_iter().map(|(_, hash)| hash).collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::text::ShapedText;
+    use lumine::{rich_text::TextRun, text_layout::LineHeight};
+
+    #[test]
+    fn wrapped_and_unwrapped_cache_entries_keep_kerning_and_alignment_separate() {
+        use lumine::text_layout::{FontFamily, TextAlign};
+        let mut fonts = crate::text::kerning_test_fonts();
+        let text: Arc<str> = "add/send.".into();
+        let font = FontStyle {
+            family: FontFamily::Named("Geist".into()),
+            line_height: LineHeight::px(17.),
+            align: TextAlign::Center,
+            ..Default::default()
+        };
+        let mut cache = TextCache::default();
+        let whole = cache.measure_plain(&mut fonts, &text, 13., &font, None);
+        let wrapped = cache.measure_plain(&mut fonts, &text, 13., &font, Some(200.));
+        assert!((wrapped.0 - whole.0 - 0.52).abs() < 0.002);
+        let shaped = cache.shaped;
+        for _ in 0..2 {
+            let laid = cache.layout_plain_unwrapped(&mut fonts, &text, 13., &font, 200.);
+            let row = laid.runs(None).next().unwrap();
+            assert!((row.glyphs[0].x - (200. - whole.0) / 2.).abs() < 0.002);
+            let laid = cache.layout_plain(&mut fonts, &text, 13., &font, Some(200.));
+            let row = laid.runs(None).next().unwrap();
+            assert!((row.glyphs[0].x - (200. - wrapped.0) / 2.).abs() < 0.002);
+        }
+        assert_eq!(
+            cache.shaped, shaped,
+            "each mode hits its own prepared entry"
+        );
+        assert_eq!(
+            cache.entries.len(),
+            2,
+            "streaming donor must retain the other mode"
+        );
+    }
+
+    #[test]
+    fn alternating_font_styles_keep_distinct_prepared_entries() {
+        use lumine::text_layout::{FontFamily, LetterSpacing};
+        let mut fonts = FontSystem::new();
+        let text: Arc<str> = "Same label, different typography".into();
+        let styles = [
+            FontStyle::default(),
+            FontStyle {
+                family: FontFamily::Monospace,
+                ..Default::default()
+            },
+            FontStyle {
+                letter_spacing: LetterSpacing::px(2.),
+                ..Default::default()
+            },
+            FontStyle {
+                line_height: LineHeight::px(30.),
+                ..Default::default()
+            },
+        ];
+        let mut cache = TextCache::default();
+        for style in &styles {
+            cache.measure_plain(&mut fonts, &text, 14., style, Some(180.));
+        }
+        assert_eq!(cache.shaped, styles.len() as u64);
+        for style in &styles {
+            assert_eq!(
+                cache.measure_plain(&mut fonts, &text, 14., style, Some(180.)),
+                ShapedText::with_font(&mut fonts, text.clone(), 14., Some(180.), style).size()
+            );
+        }
+        assert_eq!(
+            cache.shaped,
+            styles.len() as u64,
+            "interleaved styles must hit their own entries"
+        );
+    }
+
+    #[test]
+    fn compact_budget_counts_retained_text_and_font_key_payloads() {
+        let payload: Arc<str> = "x".repeat(1024).into();
+        let font = FontStyle {
+            family: lumine::text_layout::FontFamily::Named(payload.clone()),
+            ..Default::default()
+        };
+        let entry = Entry {
+            key: Key {
+                text: payload,
+                spans: vec![(0..1024, font, 14.)],
+                caret_row: false,
+                unwrapped: false,
+            },
+            lines: None,
+            compact: None,
+            metrics: Metrics::new(14., 20.),
+            laid: None,
+            sizes: Vec::new(),
+            used: 0,
+        };
+        assert!(
+            entry.compact_bytes()
+                >= std::mem::size_of::<Entry>()
+                    + 2048
+                    + std::mem::size_of::<(Range<usize>, FontStyle, f32)>()
+        );
+    }
+
+    fn rich(text: &str, runs: &[(usize, FontStyle, f32)]) -> RichText {
+        let mut start = 0;
+        let runs: Vec<TextRun> = runs
+            .iter()
+            .map(|(end, font, font_size)| {
+                let range = start..*end;
+                start = *end;
+                TextRun {
+                    range,
+                    font: font.clone(),
+                    font_size: *font_size,
+                    ..Default::default()
+                }
+            })
+            .collect();
+        RichText::new(text, runs).unwrap()
+    }
+
+    #[test]
+    fn sizes_match_shaped_text_at_every_width() {
+        let mut fonts = FontSystem::new();
+        let body = FontStyle::default();
+        let bold = FontStyle {
+            weight: 700,
+            ..FontStyle::default()
+        };
+        let tall = FontStyle {
+            line_height: LineHeight::px(31.),
+            ..FontStyle::default()
+        };
+        let long = "The renderer keeps every glyph retained while streaming tokens arrive; \
+                    supercalifragilisticexpialidocious words wrap between glyphs.\n\n  indented  \
+                    blanks   and\ttabs\r\nend\n";
+        let texts = [
+            rich("", &[]),
+            rich(long, &[(long.len(), body.clone(), 14.)]),
+            rich(
+                long,
+                &[
+                    (4, bold.clone(), 22.),
+                    (40, tall, 13.),
+                    (long.len(), body.clone(), 14.),
+                ],
+            ),
+            rich("abc אבג xyz דהו", &[(21, body.clone(), 16.)]),
+            rich("אבג abc", &[(10, body, 16.)]),
+        ];
+        let mut cache = TextCache::default();
+        for text in &texts {
+            for width in [
+                None,
+                Some(900.),
+                Some(333.3),
+                Some(120.),
+                Some(41.7),
+                Some(9.),
+                Some(0.),
+            ] {
+                assert_eq!(
+                    cache.measure(&mut fonts, text, width),
+                    ShapedText::with_runs(&mut fonts, text, width).size(),
+                    "{:?} at {width:?}",
+                    text.text()
+                );
+            }
+        }
+        // Left-to-right text measures by arithmetic; bidi from shaped lines.
+        assert!(
+            cache
+                .entries
+                .values()
+                .filter(|e| e.compact.is_some())
+                .count()
+                >= 3
+        );
+        assert_eq!(cache.shaped, 2 * texts.len() as u64);
+    }
+
+    #[test]
+    fn measurements_outlive_evicted_glyphs() {
+        let mut fonts = FontSystem::new();
+        let texts: Vec<RichText> = (0..40)
+            .map(|i| {
+                let text = format!("{i} ").repeat(4000);
+                rich(&text, &[(text.len(), FontStyle::default(), 14.)])
+            })
+            .collect();
+        let mut cache = TextCache::default();
+        let sizes: Vec<_> = texts
+            .iter()
+            .map(|text| cache.measure(&mut fonts, text, Some(500.)))
+            .collect();
+        assert!(cache.bytes().0 <= SHAPED_BUDGET);
+        assert!(cache.entries.values().any(|entry| entry.lines.is_none()));
+        let shaped = cache.shaped;
+        for (text, size) in texts.iter().zip(&sizes) {
+            assert_eq!(cache.measure(&mut fonts, text, Some(500.)), *size);
+            let narrower = cache.measure(&mut fonts, text, Some(300.));
+            assert_eq!(
+                narrower,
+                ShapedText::with_runs(&mut fonts, text, Some(300.)).size()
+            );
+        }
+        assert_eq!(cache.shaped, shaped, "measuring again never reshapes");
+        // Drawing an evicted text shapes it again.
+        cache.layout(&mut fonts, &texts[0], Some(500.));
+        assert_eq!(cache.shaped, shaped + 1);
+    }
+
+    #[test]
+    fn detached_measurement_keeps_no_glyphs_until_drawn() {
+        let mut fonts = FontSystem::new();
+        let text = "Rows a list has not mounted are measured without glyphs. ".repeat(20);
+        let rich = rich(&text, &[(text.len(), FontStyle::default(), 14.)]);
+        let mut cache = TextCache::default();
+        let size = cache.measure_detached(&mut fonts, &rich, Some(300.));
+        assert_eq!(
+            size,
+            ShapedText::with_runs(&mut fonts, &rich, Some(300.)).size()
+        );
+        assert_eq!(cache.bytes().0, 0, "no shaped lines kept");
+        assert!(cache.bytes().1 > 0);
+        // Other widths measure from the compact tier, without shaping.
+        cache.measure_detached(&mut fonts, &rich, Some(200.));
+        cache.measure(&mut fonts, &rich, Some(250.));
+        assert_eq!(cache.shaped, 1);
+        // Drawing shapes it once, and keeps it.
+        cache.layout(&mut fonts, &rich, Some(300.));
+        cache.layout(&mut fonts, &rich, Some(300.));
+        assert_eq!(cache.shaped, 2);
+        assert!(cache.bytes().0 > 0);
+    }
+
+    #[test]
+    fn streaming_keeps_only_the_latest_state() {
+        let mut fonts = FontSystem::new();
+        let full = "Tokens stream into one paragraph, which grows every frame.\n".repeat(8);
+        let mut cache = TextCache::default();
+        let mut end = 5;
+        while end <= full.len() {
+            let text = &full[..end];
+            let rich = rich(text, &[(text.len(), FontStyle::default(), 14.)]);
+            let size = cache.measure(&mut fonts, &rich, Some(320.));
+            assert_eq!(
+                size,
+                ShapedText::with_runs(&mut fonts, &rich, Some(320.)).size()
+            );
+            cache.layout(&mut fonts, &rich, Some(320.));
+            end += 7;
+        }
+        // Only states shorter than `SUPERSEDED` remain besides the latest.
+        let long: Vec<_> = cache
+            .entries
+            .values()
+            .filter(|entry| entry.key.text.len() >= SUPERSEDED)
+            .collect();
+        assert_eq!(long.len(), 1, "earlier states were superseded");
+        assert_eq!(long[0].key.text.len(), end - 7);
+    }
+
+    #[test]
+    fn plain_text_matches_shaped_text_with_font() {
+        let mut fonts = FontSystem::new();
+        let tall = FontStyle {
+            line_height: LineHeight::px(27.),
+            ..FontStyle::default()
+        };
+        let bold = FontStyle {
+            weight: 700,
+            ..FontStyle::default()
+        };
+        let texts = [
+            "pid 1017",
+            "12.5%",
+            "a\n",
+            "\n",
+            "abc\ndef\n",
+            "trailing\r\n",
+            "tabs\tand  spaces   end ",
+            "emoji 🙂 and 漢字 fall back to other fonts",
+            "abc אבג xyz",
+            "A longer description that wraps across several lines at narrow widths.",
+        ];
+        let mut cache = TextCache::default();
+        for font in [FontStyle::default(), tall, bold] {
+            for text in texts {
+                let text: Arc<str> = text.into();
+                for width in [None, Some(400.), Some(90.), Some(13.)] {
+                    for size in [11., 14.] {
+                        assert_eq!(
+                            cache.measure_plain(&mut fonts, &text, size, &font, width),
+                            ShapedText::with_font(&mut fonts, text.clone(), size, width, &font)
+                                .size(),
+                            "{text:?} at {width:?}, {size} px"
+                        );
+                    }
+                }
+            }
+        }
+        // Plain and rich text of the same content are prepared apart: only
+        // plain text keeps the row after a final line break.
+        let text: Arc<str> = "row\n".into();
+        let rich = rich(&text, &[(text.len(), FontStyle::default(), 14.)]);
+        let plain = cache.measure_plain(&mut fonts, &text, 14., &FontStyle::default(), None);
+        assert_eq!(plain.1, 2. * cache.measure(&mut fonts, &rich, None).1);
+    }
+}

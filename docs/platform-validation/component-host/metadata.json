@@ -2,7 +2,7 @@
   "platform": "Linux X11 / Xvfb / Mesa llvmpipe",
   "binary_sha256": "82a90608b211a056f856b8e6e8aed762e2667ecddb38b094cf2127a6cf7662cc",
   "script_sha256": "8ff58926993d7c69c03cf916640dc8d2f3bb1857fe54b855f19a22c41ad47502",
-  "build_proof": "../../results/measured-framework-workers4/zgui-build-manifest.json",
+  "build_proof": "../../results/measured-framework-workers4/lumine-build-manifest.json",
   "native_macos_executed": false,
-  "command": "xvfb-run -a env -u WAYLAND_DISPLAY LD_LIBRARY_PATH=/tmp/zgui-ci-loader-check/build/loader LP_NUM_THREADS=4 DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent python3 scripts/component_host_smoke.py /tmp/zgui-measured-framework-workers4-bin/component_workload --output /tmp/zgui-component-host-smoke-x11"
+  "command": "xvfb-run -a env -u WAYLAND_DISPLAY LD_LIBRARY_PATH=/tmp/lumine-ci-loader-check/build/loader LP_NUM_THREADS=4 DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent python3 scripts/component_host_smoke.py /tmp/lumine-measured-framework-workers4-bin/component_workload --output /tmp/lumine-component-host-smoke-x11"
 }

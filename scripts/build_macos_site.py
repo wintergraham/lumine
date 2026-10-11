@@ -14,8 +14,8 @@ audit = json.loads((r / 'audit.json').read_text())
 trials = list(csv.DictReader((r / 'current.csv').open()))
 scene = audit.get('scene', 'lab')
 assert scene in ('lab', 'heavy')
-frameworks = audit['protocol'].get('frameworks', ['zgui', 'gpui', 'quickgui'])
-assert frameworks == (['zgui', 'gpui'] if scene == 'heavy' else ['zgui', 'gpui', 'quickgui'])
+frameworks = audit['protocol'].get('frameworks', ['lumine', 'gpui', 'quickgui'])
+assert frameworks == (['lumine', 'gpui'] if scene == 'heavy' else ['lumine', 'gpui', 'quickgui'])
 modes = ['idle', 'stream', 'scroll', 'both']
 assert audit['protocol']['requested_seconds'] == 20 and audit['protocol']['repeats'] == 3
 assert audit['accepted'], 'only accepted runs are published'
@@ -57,7 +57,7 @@ metadata = {
     'host_note': 'A personal Mac in use: other applications kept running, so this host was not isolated.',
     'memory': 'Physical footprint (as Activity Monitor reports it: resident memory plus GPU memory the process owns on unified memory); resident size also recorded.',
     'protocol': audit['protocol'],
-    'frameworks': {f: {'gpui': '0.2.2', 'quickgui': '811d6e2816d5229711f59683c4c9dfbb6fc74133', 'zgui': audit['commit']}[f] for f in frameworks},
+    'frameworks': {f: {'gpui': '0.2.2', 'quickgui': '811d6e2816d5229711f59683c4c9dfbb6fc74133', 'lumine': audit['commit']}[f] for f in frameworks},
     'csv_sha256': hashlib.sha256((a.output / 'data.csv').read_bytes()).hexdigest(),
     'source_csv_sha256': hashlib.sha256((r / 'current.csv').read_bytes()).hexdigest(),
     'binaries': audit['binaries'],

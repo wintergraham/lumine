@@ -19,7 +19,7 @@
   "rust": "rustc 1.96.0 (ac68faa20 2026-05-25)"
  },
  "binaries": {
-  "zgui": {
+  "lumine": {
    "sha256": "ce3d2a1ab70cf709363bc656fcd4852555c4c4fee04e78b27b0a6357e0974f76",
    "bytes": 10847824
   },

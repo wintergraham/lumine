@@ -10,7 +10,7 @@
   "renderer": "Mesa llvmpipe Vulkan on Linux X11/Xvfb",
   "source_archive_sha256": "4b9f2b57057edf369a5ee5b7ef819a8b279547f70e18c22c69beaacea0619988",
   "native_binary_sha256": "c155d73dccaddfcdbe688d5bcfab411ac221f50cedeae716b374a3f751205c35",
-  "loader_path": "/tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345",
+  "loader_path": "/tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345",
   "loader_sha256": "e5b140601552d2d6c2a416cd63d0072b1a0a8995c24f89c2888ff68fa0b39de2",
   "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
   "validation_note": "Default wgpu debug-build flags preserved; Khronos Vulkan validation layer not installed."

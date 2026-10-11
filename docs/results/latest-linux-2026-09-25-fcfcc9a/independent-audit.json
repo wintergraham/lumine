@@ -19,9 +19,9 @@
   "current_build_input_mismatches": [],
   "all_three_binary_hashes_and_loader_verified": true,
   "binary_paths": {
-    "zgui": "/tmp/zgui-latest-linux-2026-09-25-fcfcc9a-bin/component_workload",
-    "gpui": "/tmp/zgui-latest-linux-2026-09-25-fcfcc9a-bin/zgui-compare-gpui",
-    "quickgui": "/tmp/zgui-latest-linux-2026-09-25-fcfcc9a-bin/zgui-compare-quickgui"
+    "lumine": "/tmp/lumine-latest-linux-2026-09-25-fcfcc9a-bin/component_workload",
+    "gpui": "/tmp/lumine-latest-linux-2026-09-25-fcfcc9a-bin/lumine-compare-gpui",
+    "quickgui": "/tmp/lumine-latest-linux-2026-09-25-fcfcc9a-bin/lumine-compare-quickgui"
   },
   "host_observations": 142,
   "host_observation_span_seconds": 731.2418270111084,
@@ -48,7 +48,7 @@
     }
   },
   "capture_thread_counts": {
-    "zgui": {
+    "lumine": {
       "all_threads": 16,
       "llvmpipe_workers": 4
     },
@@ -70,7 +70,7 @@
   ],
   "parity_violations": [
     {
-      "framework": "zgui",
+      "framework": "lumine",
       "mode": "stream",
       "repeat": 0,
       "ticks": 1155,
@@ -91,7 +91,7 @@
       "ticks_per_requested_second": 19.45
     },
     {
-      "framework": "zgui",
+      "framework": "lumine",
       "mode": "scroll",
       "repeat": 0,
       "ticks": 1128,
@@ -189,7 +189,7 @@
       "ticks_per_requested_second": 43.65
     },
     {
-      "framework": "zgui",
+      "framework": "lumine",
       "mode": "scroll",
       "repeat": 2,
       "ticks": 957,
@@ -205,7 +205,7 @@
   ],
   "near_60hz_workload_updates": false,
   "framework_updates_per_requested_second": {
-    "zgui": {
+    "lumine": {
       "min": 47.85,
       "max": 59.95
     },

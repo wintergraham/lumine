@@ -24,9 +24,9 @@ checks use owned Xvfb/Openbox sessions and Mesa llvmpipe. They do not establish
 native macOS behavior or hardware GPU performance.
 
 ```sh
-cargo build -p zgui-desktop --example model_text --locked
+cargo build -p lumine-desktop --example model_text --locked
 python3 scripts/model_text_smoke.py target/debug/examples/model_text \
-  --output /tmp/zgui-model-text
+  --output /tmp/lumine-model-text
 ```
 
 The final build passes **489 tests** (two opt-in tests ignored), **29 doctests**,

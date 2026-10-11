@@ -52,7 +52,7 @@
       "cargo",
       "build",
       "-p",
-      "zgui-desktop",
+      "lumine-desktop",
       "--example",
       "effects",
       "--locked"
@@ -64,9 +64,9 @@
     "command": [
       "python3",
       "scripts/effects_smoke.py",
-      "/tmp/zgui-target/debug/examples/effects",
+      "/tmp/lumine-target/debug/examples/effects",
       "--output",
-      "/home/ubuntu/GitHub/zgui/docs/platform-validation/retained-blur-batching/native-effects"
+      "/home/ubuntu/GitHub/lumine/docs/platform-validation/retained-blur-batching/native-effects"
     ],
     "exit_code": 0
   },
@@ -78,7 +78,7 @@
       "cargo",
       "test",
       "-p",
-      "zgui-desktop",
+      "lumine-desktop",
       "--lib",
       "host_suspend_recreates_native_resources_and_retains_editor_state",
       "--locked",

@@ -2,10 +2,10 @@
 
 Prepared before measurements. No performance conclusions yet.
 
-Compare the current retained zgui component workload with the unchanged GPUI
+Compare the current retained lumine component workload with the unchanged GPUI
 0.2.2 and pinned QuickGUI adapters. Reuse their previously built release binaries
 only after checking both source and executable hashes against the original build
-manifest. Build zgui afresh after all parity implementation and validation edits
+manifest. Build lumine afresh after all parity implementation and validation edits
 finish. Freeze source hashes before/after the build and archive the source inputs.
 
 The protocol matches the prior four-worker condition: private Xvfb/Openbox,
@@ -35,8 +35,8 @@ list and streaming text, not every new layout/media/native integration feature.
 ```sh
 python3 docs/results/gpui-parity-workers4/build-orchestration.py
 python3 docs/results/gpui-parity-workers4/run.py \
-  --build-manifest docs/results/gpui-parity-workers4/zgui-build-manifest.json \
-  --loader /tmp/zgui-ci-loader-check/build/loader
+  --build-manifest docs/results/gpui-parity-workers4/lumine-build-manifest.json \
+  --loader /tmp/lumine-ci-loader-check/build/loader
 python3 docs/results/gpui-parity-workers4/capture.py
 ```
 

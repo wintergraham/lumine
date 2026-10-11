@@ -1,4 +1,4 @@
-//! zgui patch: buffer fills and copies without a blit encoder.
+//! lumine patch: buffer fills and copies without a blit encoder.
 //!
 //! On Apple silicon the first blit encoder a process uses leaves the driver
 //! holding roughly 110 MB for about eight seconds, and part of it for good
@@ -19,8 +19,8 @@ use objc2_metal::{
 const SOURCE: &str = "
 #include <metal_stdlib>
 using namespace metal;
-vertex void zgui_fill(device uint* dst [[buffer(0)]], uint i [[vertex_id]]) { dst[i] = 0u; }
-vertex void zgui_copy(device uint* dst [[buffer(0)]], const device uint* src [[buffer(1)]],
+vertex void lumine_fill(device uint* dst [[buffer(0)]], uint i [[vertex_id]]) { dst[i] = 0u; }
+vertex void lumine_copy(device uint* dst [[buffer(0)]], const device uint* src [[buffer(1)]],
                       uint i [[vertex_id]]) { dst[i] = src[i]; }
 ";
 
@@ -48,8 +48,8 @@ impl BufferWrites {
                 .ok()
         };
         Some(Self {
-            fill: pipeline("zgui_fill")?,
-            copy: pipeline("zgui_copy")?,
+            fill: pipeline("lumine_fill")?,
+            copy: pipeline("lumine_copy")?,
         })
     }
 
@@ -69,7 +69,7 @@ impl BufferWrites {
         let encoder = cmd_buf
             .renderCommandEncoderWithDescriptor(&descriptor)
             .unwrap();
-        encoder.setLabel(Some(&NSString::from_str("zgui buffer write")));
+        encoder.setLabel(Some(&NSString::from_str("lumine buffer write")));
         unsafe {
             encoder.setVertexBuffer_offset_atIndex(Some(dst.0), dst.1 as usize, 0);
             if let Some((src, offset)) = src {

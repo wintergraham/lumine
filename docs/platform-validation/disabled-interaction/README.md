@@ -27,9 +27,9 @@ or a slider drag is held. Focus/capture must clear, late release must not activa
 and new interactions after reenabling must work.
 
 ```sh
-cargo build -p zgui-desktop --example disabled_interaction --locked
+cargo build -p lumine-desktop --example disabled_interaction --locked
 python3 scripts/disabled_interaction_smoke.py target/debug/examples/disabled_interaction \
-  --output /tmp/zgui-disabled-interaction
+  --output /tmp/lumine-disabled-interaction
 ```
 
 Source and script hashes, exact commands, native logs/screenshots and integrated

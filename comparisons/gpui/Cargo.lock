@@ -7141,15 +7141,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "zgui-compare-gpui"
+name = "lumine-compare-gpui"
 version = "0.1.0"
 dependencies = [
  "gpui",
- "zgui-workload",
+ "lumine-workload",
 ]
 
 [[package]]
-name = "zgui-workload"
+name = "lumine-workload"
 version = "0.1.0"
 
 [[package]]

@@ -21,7 +21,7 @@
     ]
   },
   {
-    "name": "zgui accessibility probe",
+    "name": "lumine accessibility probe",
     "role": "frame",
     "depth": 2,
     "pid": 1699036,

@@ -1,5 +1,5 @@
 {
   "binary_sha256": "896cec188a02c6daa49f4ae79fb0568fa85aa24de796dab05f43dfcac9c9c6d3",
-  "command": "LD_LIBRARY_PATH=/tmp/zgui-ci-loader-check/build/loader LIBGL_ALWAYS_SOFTWARE=1 VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json python3 scripts/rich_text_smoke.py /tmp/zgui-target/debug/examples/rich_text --output /tmp/zgui-rich-text-smoke",
+  "command": "LD_LIBRARY_PATH=/tmp/lumine-ci-loader-check/build/loader LIBGL_ALWAYS_SOFTWARE=1 VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json python3 scripts/rich_text_smoke.py /tmp/lumine-target/debug/examples/rich_text --output /tmp/lumine-rich-text-smoke",
   "scope": "Native Linux behavioral evidence; no frozen whole-workspace source archive. Later default-font allocation normalization does not change the asserted text behavior."
 }

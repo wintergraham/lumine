@@ -1,4 +1,4 @@
 [package]
-name = "zgui-workload"
+name = "lumine-workload"
 version = "0.1.0"
 edition = "2021"

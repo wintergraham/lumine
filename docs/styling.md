@@ -1,10 +1,10 @@
 # Styling retained views
 
-zgui's Rust API combines GPUI/QuickGUI-style fluent methods with owned component children. Import `Styled` to use the methods on a `View` or reusable `Styles` patch. Values are logical pixels except explicit percentage dimensions; spacing methods take pixel values directly, not a numbered spacing scale.
+lumine's Rust API combines GPUI/QuickGUI-style fluent methods with owned component children. Import `Styled` to use the methods on a `View` or reusable `Styles` patch. Values are logical pixels except explicit percentage dimensions; spacing methods take pixel values directly, not a numbered spacing scale.
 
 ```rust
-use zgui::compose::{button, column, text};
-use zgui::style::{rgb, Styled, Styles};
+use lumine::compose::{button, column, text};
+use lumine::style::{rgb, Styled, Styles};
 
 let card = column()
     .w(320.)
@@ -47,7 +47,7 @@ Mount with `Ui::mount(card)` or use the native window's view rendering entry poi
 `Styles::new()` is an empty patch. `.style(patch)` changes only fields supplied by that patch. Later writes win, including individual edges: `.p(8.).px(12.).pt(3.)` produces top 3, right 12, bottom 8, left 12. A later `.pl(20.)` preserves the other three edges. Per-edge padding participates in intrinsic sizing, flex allocation, and resizing.
 
 ```rust
-use zgui::style::{rgb, Styled, Styles};
+use lumine::style::{rgb, Styled, Styles};
 let surface = Styles::new().p(12.).bg(rgb(0x202838)).rounded(8.);
 let compact = surface.clone().py(6.); // retains horizontal padding and surface
 ```
@@ -55,8 +55,8 @@ let compact = surface.clone().py(6.); // retains horizontal padding and surface
 Use `.apply(...)` for reusable style functions, `.when(...)` for a conditional transformation, and `.when_some(...)` for an optional value. These helpers work on both views and sparse `Styles` patches; skipped closures are never called.
 
 ```rust
-use zgui::compose::{column, text};
-use zgui::style::{rgb, Styled, Styles};
+use lumine::compose::{column, text};
+use lumine::style::{rgb, Styled, Styles};
 
 fn card_surface<S: Styled>(style: S) -> S {
     style.p(16.).bg(rgb(0x202838)).rounded(10.)
@@ -87,7 +87,7 @@ are separate, so two 50-percent children plus a gap can overflow unless flex
 shrink is enabled.
 
 ```rust
-use zgui::compose::prelude::*;
+use lumine::compose::prelude::*;
 let content = row().w_full().h(240.).p(16.)
     .child(column().w_percent(40.).h_full().child("Navigation"))
     .child(column().w_percent(60.).h_full().child("Content"));
@@ -137,7 +137,7 @@ rounded. These modes change placement, not the image's intrinsic size contributi
 
 ```rust
 use std::sync::Arc;
-use zgui::{compose::prelude::*, image::ImageData};
+use lumine::{compose::prelude::*, image::ImageData};
 let pixels = Arc::new(ImageData::new(2, 1, vec![255; 8]).unwrap());
 let thumbnail = image("Preview", pixels)
     .size(160., 120.).p(8.).bg(rgb(0x202838)).object_contain();
@@ -153,7 +153,7 @@ font size. Omitting the field from a `Styles` patch preserves inheritance; remov
 a dynamic override restores the underlying base or inherited value.
 
 ```rust
-use zgui::compose::prelude::*;
+use lumine::compose::prelude::*;
 let content = column().text_size(16.).line_height(24.)
     .child(text("First line\nSecond line"))
     .child(text("Compact caption").text_size(12.).line_height_normal());
@@ -179,7 +179,7 @@ editors. `.letter_spacing(0.)` explicitly resets inherited tracking; omitting th
 field preserves inheritance. Signed values allow tighter or looser text.
 
 ```rust
-use zgui::compose::prelude::*;
+use lumine::compose::prelude::*;
 let heading = column().letter_spacing(2.)
     .child(text("STATUS"))
     .child(text("Normal caption").letter_spacing(0.));
@@ -212,7 +212,7 @@ Styles resolve in this order: base fluent properties, `reactive_style`, hover, a
 `.disabled(true)` and `.disabled_when(|| signal.get())` disable interaction and update accessibility. `.disabled_style(...)` controls appearance; supplying that patch alone does not disable a view. Focus is cleared when a focused subtree becomes disabled. Buttons support pointer and keyboard activation.
 
 ```rust
-use zgui::{compose::column, style::{rgb, Styled, Styles}, widgets::Ui};
+use lumine::{compose::column, style::{rgb, Styled, Styles}, widgets::Ui};
 let mut ui = Ui::new(640., 480.);
 let highlighted = ui.signal(false);
 let read = highlighted.clone();
@@ -244,11 +244,11 @@ the same normalized effect does not add scene damage or invalidation.
 
 `.blur(radius)` is backdrop blur, not a generic image or text blur. It samples content painted behind the view. GPU backdrop updates reconstruct the affected filter outputs and their sampling halos in paint order. Unrelated damage stays local; connected filters can still require the full target. The software reference backend conservatively repaints the full target when blur is present. The GPU blur implementation caps sigma at 64 physical pixels. `.edge_fade(length)` fades the top and bottom edges. `.overflow_hidden()` clips to the rectangular layout box; a rounded background does not imply rounded clipping of all descendants.
 
-The [native effects example](../crates/zgui-desktop/examples/effects.rs) builds its glass card and controls with component children, `.reactive_style(...)`, and these fluent effect methods. Component-owned tasks animate a translation signal; the application does not append or mutate scene nodes. Run it with `cargo run -p zgui-desktop --example effects`.
+The [native effects example](../crates/lumine-desktop/examples/effects.rs) builds its glass card and controls with component children, `.reactive_style(...)`, and these fluent effect methods. Component-owned tasks animate a translation signal; the application does not append or mutate scene nodes. Run it with `cargo run -p lumine-desktop --example effects`.
 
 `.shadow(BoxShadow { ... })` adds an outer shadow without changing layout dimensions. Shadow extents participate in damage tracking. `.shadow_none()` explicitly clears an inherited patch's shadow setting (shadows do not inherit down the view tree).
 
-The native GPU renderer shapes text and provides fallback fonts. Font family, weight and italic inherit through components and slots alongside color, size and wrapping. Use `.font_family("DejaVu Serif").font_weight(700).italic(true)`, or the portable `FontFamily::{SansSerif, Serif, Monospace}` choices. Weight is clamped to 1–1000; named families and unavailable faces use platform fallback. Native measurement, caret shaping and GPU glyph selection share font attributes; changing them invalidates layout and retained glyph geometry. The software reference backend also renders styled fonts, using a lazy platform font database. Letter spacing and custom line height use the shared inherited metrics described above. It does not yet expose the full CSS layout or styling surface of the inspiration projects. GPU cache and effect limits are documented in [the renderer notes](../crates/zgui-gpu/README.md).
+The native GPU renderer shapes text and provides fallback fonts. Font family, weight and italic inherit through components and slots alongside color, size and wrapping. Use `.font_family("DejaVu Serif").font_weight(700).italic(true)`, or the portable `FontFamily::{SansSerif, Serif, Monospace}` choices. Weight is clamped to 1–1000; named families and unavailable faces use platform fallback. Native measurement, caret shaping and GPU glyph selection share font attributes; changing them invalidates layout and retained glyph geometry. The software reference backend also renders styled fonts, using a lazy platform font database. Letter spacing and custom line height use the shared inherited metrics described above. It does not yet expose the full CSS layout or styling surface of the inspiration projects. GPU cache and effect limits are documented in [the renderer notes](../crates/lumine-gpu/README.md).
 
 The software styled-font cache retains at most 128 entries and 8 MiB of text keys/glyph images; oversized runs render without being retained. Its platform font database is created on first styled text and shared with software layer renderers. Headless core-only scenes use approximate metrics until a `Scene::set_font_text_shaper` backend is installed.
 

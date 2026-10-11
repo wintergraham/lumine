@@ -970,7 +970,7 @@ impl ShapeSpan {
         }
 
         let mut start_word = 0;
-        // zgui patch: unwrapped text has no soft boundaries at which to split shaping.
+        // lumine patch: unwrapped text has no soft boundaries at which to split shaping.
         let unwrapped = shaping == Shaping::AdvancedUnwrapped;
         let breaks = core::iter::once(span.len())
             .take(usize::from(unwrapped))

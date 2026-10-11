@@ -24,9 +24,9 @@ Unicode composition works. The original IME and live AT-SPI suites are rerun on
 the same archived build.
 
 ```sh
-cargo build -p zgui-desktop --example external_ime --locked
+cargo build -p lumine-desktop --example external_ime --locked
 python3 scripts/external_ime_smoke.py target/debug/examples/external_ime \
-  --output /tmp/zgui-external-ime
+  --output /tmp/lumine-external-ime
 ```
 
 This revision identifies local cancellation of existing preedit, not every model

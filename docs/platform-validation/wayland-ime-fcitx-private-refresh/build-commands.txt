@@ -1,11 +1,11 @@
 # No packages were installed into the system. Downloads extracted under /tmp.
 apt-get download cmake cmake-data extra-cmake-modules nlohmann-json3-dev libarchive13t64 libjsoncpp26 librhash1 gettext gettext-base
-# Each downloaded .deb: dpkg-deb -x PACKAGE /tmp/zgui-fcitx-preedit/tools
+# Each downloaded .deb: dpkg-deb -x PACKAGE /tmp/lumine-fcitx-preedit/tools
 # Fcitx archive: https://github.com/fcitx/fcitx5/archive/refs/tags/5.1.19.tar.gz
 # Yoga submodule: https://codeload.github.com/facebook/yoga/tar.gz/042f5013152eb81c1552dec945b88f7b95ca350f
 # Extract Yoga under fcitx5-5.1.19/third_party/yoga and apply sources/preedit-refresh.patch.
-LD_LIBRARY_PATH=/tmp/zgui-fcitx-preedit/tools/usr/lib/x86_64-linux-gnu PATH=/tmp/zgui-fcitx-preedit/tools/usr/bin:$PATH /tmp/zgui-fcitx-preedit/tools/usr/bin/cmake -S /tmp/zgui-fcitx-preedit/fcitx5-5.1.19 -B /tmp/zgui-fcitx-preedit/build -DCMAKE_PREFIX_PATH=/tmp/zgui-fcitx-preedit/tools/usr -DCMAKE_INSTALL_PREFIX=/tmp/zgui-fcitx-preedit/install -DENABLE_X11=OFF -DENABLE_TEST=OFF -DENABLE_TESTING_ADDONS=OFF -DENABLE_ENCHANT=OFF -DENABLE_EMOJI=OFF -DENABLE_DOC=OFF -DBUILD_SPELL_DICT=OFF -DCMAKE_BUILD_TYPE=Release
-LD_LIBRARY_PATH=/tmp/zgui-fcitx-preedit/tools/usr/lib/x86_64-linux-gnu PATH=/tmp/zgui-fcitx-preedit/tools/usr/bin:$PATH /tmp/zgui-fcitx-preedit/tools/usr/bin/cmake --build /tmp/zgui-fcitx-preedit/build --target waylandim -j2
-# Copy only build/bin/libwaylandim.so to /tmp/zgui-fcitx-preedit/plugin.
+LD_LIBRARY_PATH=/tmp/lumine-fcitx-preedit/tools/usr/lib/x86_64-linux-gnu PATH=/tmp/lumine-fcitx-preedit/tools/usr/bin:$PATH /tmp/lumine-fcitx-preedit/tools/usr/bin/cmake -S /tmp/lumine-fcitx-preedit/fcitx5-5.1.19 -B /tmp/lumine-fcitx-preedit/build -DCMAKE_PREFIX_PATH=/tmp/lumine-fcitx-preedit/tools/usr -DCMAKE_INSTALL_PREFIX=/tmp/lumine-fcitx-preedit/install -DENABLE_X11=OFF -DENABLE_TEST=OFF -DENABLE_TESTING_ADDONS=OFF -DENABLE_ENCHANT=OFF -DENABLE_EMOJI=OFF -DENABLE_DOC=OFF -DBUILD_SPELL_DICT=OFF -DCMAKE_BUILD_TYPE=Release
+LD_LIBRARY_PATH=/tmp/lumine-fcitx-preedit/tools/usr/lib/x86_64-linux-gnu PATH=/tmp/lumine-fcitx-preedit/tools/usr/bin:$PATH /tmp/lumine-fcitx-preedit/tools/usr/bin/cmake --build /tmp/lumine-fcitx-preedit/build --target waylandim -j2
+# Copy only build/bin/libwaylandim.so to /tmp/lumine-fcitx-preedit/plugin.
 # Harness sets FCITX_ADDON_DIRS to that directory plus the installed addon path.
 # Installed fcitx5 process retains installed core/runtime libraries (verified through /proc maps).

@@ -132,7 +132,7 @@
 [3447638.427] {Default Queue}  -> xdg_wm_base#30.get_xdg_surface(new id xdg_surface#36, wl_surface#35)
 [3447638.431] {Default Queue}  -> xdg_surface#36.get_toplevel(new id xdg_toplevel#37)
 [3447638.434] {Default Queue}  -> xdg_toplevel#37.set_parent(nil)
-[3447638.436] {Default Queue}  -> xdg_toplevel#37.set_title("zgui file source")
+[3447638.436] {Default Queue}  -> xdg_toplevel#37.set_title("lumine file source")
 [3447638.438] {Default Queue}  -> xdg_toplevel#37.set_app_id("native_file_source.py")
 [3447638.440] {Default Queue}  -> wl_surface#35.commit()
 [3447638.442] {Default Queue}  -> org_kde_kwin_server_decoration_manager#11.create(new id org_kde_kwin_server_decoration#38, wl_surface#35)
@@ -756,7 +756,7 @@
 [3448410.034] {Default Queue} wl_data_source#43.action(1)
 [3448410.044] {Default Queue}  -> wp_cursor_shape_device_v1#32.set_shape(16, 12)
 [3448410.047] {Default Queue} wl_data_source#43.send("text/uri-list", fd 14)
-SOURCE_DATA ['file:///tmp/zgui-wayland-files-accepted/first.txt', 'file:///tmp/zgui-wayland-files-accepted/second%20file.txt']
+SOURCE_DATA ['file:///tmp/lumine-wayland-files-accepted/first.txt', 'file:///tmp/lumine-wayland-files-accepted/second%20file.txt']
 [3448410.726] {Default Queue} wl_buffer#51.release()
 [3448410.733] {Default Queue}  -> wl_buffer#51.destroy()
 [3448410.737] {Default Queue}  -> wl_shm_pool#53.destroy()
@@ -1425,7 +1425,7 @@ SOURCE_END
 [3449462.855] {Default Queue} wl_data_source#51.action(1)
 [3449462.865] {Default Queue}  -> wp_cursor_shape_device_v1#32.set_shape(32, 12)
 [3449462.868] {Default Queue} wl_data_source#51.send("text/uri-list", fd 14)
-SOURCE_DATA ['file:///tmp/zgui-wayland-files-accepted/first.txt', 'file:///tmp/zgui-wayland-files-accepted/second%20file.txt']
+SOURCE_DATA ['file:///tmp/lumine-wayland-files-accepted/first.txt', 'file:///tmp/lumine-wayland-files-accepted/second%20file.txt']
 [3449463.041] {Default Queue} wl_buffer#49.release()
 [3449463.045] {Default Queue}  -> wl_buffer#49.destroy()
 [3449463.047] {Default Queue}  -> wl_shm_pool#50.destroy()
@@ -2007,7 +2007,7 @@ SOURCE_END
 [3450634.223] {Default Queue} wl_data_source#49.action(1)
 [3450634.236] {Default Queue}  -> wp_cursor_shape_device_v1#32.set_shape(48, 12)
 [3450634.240] {Default Queue} wl_data_source#49.send("text/uri-list", fd 14)
-SOURCE_DATA ['file:///tmp/zgui-wayland-files-accepted/first.txt', 'file:///tmp/zgui-wayland-files-accepted/second%20file.txt']
+SOURCE_DATA ['file:///tmp/lumine-wayland-files-accepted/first.txt', 'file:///tmp/lumine-wayland-files-accepted/second%20file.txt']
 [3450634.440] {Default Queue} wl_buffer#43.release()
 [3450634.445] {Default Queue}  -> wl_buffer#43.destroy()
 [3450634.447] {Default Queue}  -> wl_shm_pool#48.destroy()

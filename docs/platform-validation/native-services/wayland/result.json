@@ -1,9 +1,9 @@
 {
   "result": "pass",
   "backend": "native Wayland / XDG Desktop Portal GTK",
-  "selected": "/tmp/zgui-native-services-owned-portal-second/fixture.txt",
-  "folder": "/tmp/zgui-native-services-owned-portal-second/chosen-folder",
-  "save_destination": "/tmp/zgui-native-services-owned-portal-second/chosen-folder/saved.txt",
+  "selected": "/tmp/lumine-native-services-owned-portal-second/fixture.txt",
+  "folder": "/tmp/lumine-native-services-owned-portal-second/chosen-folder",
+  "save_destination": "/tmp/lumine-native-services-owned-portal-second/chosen-folder/saved.txt",
   "save_did_not_write": true,
   "menu_cancel": true,
   "client_display_unset": true,

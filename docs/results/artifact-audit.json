@@ -5,7 +5,7 @@
     "Raw sample CPU delta and elapsed interval reproduce CPU percentage",
     "Raw RSS sample arithmetic reproduces mean RSS",
     "Raw sample count and 3-second warmup/10-second run configuration agree",
-    "Log workload ticks agree with CSV; zgui reports Vulkan CPU adapter and GPU renderer",
+    "Log workload ticks agree with CSV; lumine reports Vulkan CPU adapter and GPU renderer",
     "Recorded exit code is zero for every completed trial",
     "Frozen executable SHA256 matches metadata",
     "Baseline regenerated summary JSON matches stored summary byte for byte"
@@ -17,7 +17,7 @@
       "raw_samples_verified": 3396,
       "zero_rss_samples": 1,
       "frozen_binary_hash_verification": {
-        "zgui": "matches",
+        "lumine": "matches",
         "gpui": "matches",
         "quickgui": "matches"
       },
@@ -30,7 +30,7 @@
       "raw_samples_verified": 1983,
       "zero_rss_samples": 2,
       "frozen_binary_hash_verification": {
-        "zgui": "matches",
+        "lumine": "matches",
         "gpui": "matches",
         "quickgui": "matches"
       },
@@ -66,22 +66,22 @@
           "repeat": "1"
         },
         {
-          "framework": "zgui",
+          "framework": "lumine",
           "mode": "both",
           "repeat": "1"
         },
         {
-          "framework": "zgui",
+          "framework": "lumine",
           "mode": "idle",
           "repeat": "1"
         },
         {
-          "framework": "zgui",
+          "framework": "lumine",
           "mode": "scroll",
           "repeat": "1"
         },
         {
-          "framework": "zgui",
+          "framework": "lumine",
           "mode": "stream",
           "repeat": "1"
         }
@@ -94,7 +94,7 @@
       "raw_samples_verified": 3394,
       "zero_rss_samples": 0,
       "frozen_binary_hash_verification": {
-        "zgui": "matches",
+        "lumine": "matches",
         "gpui": "matches",
         "quickgui": "matches"
       },
@@ -104,7 +104,7 @@
         596,
         599
       ],
-      "zgui_atlas_bytes": [
+      "lumine_atlas_bytes": [
         1048576
       ],
       "source_archive_sha256_verified": true

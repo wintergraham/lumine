@@ -2,15 +2,15 @@
 """Run the three-framework comparison workload on this Mac.
 
 The Linux protocol (docs/results/*/protocol.md), on macOS with the Metal GPU:
-three repeats of idle, streaming, scrolling and combined for zgui, GPUI and
+three repeats of idle, streaming, scrolling and combined for lumine, GPUI and
 QuickGUI, in rotated order. Each trial requests 20 seconds; the first 5 are
 excluded, the next 15 sampled every 50 ms by scripts/macsample.swift. Memory
 is sampled two ways: resident size, and physical footprint (what Activity
 Monitor reports, including GPU memory the process owns on unified memory).
 Active trials must deliver 58-61 logical updates per requested second.
 
-`--scene heavy` runs the heavy dashboard instead (zgui_workload::heavy): a
-1280x800 window where most content changes every tick, for zgui and GPUI
+`--scene heavy` runs the heavy dashboard instead (lumine_workload::heavy): a
+1280x800 window where most content changes every tick, for lumine and GPUI
 (QuickGUI's text renderer panics past 32 text batches on it).
 
 Windows open on screen: keep the Mac awake and the windows uncovered (a
@@ -21,17 +21,17 @@ import argparse, csv, datetime, hashlib, json, os, platform, re, signal, statist
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-FRAMEWORKS = ['zgui', 'gpui', 'quickgui']
+FRAMEWORKS = ['lumine', 'gpui', 'quickgui']
 MODES = ['idle', 'stream', 'scroll', 'both']
 REQUESTED, WARMUP, SAMPLED, INTERVAL = 20, 5, 15, 0.05
 SCENES = {
     'lab': {
-        'zgui': ROOT / 'target/release/examples/component_workload',
-        'gpui': ROOT / 'comparisons/gpui/target/release/zgui-compare-gpui',
-        'quickgui': ROOT / 'comparisons/quickgui/target/release/zgui-compare-quickgui',
+        'lumine': ROOT / 'target/release/examples/component_workload',
+        'gpui': ROOT / 'comparisons/gpui/target/release/lumine-compare-gpui',
+        'quickgui': ROOT / 'comparisons/quickgui/target/release/lumine-compare-quickgui',
     },
     'heavy': {
-        'zgui': ROOT / 'target/release/examples/heavy_workload',
+        'lumine': ROOT / 'target/release/examples/heavy_workload',
         'gpui': ROOT / 'comparisons/gpui/target/release/heavy',
     },
 }
@@ -43,8 +43,8 @@ def run(cmd, **kw):
 
 
 def build(sampler):
-    example = BINARIES['zgui'].name
-    run(['cargo', 'build', '--release', '--locked', '-p', 'zgui-desktop', '--example', example], cwd=ROOT)
+    example = BINARIES['lumine'].name
+    run(['cargo', 'build', '--release', '--locked', '-p', 'lumine-desktop', '--example', example], cwd=ROOT)
     for name in FRAMEWORKS[1:]:
         run(['cargo', 'build', '--release', '--locked'], cwd=ROOT / 'comparisons' / name)
     run(['swiftc', '-O', str(ROOT / 'scripts/macsample.swift'), '-o', str(sampler)])
@@ -66,7 +66,7 @@ def environment():
 
 def trial(framework, mode, repeat, sampler, out):
     log = out / f'{framework}.{mode}.{repeat}.log'
-    env = dict(os.environ, ZGUI_MODE=mode, ZGUI_SECONDS=str(REQUESTED))
+    env = dict(os.environ, LUMINE_MODE=mode, LUMINE_SECONDS=str(REQUESTED))
     with log.open('w') as handle:
         process = subprocess.Popen([str(BINARIES[framework])], stdout=handle, stderr=subprocess.STDOUT, env=env)
     time.sleep(0.5)
@@ -107,7 +107,7 @@ def main():
     args = parser.parse_args()
     BINARIES = SCENES[args.scene]
     FRAMEWORKS = list(BINARIES)
-    sampler = Path('/tmp/zgui-macsample')
+    sampler = Path('/tmp/lumine-macsample')
     if not args.skip_build:
         build(sampler)
     commit = run(['git', 'rev-parse', 'HEAD'], cwd=ROOT)

@@ -11,7 +11,7 @@ cannot allow an older in-flight generation to replace a newer request.
 owned component with loading, success and error children. Use a shared cache
 through a provider when multiple components load the same resources. Transport
 and credentials belong to the application; the framework does not start hidden
-network requests. Image decoding is available through `zgui_gpu::assets`.
+network requests. Image decoding is available through `lumine_gpu::assets`.
 
 `decode_gif` composites GIF offsets and Keep/Background/Previous disposal into
 bounded immutable full frames. Background disposal clears to transparent for
@@ -30,7 +30,7 @@ ordinary sibling is not an occlusion test. Removal cancels the owned task.
 
 Frames remain decoded, but GPU textures follow the renderer's live-image policy:
 it need not retain every animation frame on the GPU. The
-[animation example](../crates/zgui-desktop/examples/animated_image.rs) accepts a
+[animation example](../crates/lumine-desktop/examples/animated_image.rs) accepts a
 GIF path and includes a pause/resume control. A `TaskRunner` provider is required
 for asynchronous loading/playback; the desktop host supplies one.
 
@@ -52,7 +52,7 @@ an image snapshot does not create another animation task.
 
 ```rust,no_run
 use std::{sync::Arc, time::Duration};
-use zgui::{compose::prelude::*, image::{ShaderInstance, ShaderUniforms}};
+use lumine::{compose::prelude::*, image::{ShaderInstance, ShaderUniforms}};
 
 #[derive(Clone, Copy)]
 struct Tint { progress: f32, rgb: [f32; 3] }
@@ -105,7 +105,7 @@ color channel and preserves alpha. Reversing their order changes the result.
 
 ```rust,no_run
 use std::sync::Arc;
-use zgui::image::{EffectChain, EffectStage, ImageData};
+use lumine::image::{EffectChain, EffectStage, ImageData};
 
 let input = Arc::new(ImageData::new(16, 16, [160, 90, 30, 255].repeat(16 * 16)).unwrap());
 let mut chain = EffectChain::new();

@@ -4,7 +4,7 @@
     "argv": [
       "/usr/bin/python3",
       "docs/platform-validation/wayland-ime-blocking/sources/wayland_ime_blocking_probe.py",
-      "/tmp/zgui-target/debug/zgui-ime-blocking-probe",
+      "/tmp/lumine-target/debug/lumine-ime-blocking-probe",
       "--sessions",
       "1",
       "--bursts",
@@ -23,7 +23,7 @@
     "argv": [
       "/usr/bin/python3",
       "docs/platform-validation/wayland-ime-blocking/sources/wayland_ime_blocking_probe.py",
-      "/tmp/zgui-target/debug/zgui-ime-blocking-probe",
+      "/tmp/lumine-target/debug/lumine-ime-blocking-probe",
       "--sessions",
       "1",
       "--bursts",
@@ -42,7 +42,7 @@
     "argv": [
       "/usr/bin/python3",
       "docs/platform-validation/wayland-ime-blocking/sources/wayland_ime_blocking_probe.py",
-      "/tmp/zgui-target/debug/zgui-ime-blocking-probe",
+      "/tmp/lumine-target/debug/lumine-ime-blocking-probe",
       "--sessions",
       "1",
       "--bursts",

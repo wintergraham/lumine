@@ -123,8 +123,8 @@
   Downloaded rust-embed v8.12.0
   Downloaded blade-graphics v0.7.1
   Downloaded gpui v0.2.2
-   Compiling zgui-workload v0.1.0 (/home/ubuntu/GitHub/zgui/comparisons/workload)
-   Compiling zgui-compare-gpui v0.1.0 (/home/ubuntu/GitHub/zgui/comparisons/gpui)
+   Compiling lumine-workload v0.1.0 (/home/ubuntu/GitHub/lumine/comparisons/workload)
+   Compiling lumine-compare-gpui v0.1.0 (/home/ubuntu/GitHub/lumine/comparisons/gpui)
     Finished `release` profile [optimized] target(s) in 4m 36s
 warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
 note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`

@@ -22,7 +22,7 @@ def stop(process):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--binaries', type=Path, default=Path('/tmp/zgui-component-comparison-bin'))
+    parser.add_argument('--binaries', type=Path, default=Path('/tmp/lumine-component-comparison-bin'))
     parser.add_argument('--output', type=Path, default=Path(__file__).resolve().parent)
     args = parser.parse_args()
     out = args.output.resolve()
@@ -59,9 +59,9 @@ def main():
         time.sleep(.5)
         subprocess.run(['xdotool', 'mousemove', '1090', '810'], env=env, check=True)
         command = ['python3', str(ROOT / 'scripts/compare.py'),
-            '--zgui', str(args.binaries / 'component_workload'),
-            '--gpui', str(args.binaries / 'zgui-compare-gpui'),
-            '--quickgui', str(args.binaries / 'zgui-compare-quickgui'),
+            '--lumine', str(args.binaries / 'component_workload'),
+            '--gpui', str(args.binaries / 'lumine-compare-gpui'),
+            '--quickgui', str(args.binaries / 'lumine-compare-quickgui'),
             '--seconds', '10', '--warmup', '3', '--repeats', '2', '--output', str(out / 'current.csv')]
         subprocess.run(command, cwd=ROOT, env=env, check=True)
         subprocess.run(['python3', str(ROOT / 'scripts/summarize_comparison.py'), str(out / 'current.csv'),

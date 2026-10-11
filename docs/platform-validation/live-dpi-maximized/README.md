@@ -12,9 +12,9 @@ reach the correct left control. No extra deferred-resize host change was needed
 for this observed window-manager refusal path.
 
 ```sh
-LD_LIBRARY_PATH=/tmp/zgui-ci-loader-check/build/loader \
+LD_LIBRARY_PATH=/tmp/lumine-ci-loader-check/build/loader \
   python3 scripts/live_dpi_pointer_smoke.py \
-  /tmp/zgui-target/debug/examples/live_dpi_pointer --maximized \
+  /tmp/lumine-target/debug/examples/live_dpi_pointer --maximized \
   --output docs/platform-validation/live-dpi-maximized
 ```
 

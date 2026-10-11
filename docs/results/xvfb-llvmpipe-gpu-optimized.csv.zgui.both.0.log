@@ -1,2 +1,0 @@
-zgui GPU adapter: AdapterInfo { name: "llvmpipe (LLVM 21.1.8, 256 bits)", vendor: 65541, device: 0, device_type: Cpu, device_pci_bus_id: "", driver: "llvmpipe", driver_info: "Mesa 26.0.8-1ubuntu0.3 (LLVM 21.1.8)", backend: Vulkan, subgroup_min_size: 8, subgroup_max_size: 8, transient_saves_memory: false }
-{"framework":"zgui","renderer":"gpu","gpu_atlas_bytes":1048576,"gpu_shaped_bytes":244536,"gpu_vertex_bytes":131072,"ticks":599,"frames":601,"layout_nodes":1863,"paint_nodes":1565,"composite_nodes":12323,"mounted_rows":20,"elapsed_seconds":10.000}

@@ -123,7 +123,7 @@ I2026-09-22 17:19:41.981664 addonmanager.cpp:204] Loaded addon punctuation
 E2026-09-22 17:19:43.302326 pinyin.cpp:754] Failed to load pinyin history: io fail: iostream error
 I2026-09-22 17:19:43.310527 addonmanager.cpp:204] Loaded addon pinyin
 [2458979.880] {Default Queue} zwlr_foreign_toplevel_manager_v1#7.toplevel(new id zwlr_foreign_toplevel_handle_v1#4278190080)
-[2458979.902] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.title("zgui external IME model")
+[2458979.902] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.title("lumine external IME model")
 [2458979.907] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.state(array[4])
 [2458979.911] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.state(array[8])
 [2458979.914] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.done()

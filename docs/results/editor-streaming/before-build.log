@@ -1,4 +1,4 @@
      Locking 1 package to latest Rust 1.97.1 compatible version
    Compiling unicode-segmentation v1.13.3
-   Compiling zgui v0.1.0 (/tmp/zgui-editor-streaming-il7cobxz/before)
+   Compiling lumine v0.1.0 (/tmp/lumine-editor-streaming-il7cobxz/before)
     Finished `release` profile [optimized] target(s) in 6.10s

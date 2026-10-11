@@ -16,7 +16,7 @@ pub enum Mode {
 }
 impl Mode {
     pub fn from_env() -> Self {
-        match std::env::var("ZGUI_MODE").as_deref() {
+        match std::env::var("LUMINE_MODE").as_deref() {
             Ok("idle") => Self::Idle,
             Ok("stream") => Self::Stream,
             Ok("scroll") => Self::Scroll,
@@ -43,13 +43,13 @@ impl Workload {
             scroll_offset: 0.,
             frames: 0,
             mode: Mode::from_env(),
-            seconds: std::env::var("ZGUI_SECONDS")
+            seconds: std::env::var("LUMINE_SECONDS")
                 .ok()
                 .and_then(|v| v.parse::<f64>().ok())
                 .filter(|v| v.is_finite() && *v >= 0.)
                 .unwrap_or(30.),
         };
-        let initial_ticks = std::env::var("ZGUI_INITIAL_TICKS")
+        let initial_ticks = std::env::var("LUMINE_INITIAL_TICKS")
             .ok()
             .and_then(|v| v.parse::<u64>().ok())
             .unwrap_or(0)

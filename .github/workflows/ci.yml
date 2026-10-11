@@ -26,7 +26,7 @@ jobs:
         run: python3 scripts/test_compare.py -v
       - run: cargo fmt --all -- --check
       - run: cargo check --workspace --all-targets --locked
-      - run: cargo test -p zgui -p zgui-desktop -p zgui-workload --all-targets --locked
+      - run: cargo test -p lumine -p lumine-desktop -p lumine-workload --all-targets --locked
       - run: cargo test --workspace --doc --locked
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
   macos-gpu:
@@ -40,10 +40,10 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          python3 scripts/macos_native_validation.py --target-dir target --output "$RUNNER_TEMP/zgui-macos-parity" 2>&1 | tee "$RUNNER_TEMP/zgui-metal-tests.log"
-      - run: cargo build -p zgui-desktop --example component_workload --locked
+          python3 scripts/macos_native_validation.py --target-dir target --output "$RUNNER_TEMP/lumine-macos-parity" 2>&1 | tee "$RUNNER_TEMP/lumine-metal-tests.log"
+      - run: cargo build -p lumine-desktop --example component_workload --locked
       - name: Native component window lifecycle
-        run: python3 scripts/component_host_smoke.py target/debug/examples/component_workload --output "$RUNNER_TEMP/zgui-macos-host"
+        run: python3 scripts/component_host_smoke.py target/debug/examples/component_workload --output "$RUNNER_TEMP/lumine-macos-host"
       # Keep textual diagnostics even if account artifact storage is exhausted.
       - name: Print Metal validation diagnostics
         if: always()
@@ -53,7 +53,7 @@ jobs:
           import os
           from pathlib import Path
           root = Path(os.environ["RUNNER_TEMP"])
-          paths = sorted(path for directory in ("zgui-macos-parity", "zgui-macos-host")
+          paths = sorted(path for directory in ("lumine-macos-parity", "lumine-macos-host")
                          for path in (root / directory).rglob("*"))
           for path in paths:
               if path.is_file() and path.suffix in (".log", ".json") and path.name not in ("source-diff.log", "source-files.json"):
@@ -70,9 +70,9 @@ jobs:
           retention-days: 3
           name: macos-gpu-evidence
           path: |
-            ${{ runner.temp }}/zgui-metal-tests.log
-            ${{ runner.temp }}/zgui-macos-host
-            ${{ runner.temp }}/zgui-macos-parity
+            ${{ runner.temp }}/lumine-metal-tests.log
+            ${{ runner.temp }}/lumine-macos-host
+            ${{ runner.temp }}/lumine-macos-parity
       - name: Report incomplete Metal artifact upload
         if: always() && steps.macos-evidence-upload.outcome == 'failure'
         run: echo "::warning::Metal artifact upload failed. Text diagnostics remain in job logs; downloadable evidence preservation is incomplete (check artifact quota). This is not native validation completion."
@@ -88,18 +88,18 @@ jobs:
       - name: Build private patched Vulkan loader
         shell: bash
         run: |
-          scripts/build_vulkan_loader.sh "$RUNNER_TEMP/zgui-vulkan-loader"
-          printf 'LD_LIBRARY_PATH=%s/build/loader\n' "$RUNNER_TEMP/zgui-vulkan-loader" >> "$GITHUB_ENV"
+          scripts/build_vulkan_loader.sh "$RUNNER_TEMP/lumine-vulkan-loader"
+          printf 'LD_LIBRARY_PATH=%s/build/loader\n' "$RUNNER_TEMP/lumine-vulkan-loader" >> "$GITHUB_ENV"
       - name: Vulkan rendering and damage readback
         shell: bash
         env:
           XDG_RUNTIME_DIR: /tmp
         run: |
           set -o pipefail
-          cargo test -p zgui-gpu --locked 2>&1 | tee "$RUNNER_TEMP/zgui-vulkan-tests.log"
+          cargo test -p lumine-gpu --locked 2>&1 | tee "$RUNNER_TEMP/lumine-vulkan-tests.log"
       - name: Build native fixtures
         id: native-fixtures
-        run: cargo build -p zgui-desktop --examples --locked
+        run: cargo build -p lumine-desktop --examples --locked
       # Each native probe owns its display/session; collect independent failures.
       # A failed probe still fails the job. Only successful fixture builds permit probes.
       - name: Native input and window lifecycle
@@ -115,148 +115,148 @@ jobs:
           xvfb_pid=$!
           trap 'kill "$wm_pid" "$xvfb_pid" 2>/dev/null || true' EXIT
           sleep 1
-          openbox > /tmp/zgui-openbox.log 2>&1 &
+          openbox > /tmp/lumine-openbox.log 2>&1 &
           wm_pid=$!
           sleep 1
-          python3 scripts/component_host_smoke.py target/debug/examples/component_workload --output /tmp/zgui-component-host
+          python3 scripts/component_host_smoke.py target/debug/examples/component_workload --output /tmp/lumine-component-host
           python3 scripts/desktop_smoke.py target/debug/examples/gallery
           timeout 30s target/debug/examples/windows --smoke-test
           timeout 30s target/debug/examples/window_controls --smoke-test
           python3 scripts/form_smoke.py target/debug/examples/form
-          python3 scripts/checkbox_smoke.py target/debug/examples/checkbox --output /tmp/zgui-checkbox
-          python3 scripts/slider_smoke.py target/debug/examples/slider --output /tmp/zgui-slider
-          python3 scripts/progress_smoke.py target/debug/examples/progress --output /tmp/zgui-progress
-          python3 scripts/images_smoke.py target/debug/examples/images --output /tmp/zgui-images
-          python3 scripts/scroll_smoke.py target/debug/examples/scroll --output /tmp/zgui-scroll
-          python3 scripts/focus_scroll_smoke.py target/debug/examples/focus_scroll --output /tmp/zgui-focus-scroll
-          python3 scripts/horizontal_scroll_smoke.py target/debug/examples/horizontal_scroll --output /tmp/zgui-horizontal-scroll
-          python3 scripts/scrollbars_smoke.py target/debug/examples/scrollbars --output /tmp/zgui-scrollbars
-          python3 scripts/virtual_keyboard_smoke.py target/debug/examples/virtual_keyboard --output /tmp/zgui-virtual-keyboard
-          python3 scripts/overlays_smoke.py target/debug/examples/overlays --output /tmp/zgui-overlays
-          python3 scripts/menus_smoke.py target/debug/examples/menus --output /tmp/zgui-menus
-          python3 scripts/submenus_smoke.py target/debug/examples/submenus --output /tmp/zgui-submenus
-          python3 scripts/hidden_updates_smoke.py target/debug/examples/hidden_updates --output /tmp/zgui-hidden-updates
-          python3 scripts/paint_media_smoke.py --binaries target/debug/examples --output /tmp/zgui-paint-media
-          python3 scripts/cursors_smoke.py target/debug/examples/cursors --output /tmp/zgui-cursors
+          python3 scripts/checkbox_smoke.py target/debug/examples/checkbox --output /tmp/lumine-checkbox
+          python3 scripts/slider_smoke.py target/debug/examples/slider --output /tmp/lumine-slider
+          python3 scripts/progress_smoke.py target/debug/examples/progress --output /tmp/lumine-progress
+          python3 scripts/images_smoke.py target/debug/examples/images --output /tmp/lumine-images
+          python3 scripts/scroll_smoke.py target/debug/examples/scroll --output /tmp/lumine-scroll
+          python3 scripts/focus_scroll_smoke.py target/debug/examples/focus_scroll --output /tmp/lumine-focus-scroll
+          python3 scripts/horizontal_scroll_smoke.py target/debug/examples/horizontal_scroll --output /tmp/lumine-horizontal-scroll
+          python3 scripts/scrollbars_smoke.py target/debug/examples/scrollbars --output /tmp/lumine-scrollbars
+          python3 scripts/virtual_keyboard_smoke.py target/debug/examples/virtual_keyboard --output /tmp/lumine-virtual-keyboard
+          python3 scripts/overlays_smoke.py target/debug/examples/overlays --output /tmp/lumine-overlays
+          python3 scripts/menus_smoke.py target/debug/examples/menus --output /tmp/lumine-menus
+          python3 scripts/submenus_smoke.py target/debug/examples/submenus --output /tmp/lumine-submenus
+          python3 scripts/hidden_updates_smoke.py target/debug/examples/hidden_updates --output /tmp/lumine-hidden-updates
+          python3 scripts/paint_media_smoke.py --binaries target/debug/examples --output /tmp/lumine-paint-media
+          python3 scripts/cursors_smoke.py target/debug/examples/cursors --output /tmp/lumine-cursors
       - name: Rich text, actions, advanced layout and typed drag
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
         run: |
-          python3 scripts/rich_text_smoke.py target/debug/examples/rich_text --output /tmp/zgui-rich-text
-          python3 scripts/actions_smoke.py target/debug/examples/actions --output /tmp/zgui-actions
-          python3 scripts/layout_smoke.py target/debug/examples/layout --output /tmp/zgui-layout
-          python3 scripts/drag_drop_smoke.py target/debug/examples/drag_drop --output /tmp/zgui-drag-drop
+          python3 scripts/rich_text_smoke.py target/debug/examples/rich_text --output /tmp/lumine-rich-text
+          python3 scripts/actions_smoke.py target/debug/examples/actions --output /tmp/lumine-actions
+          python3 scripts/layout_smoke.py target/debug/examples/layout --output /tmp/lumine-layout
+          python3 scripts/drag_drop_smoke.py target/debug/examples/drag_drop --output /tmp/lumine-drag-drop
       - name: Native menus, dialogs and external file drops
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
         run: |
-          python3 scripts/native_menu_smoke.py target/debug/examples/dynamic_menus --output /tmp/zgui-native-menus
-          python3 scripts/native_menu_smoke.py target/debug/examples/dynamic_menus --wayland --output /tmp/zgui-native-menus-wayland
-          python3 scripts/native_services_smoke.py target/debug/examples/platform_services --native-prompts --output /tmp/zgui-native-services
-          python3 scripts/file_drop_smoke.py target/debug/examples/drag_drop --output /tmp/zgui-file-drop
-          python3 scripts/wayland_file_drop_smoke.py target/debug/examples/drag_drop --output /tmp/zgui-file-drop-wayland
+          python3 scripts/native_menu_smoke.py target/debug/examples/dynamic_menus --output /tmp/lumine-native-menus
+          python3 scripts/native_menu_smoke.py target/debug/examples/dynamic_menus --wayland --output /tmp/lumine-native-menus-wayland
+          python3 scripts/native_services_smoke.py target/debug/examples/platform_services --native-prompts --output /tmp/lumine-native-services
+          python3 scripts/file_drop_smoke.py target/debug/examples/drag_drop --output /tmp/lumine-file-drop
+          python3 scripts/wayland_file_drop_smoke.py target/debug/examples/drag_drop --output /tmp/lumine-file-drop-wayland
       - name: Variable-height virtual rows and streaming growth
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/variable_virtual_list_smoke.py target/debug/examples/variable_virtual_list --output /tmp/zgui-variable-virtual-list
+        run: python3 scripts/variable_virtual_list_smoke.py target/debug/examples/variable_virtual_list --output /tmp/lumine-variable-virtual-list
       - name: Naturally measured virtual rows and streaming children
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/measured_virtual_list_smoke.py target/debug/examples/measured_virtual_list --output /tmp/zgui-measured-virtual-list
+        run: python3 scripts/measured_virtual_list_smoke.py target/debug/examples/measured_virtual_list --output /tmp/lumine-measured-virtual-list
       - name: Native Wayland input and clipboard
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/wayland_input_smoke.py target/debug/examples/form --output /tmp/zgui-wayland-input
+        run: python3 scripts/wayland_input_smoke.py target/debug/examples/form --output /tmp/lumine-wayland-input
       - name: Component event hooks and native keyboard cancellation
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/event_hooks_smoke.py target/debug/examples/event_hooks --output /tmp/zgui-event-hooks
+        run: python3 scripts/event_hooks_smoke.py target/debug/examples/event_hooks --output /tmp/lumine-event-hooks
       - name: Wrapped editor native input and resize
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/wrapped_editor_smoke.py target/debug/examples/wrapped_editor --output /tmp/zgui-wrapped-editor
+        run: python3 scripts/wrapped_editor_smoke.py target/debug/examples/wrapped_editor --output /tmp/lumine-wrapped-editor
       - name: Native editor paging and read-only selection
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/editor_paging_smoke.py target/debug/examples/editor_paging --output /tmp/zgui-editor-paging
+        run: python3 scripts/editor_paging_smoke.py target/debug/examples/editor_paging --output /tmp/lumine-editor-paging
       - name: Native editor Shift and multi-click selection
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/editor_selection_smoke.py target/debug/examples/editor_selection --output /tmp/zgui-editor-selection
+        run: python3 scripts/editor_selection_smoke.py target/debug/examples/editor_selection --output /tmp/lumine-editor-selection
       - name: Native stationary editor drag autoscroll
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/editor_autoscroll_smoke.py target/debug/examples/editor_autoscroll --output /tmp/zgui-editor-autoscroll
+        run: python3 scripts/editor_autoscroll_smoke.py target/debug/examples/editor_autoscroll --output /tmp/lumine-editor-autoscroll
       - name: Native transparent-window composition
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/transparency_smoke.py target/debug/examples/transparency --output /tmp/zgui-transparency
+        run: python3 scripts/transparency_smoke.py target/debug/examples/transparency --output /tmp/lumine-transparency
       - name: Native Wayland transparent-window composition
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/wayland_transparency_smoke.py target/debug/examples/transparency --output /tmp/zgui-wayland-transparency
+        run: python3 scripts/wayland_transparency_smoke.py target/debug/examples/transparency --output /tmp/lumine-wayland-transparency
       - name: Native IME composition and candidate placement
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/native_ime_smoke.py target/debug/examples/native_ime --output /tmp/zgui-native-ime
+        run: python3 scripts/native_ime_smoke.py target/debug/examples/native_ime --output /tmp/lumine-native-ime
       - name: Native Wayland IME composition and focus cancellation
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/wayland_ime_smoke.py target/debug/examples/native_ime --output /tmp/zgui-wayland-ime
+        run: python3 scripts/wayland_ime_smoke.py target/debug/examples/native_ime --output /tmp/lumine-wayland-ime
       - name: Native Wayland model and read-only IME cancellation
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
         run: |
-          python3 scripts/wayland_external_ime_smoke.py target/debug/examples/external_ime --output /tmp/zgui-wayland-external-ime
-          python3 scripts/wayland_external_ime_smoke.py target/debug/examples/external_ime --read-only-test --output /tmp/zgui-wayland-readonly-ime
+          python3 scripts/wayland_external_ime_smoke.py target/debug/examples/external_ime --output /tmp/lumine-wayland-external-ime
+          python3 scripts/wayland_external_ime_smoke.py target/debug/examples/external_ime --read-only-test --output /tmp/lumine-wayland-readonly-ime
       - name: Native held-key focus transitions
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/held_keys_smoke.py target/debug/examples/held_keys --output /tmp/zgui-held-keys
+        run: python3 scripts/held_keys_smoke.py target/debug/examples/held_keys --output /tmp/lumine-held-keys
       - name: Live Wayland output scaling
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/dpi_transition_smoke.py target/debug/examples/dpi_transition --output /tmp/zgui-live-dpi
+        run: python3 scripts/dpi_transition_smoke.py target/debug/examples/dpi_transition --output /tmp/lumine-live-dpi
       - name: Live X11 DPI and stationary pointer input
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/live_dpi_pointer_smoke.py target/debug/examples/live_dpi_pointer --output /tmp/zgui-live-dpi-pointer
+        run: python3 scripts/live_dpi_pointer_smoke.py target/debug/examples/live_dpi_pointer --output /tmp/lumine-live-dpi-pointer
       - name: Live X11 DPI with maximized window
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/live_dpi_pointer_smoke.py target/debug/examples/live_dpi_pointer --maximized --output /tmp/zgui-live-dpi-maximized
+        run: python3 scripts/live_dpi_pointer_smoke.py target/debug/examples/live_dpi_pointer --maximized --output /tmp/lumine-live-dpi-maximized
       - name: Native inherited line-height styles
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/line_height_smoke.py target/debug/examples/line_height --output /tmp/zgui-line-height
+        run: python3 scripts/line_height_smoke.py target/debug/examples/line_height --output /tmp/lumine-line-height
       - name: Native percentage layout and retained editor resize
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/percent_sizes_smoke.py target/debug/examples/percent_sizes --output /tmp/zgui-percent-sizes
+        run: python3 scripts/percent_sizes_smoke.py target/debug/examples/percent_sizes --output /tmp/lumine-percent-sizes
       - name: Native inherited letter-spacing styles
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/letter_spacing_smoke.py target/debug/examples/letter_spacing --output /tmp/zgui-letter-spacing
+        run: python3 scripts/letter_spacing_smoke.py target/debug/examples/letter_spacing --output /tmp/lumine-letter-spacing
       - name: Native clipboard shutdown with retained window factory
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: xvfb-run -a cargo test -p zgui-desktop --lib retained_window_factory_releases_native_clipboard_after_manager_shutdown --locked -- --ignored --test-threads=1
+        run: xvfb-run -a cargo test -p lumine-desktop --lib retained_window_factory_releases_native_clipboard_after_manager_shutdown --locked -- --ignored --test-threads=1
       - name: Native host suspension and retained editor recreation
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
         shell: bash
         run: |
           set -o pipefail
-          xvfb-run -a cargo test -p zgui-desktop --lib host_suspend_recreates_native_resources_and_retains_editor_state --locked -- --ignored --test-threads=1 2>&1 | tee "$RUNNER_TEMP/zgui-host-suspend.log"
+          xvfb-run -a cargo test -p lumine-desktop --lib host_suspend_recreates_native_resources_and_retains_editor_state --locked -- --ignored --test-threads=1 2>&1 | tee "$RUNNER_TEMP/lumine-host-suspend.log"
       - name: Live Linux accessibility bus actions and text
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: /usr/bin/python3 scripts/atspi_smoke.py target/debug/examples/atspi --output /tmp/zgui-atspi
+        run: /usr/bin/python3 scripts/atspi_smoke.py target/debug/examples/atspi --output /tmp/lumine-atspi
       - name: Native image fitting and resize
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/image_fit_smoke.py target/debug/examples/image_fit --output /tmp/zgui-image-fit
+        run: python3 scripts/image_fit_smoke.py target/debug/examples/image_fit --output /tmp/lumine-image-fit
       - name: Native component effects and blur controls
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/effects_smoke.py target/debug/examples/effects --output /tmp/zgui-effects
+        run: python3 scripts/effects_smoke.py target/debug/examples/effects --output /tmp/lumine-effects
       - name: Native pointer button chords during editor and slider drags
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/pointer_chords_smoke.py target/debug/examples/pointer_chords --output /tmp/zgui-pointer-chords
+        run: python3 scripts/pointer_chords_smoke.py target/debug/examples/pointer_chords --output /tmp/lumine-pointer-chords
       - name: Native keyboard activation chords
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/keyboard_chords_smoke.py target/debug/examples/keyboard_chords --output /tmp/zgui-keyboard-chords
+        run: python3 scripts/keyboard_chords_smoke.py target/debug/examples/keyboard_chords --output /tmp/lumine-keyboard-chords
       - name: Native disabled interaction cleanup
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/disabled_interaction_smoke.py target/debug/examples/disabled_interaction --output /tmp/zgui-disabled-interaction
+        run: python3 scripts/disabled_interaction_smoke.py target/debug/examples/disabled_interaction --output /tmp/lumine-disabled-interaction
       - name: Native undo and redo after reducing history limits
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/history_limits_smoke.py target/debug/examples/history_limits --output /tmp/zgui-history-limits
+        run: python3 scripts/history_limits_smoke.py target/debug/examples/history_limits --output /tmp/lumine-history-limits
       - name: Native IME cancellation after external model replacement
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/external_ime_smoke.py target/debug/examples/external_ime --output /tmp/zgui-external-ime
+        run: python3 scripts/external_ime_smoke.py target/debug/examples/external_ime --output /tmp/lumine-external-ime
       - name: Native editor model text normalization
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/model_text_smoke.py target/debug/examples/model_text --output /tmp/zgui-model-text
+        run: python3 scripts/model_text_smoke.py target/debug/examples/model_text --output /tmp/lumine-model-text
       - name: Native read-only editors
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/read_only_smoke.py target/debug/examples/read_only --output /tmp/zgui-read-only
+        run: python3 scripts/read_only_smoke.py target/debug/examples/read_only --output /tmp/lumine-read-only
       - name: Native read-only toggle during IME composition
         if: ${{ !cancelled() && steps.native-fixtures.outcome == 'success' }}
-        run: python3 scripts/external_ime_smoke.py target/debug/examples/external_ime --read-only-test --output /tmp/zgui-readonly-ime
+        run: python3 scripts/external_ime_smoke.py target/debug/examples/external_ime --read-only-test --output /tmp/lumine-readonly-ime
       - name: Print Linux native validation diagnostics
         if: always()
         shell: bash
@@ -266,7 +266,7 @@ jobs:
           from pathlib import Path
           paths = set()
           for root in (Path('/tmp'), Path(os.environ['RUNNER_TEMP'])):
-              for candidate in root.glob('zgui-*'):
+              for candidate in root.glob('lumine-*'):
                   if candidate.is_file() and candidate.suffix in ('.log', '.json'):
                       paths.add(candidate)
                   elif candidate.is_dir() and 'loader' not in candidate.name:
@@ -286,66 +286,66 @@ jobs:
           retention-days: 3
           name: linux-gpu-evidence
           path: |
-            ${{ runner.temp }}/zgui-vulkan-tests.log
-            ${{ runner.temp }}/zgui-host-suspend.log
-            /tmp/zgui-openbox.log
-            /tmp/zgui-component-host
-            /tmp/zgui-checkbox
-            /tmp/zgui-slider
-            /tmp/zgui-progress
-            /tmp/zgui-images
-            /tmp/zgui-scroll
-            /tmp/zgui-focus-scroll
-            /tmp/zgui-horizontal-scroll
-            /tmp/zgui-scrollbars
-            /tmp/zgui-virtual-keyboard
-            /tmp/zgui-overlays
-            /tmp/zgui-menus
-            /tmp/zgui-submenus
-            /tmp/zgui-hidden-updates
-            /tmp/zgui-paint-media
-            /tmp/zgui-cursors
-            /tmp/zgui-rich-text
-            /tmp/zgui-actions
-            /tmp/zgui-layout
-            /tmp/zgui-drag-drop
-            /tmp/zgui-native-menus
-            /tmp/zgui-native-menus-wayland
-            /tmp/zgui-native-services
-            /tmp/zgui-file-drop
-            /tmp/zgui-file-drop-wayland
-            /tmp/zgui-variable-virtual-list
-            /tmp/zgui-measured-virtual-list
-            /tmp/zgui-wayland-input
-            /tmp/zgui-event-hooks
-            /tmp/zgui-wrapped-editor
-            /tmp/zgui-editor-paging
-            /tmp/zgui-editor-selection
-            /tmp/zgui-editor-autoscroll
-            /tmp/zgui-transparency
-            /tmp/zgui-wayland-transparency
-            /tmp/zgui-native-ime
-            /tmp/zgui-wayland-ime
-            /tmp/zgui-wayland-external-ime
-            /tmp/zgui-wayland-readonly-ime
-            /tmp/zgui-held-keys
-            /tmp/zgui-live-dpi
-            /tmp/zgui-live-dpi-pointer
-            /tmp/zgui-live-dpi-maximized
-            /tmp/zgui-line-height
-            /tmp/zgui-percent-sizes
-            /tmp/zgui-letter-spacing
-            /tmp/zgui-atspi
-            /tmp/zgui-image-fit
-            /tmp/zgui-effects
-            /tmp/zgui-pointer-chords
-            /tmp/zgui-keyboard-chords
-            /tmp/zgui-disabled-interaction
-            /tmp/zgui-history-limits
-            /tmp/zgui-external-ime
-            /tmp/zgui-model-text
-            /tmp/zgui-read-only
-            /tmp/zgui-readonly-ime
+            ${{ runner.temp }}/lumine-vulkan-tests.log
+            ${{ runner.temp }}/lumine-host-suspend.log
+            /tmp/lumine-openbox.log
+            /tmp/lumine-component-host
+            /tmp/lumine-checkbox
+            /tmp/lumine-slider
+            /tmp/lumine-progress
+            /tmp/lumine-images
+            /tmp/lumine-scroll
+            /tmp/lumine-focus-scroll
+            /tmp/lumine-horizontal-scroll
+            /tmp/lumine-scrollbars
+            /tmp/lumine-virtual-keyboard
+            /tmp/lumine-overlays
+            /tmp/lumine-menus
+            /tmp/lumine-submenus
+            /tmp/lumine-hidden-updates
+            /tmp/lumine-paint-media
+            /tmp/lumine-cursors
+            /tmp/lumine-rich-text
+            /tmp/lumine-actions
+            /tmp/lumine-layout
+            /tmp/lumine-drag-drop
+            /tmp/lumine-native-menus
+            /tmp/lumine-native-menus-wayland
+            /tmp/lumine-native-services
+            /tmp/lumine-file-drop
+            /tmp/lumine-file-drop-wayland
+            /tmp/lumine-variable-virtual-list
+            /tmp/lumine-measured-virtual-list
+            /tmp/lumine-wayland-input
+            /tmp/lumine-event-hooks
+            /tmp/lumine-wrapped-editor
+            /tmp/lumine-editor-paging
+            /tmp/lumine-editor-selection
+            /tmp/lumine-editor-autoscroll
+            /tmp/lumine-transparency
+            /tmp/lumine-wayland-transparency
+            /tmp/lumine-native-ime
+            /tmp/lumine-wayland-ime
+            /tmp/lumine-wayland-external-ime
+            /tmp/lumine-wayland-readonly-ime
+            /tmp/lumine-held-keys
+            /tmp/lumine-live-dpi
+            /tmp/lumine-live-dpi-pointer
+            /tmp/lumine-live-dpi-maximized
+            /tmp/lumine-line-height
+            /tmp/lumine-percent-sizes
+            /tmp/lumine-letter-spacing
+            /tmp/lumine-atspi
+            /tmp/lumine-image-fit
+            /tmp/lumine-effects
+            /tmp/lumine-pointer-chords
+            /tmp/lumine-keyboard-chords
+            /tmp/lumine-disabled-interaction
+            /tmp/lumine-history-limits
+            /tmp/lumine-external-ime
+            /tmp/lumine-model-text
+            /tmp/lumine-read-only
+            /tmp/lumine-readonly-ime
       - name: Report incomplete Linux artifact upload
         if: always() && steps.linux-evidence-upload.outcome == 'failure'
         run: echo "::warning::Linux artifact upload failed. Text diagnostics remain in job logs; downloadable evidence preservation is incomplete (check artifact quota). This is not native validation completion."

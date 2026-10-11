@@ -10,7 +10,7 @@ import time
 
 out = Path(__file__).resolve().parent / 'backend-ablation'
 out.mkdir(exist_ok=True)
-bins = Path('/tmp/zgui-primary-backend-bin')
+bins = Path('/tmp/lumine-primary-backend-bin')
 def stop(p):
     if p is not None and p.poll() is None:
         p.terminate()
@@ -32,7 +32,7 @@ def parse(text):
 display=next(n for n in range(140,180) if not Path(f'/tmp/.X11-unix/X{n}').exists() and not Path(f'/tmp/.X{n}-lock').exists())
 env=dict(os.environ,DISPLAY=f':{display}',WINIT_UNIX_BACKEND='x11',LIBGL_ALWAYS_SOFTWARE='1',
     VK_ICD_FILENAMES='/usr/share/vulkan/icd.d/lvp_icd.json',WGPU_BACKEND='vulkan',
-    DBUS_SESSION_BUS_ADDRESS='unix:path=/nonexistent',ZGUI_MODE='idle',ZGUI_SECONDS='3',ZGUI_INITIAL_TICKS='0')
+    DBUS_SESSION_BUS_ADDRESS='unix:path=/nonexistent',LUMINE_MODE='idle',LUMINE_SECONDS='3',LUMINE_INITIAL_TICKS='0')
 env.pop('WAYLAND_DISPLAY',None)
 x=wm=app=None
 results=[]

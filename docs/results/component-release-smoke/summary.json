@@ -8,7 +8,7 @@
     "sample_count": 82,
     "application_reports": [
       {
-        "framework": "zgui",
+        "framework": "lumine",
         "adapter": "components",
         "renderer": "gpu",
         "ticks": 0,
@@ -26,7 +26,7 @@
     "sample_count": 82,
     "application_reports": [
       {
-        "framework": "zgui",
+        "framework": "lumine",
         "adapter": "components",
         "renderer": "gpu",
         "ticks": 299,
@@ -44,7 +44,7 @@
     "sample_count": 82,
     "application_reports": [
       {
-        "framework": "zgui",
+        "framework": "lumine",
         "adapter": "components",
         "renderer": "gpu",
         "ticks": 299,
@@ -62,7 +62,7 @@
     "sample_count": 82,
     "application_reports": [
       {
-        "framework": "zgui",
+        "framework": "lumine",
         "adapter": "components",
         "renderer": "gpu",
         "ticks": 299,

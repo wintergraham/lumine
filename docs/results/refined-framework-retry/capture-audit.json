@@ -1,6 +1,6 @@
 {
   "captures": {
-    "zgui": {
+    "lumine": {
       "sha256": "2eb781fe062aec95b66a53f9d7892b030902a22d5bb38393f75593c11f265e32",
       "binary_matches_preflight": true,
       "same_patched_loader_mapped": true,

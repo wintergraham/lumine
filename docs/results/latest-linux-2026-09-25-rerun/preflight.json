@@ -1,10 +1,10 @@
 {
   "binary_sha256": {
-    "zgui": "c047f89117a966861cc1ef534935d7e068de2b71716fba455980acbf7b4ede1a",
+    "lumine": "c047f89117a966861cc1ef534935d7e068de2b71716fba455980acbf7b4ede1a",
     "gpui": "3f1a317aeda4169b11f6cf224545df05252747e08f8a612a3e3bec09ad336282",
     "quickgui": "50bfe6c2d06858529297c229953f99a547c62dca7689974e604abebe7e2dd5e1"
   },
-  "loader_path": "/tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345",
+  "loader_path": "/tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345",
   "loader_sha256": "e5b140601552d2d6c2a416cd63d0072b1a0a8995c24f89c2888ff68fa0b39de2",
   "source_build_proofs_checked": true,
   "common_environment": {

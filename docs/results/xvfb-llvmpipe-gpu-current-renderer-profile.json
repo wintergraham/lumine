@@ -1,8 +1,8 @@
 {
-  "renderer": "zgui wgpu Vulkan via Mesa llvmpipe LLVM 21.1.8",
+  "renderer": "lumine wgpu Vulkan via Mesa llvmpipe LLVM 21.1.8",
   "build_profile": "release optimized, Cargo workspace defaults",
   "configuration": "current component/style/typography build with shared GPU context and lazy growable glyph atlas",
-  "zgui_binary_sha256": "bc388a90c8e73acc953d871d042cf4f2362b236f8155f3d1afffc271bff93eb9",
+  "lumine_binary_sha256": "bc388a90c8e73acc953d871d042cf4f2362b236f8155f3d1afffc271bff93eb9",
   "shared_per_context": [
     "Instance",
     "Adapter",
@@ -24,7 +24,7 @@
   "other_budgets": "unchanged from xvfb-llvmpipe-gpu-renderer-profile.json",
   "notes": [
     "One benchmark window is used. Shared context primarily benefits multiwindow applications; this series does not measure that benefit.",
-    "Actual retained atlas, shaped-text, and vertex-buffer bytes are printed in each zgui application JSON report.",
+    "Actual retained atlas, shaped-text, and vertex-buffer bytes are printed in each lumine application JSON report.",
     "Allocation counters exclude font database and driver allocations and therefore cannot be equated with process RSS.",
     "Source archive captured before release build and every archived source hash verified unchanged after build.",
     "This benchmark adapter uses the low-level retained scene API; it does not measure component mounting overhead or interaction styling.",
@@ -35,5 +35,5 @@
   "source_archive": "xvfb-llvmpipe-gpu-current-source.tar.gz",
   "source_manifest": "xvfb-llvmpipe-gpu-current-source.json",
   "source_archive_sha256": "9d4d3c2cb6beb2bda79a71f5ce49d90f575e15e1859900c49dc9624202f79bc8",
-  "build_command": "CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build --release --locked -p zgui-desktop --bin zgui-demo"
+  "build_command": "CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build --release --locked -p lumine-desktop --bin lumine-demo"
 }

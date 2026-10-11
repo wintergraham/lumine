@@ -120,7 +120,7 @@
 [2645787.653]  -> wl_region#35.add(0, 0, 2147483647, 2147483647)
 [2645787.661]  -> wl_surface#28.set_opaque_region(wl_region#35)
 [2645787.666]  -> wl_region#35.destroy()
-[2645787.682]  -> xdg_toplevel#30.set_title("zgui native IME")
+[2645787.682]  -> xdg_toplevel#30.set_title("lumine native IME")
 [2645787.691]  -> xdg_toplevel#30.set_min_size(2, 1)
 [2645787.699]  -> xdg_toplevel#30.set_max_size(0, 0)
 [2645787.706]  -> wl_surface#28.commit()

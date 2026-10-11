@@ -1,6 +1,6 @@
 [
   {
-    "framework": "zgui",
+    "framework": "lumine",
     "binary_sha256": "7a2e44bb41355bf7a912b2a7ff1d0146b50aa2093183d3e5d469c09800f727b1",
     "snapshot_seconds_after_spawn": 2,
     "threads": 104,
@@ -26,7 +26,7 @@
         "Anonymous": 23508
       },
       {
-        "name": "/tmp/zgui-component-comparison-bin/component_workload",
+        "name": "/tmp/lumine-component-comparison-bin/component_workload",
         "Rss": 10716,
         "Pss": 10716,
         "Anonymous": 440
@@ -438,7 +438,7 @@
         "Anonymous": 0
       },
       {
-        "name": "/tmp/zgui-component-comparison-bin/zgui-compare-gpui",
+        "name": "/tmp/lumine-component-comparison-bin/lumine-compare-gpui",
         "Rss": 10556,
         "Pss": 10556,
         "Anonymous": 456
@@ -730,7 +730,7 @@
         "Anonymous": 29884
       },
       {
-        "name": "/tmp/zgui-component-comparison-bin/zgui-compare-quickgui",
+        "name": "/tmp/lumine-component-comparison-bin/lumine-compare-quickgui",
         "Rss": 14756,
         "Pss": 14756,
         "Anonymous": 568

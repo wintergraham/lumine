@@ -6,20 +6,20 @@ Each value below is the median across three repeats, followed by the observed mi
 
 | Mode | Framework | CPU % median [min–max] | Mean RSS MiB median [min–max] | Peak RSS MiB median [min–max] |
 |---|---|---:|---:|---:|
-| idle | zgui | 0.000 [0.000–0.000] | 101.262 [100.680–101.453] | 101.262 [100.680–101.453] |
+| idle | lumine | 0.000 [0.000–0.000] | 101.262 [100.680–101.453] | 101.262 [100.680–101.453] |
 | idle | gpui | 0.133 [0.133–0.133] | 108.344 [107.622–108.594] | 108.344 [107.656–108.594] |
 | idle | quickgui | 0.066 [0.000–0.066] | 131.231 [131.203–131.613] | 131.254 [131.203–131.613] |
-| stream | zgui | 96.232 [95.876–97.642] | 106.730 [106.141–106.731] | 106.805 [106.141–106.898] |
+| stream | lumine | 96.232 [95.876–97.642] | 106.730 [106.141–106.731] | 106.805 [106.141–106.898] |
 | stream | gpui | 211.973 [211.488–214.636] | 110.434 [110.321–110.460] | 111.066 [110.953–111.074] |
 | stream | quickgui | 169.387 [169.094–171.311] | 136.424 [136.124–137.299] | 137.719 [137.312–138.332] |
-| scroll | zgui | 121.981 [119.193–123.870] | 105.881 [105.727–106.516] | 105.969 [105.727–106.516] |
+| scroll | lumine | 121.981 [119.193–123.870] | 105.881 [105.727–106.516] | 105.969 [105.727–106.516] |
 | scroll | gpui | 208.591 [206.291–210.675] | 109.180 [108.561–109.397] | 109.180 [108.625–109.434] |
 | scroll | quickgui | 162.430 [160.967–167.766] | 138.729 [138.485–139.553] | 139.188 [138.516–139.656] |
-| both | zgui | 150.517 [150.428–151.144] | 106.798 [105.543–107.762] | 106.965 [105.543–107.762] |
+| both | lumine | 150.517 [150.428–151.144] | 106.798 [105.543–107.762] | 106.965 [105.543–107.762] |
 | both | gpui | 216.408 [214.499–216.650] | 110.352 [109.440–111.784] | 110.352 [110.242–112.523] |
 | both | quickgui | 174.434 [170.546–176.740] | 139.777 [139.404–140.439] | 140.691 [139.828–141.680] |
 
-Within this software-renderer condition, zgui had lower observed median process CPU and RSS in each mode. Idle zero means no process CPU-tick increase at the sampler's resolution. These measurements do not establish lowest resource use across other applications, platforms, renderers, or hardware.
+Within this software-renderer condition, lumine had lower observed median process CPU and RSS in each mode. Idle zero means no process CPU-tick increase at the sampler's resolution. These measurements do not establish lowest resource use across other applications, platforms, renderers, or hardware.
 
 The requested process duration was 20 seconds; actual process lifetime ranged 20.067585–20.233132 seconds. Excluding the first 5 seconds after launch produced sampled windows of 14.974967–15.152093 seconds. The update gate divides final logical ticks by requested duration; it does not measure presentation cadence, latency, or missed displayed frames.
 
@@ -37,18 +37,18 @@ Historical evidence remains intact: the [first longer refresh](../refined-framew
 
 Prepared protocol; no measurements or performance conclusions yet.
 
-This series compares the current zgui public component workload with the unchanged, pinned GPUI 0.2.2 and QuickGUI adapters. All three processes receive `LP_NUM_THREADS=4`. Mesa documents this variable for configuring llvmpipe worker threads in its [environment-variable reference](https://docs.mesa3d.org/envvars.html#llvmpipe-driver-environment-variables). This condition aims to reduce software-driver oversubscription; it does not guarantee equal work completion, equal total process thread counts, or a speedup. Results cannot establish hardware GPU or macOS rankings.
+This series compares the current lumine public component workload with the unchanged, pinned GPUI 0.2.2 and QuickGUI adapters. All three processes receive `LP_NUM_THREADS=4`. Mesa documents this variable for configuring llvmpipe worker threads in its [environment-variable reference](https://docs.mesa3d.org/envvars.html#llvmpipe-driver-environment-variables). This condition aims to reduce software-driver oversubscription; it does not guarantee equal work completion, equal total process thread counts, or a speedup. Results cannot establish hardware GPU or macOS rankings.
 
 The protocol retains 36 trials: three frameworks, idle/stream/scroll/both modes, and three repeats with rotated framework order. Each requests 20 seconds, with the first 5 seconds excluded from sampled CPU and memory statistics. Requested duration, actual process lifetime, and sampled duration are distinct. Existing acceptance remains unchanged: every active trial must report 58–61 logical workload updates per requested second. These are model updates, not presented frames. A failed gate prevents equivalent-work performance claims.
 
 Use a private Xvfb/Openbox desktop, Mesa software rendering, and the private patched Vulkan loader. `run.py --loader PATH` records the resolved loader path and hash; captures reuse that loader. The common four-worker setting is recorded in preflight, measurement environment, trial metadata, and capture environment. The same setting applies to every adapter, while each adapter retains its existing backend initialization behavior.
 
-After source validation freezes, run `/tmp/zgui-freeze-measured-workers4.py` to build the current release `component_workload`, verify unchanged pinned reference sources/binaries, and copy all binaries into `/tmp/zgui-measured-framework-workers4-bin`. It records exact source hashes, build command/environment, compiler identity, and binary hash. Then run:
+After source validation freezes, run `/tmp/lumine-freeze-measured-workers4.py` to build the current release `component_workload`, verify unchanged pinned reference sources/binaries, and copy all binaries into `/tmp/lumine-measured-framework-workers4-bin`. It records exact source hashes, build command/environment, compiler identity, and binary hash. Then run:
 
 ```sh
 python3 docs/results/measured-framework-workers4/run.py \
-  --build-manifest docs/results/measured-framework-workers4/zgui-build-manifest.json \
-  --loader /tmp/zgui-ci-loader-check/build/loader
+  --build-manifest docs/results/measured-framework-workers4/lumine-build-manifest.json \
+  --loader /tmp/lumine-ci-loader-check/build/loader
 python3 docs/results/measured-framework-workers4/capture.py
 ```
 
@@ -59,7 +59,7 @@ The workload remains the shared fixed-height virtualized-list and streaming-text
 ## Reproducing the frozen series
 
 [build-orchestration.py](build-orchestration.py) is an exact supplemental copy of
-the original host-specific `/tmp/zgui-freeze-measured-workers4.py`. It was added
+the original host-specific `/tmp/lumine-freeze-measured-workers4.py`. It was added
 after measurement and is **not** part of the 228-file frozen source archive. It
 contains the original absolute checkout/build paths and refuses an existing
 build manifest or measured CSV; it is provenance, not a portable one-command

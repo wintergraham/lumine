@@ -1,7 +1,7 @@
-570ec1088000-570ec1473000 r--p 00000000 00:2c 47752967                   /tmp/zgui-refined-framework-retry-bin/zgui-compare-quickgui
-570ec1473000-570ec23e3000 r-xp 003ea000 00:2c 47752967                   /tmp/zgui-refined-framework-retry-bin/zgui-compare-quickgui
-570ec23e3000-570ec246d000 r--p 01359000 00:2c 47752967                   /tmp/zgui-refined-framework-retry-bin/zgui-compare-quickgui
-570ec246d000-570ec2471000 rw-p 013e2000 00:2c 47752967                   /tmp/zgui-refined-framework-retry-bin/zgui-compare-quickgui
+570ec1088000-570ec1473000 r--p 00000000 00:2c 47752967                   /tmp/lumine-refined-framework-retry-bin/lumine-compare-quickgui
+570ec1473000-570ec23e3000 r-xp 003ea000 00:2c 47752967                   /tmp/lumine-refined-framework-retry-bin/lumine-compare-quickgui
+570ec23e3000-570ec246d000 r--p 01359000 00:2c 47752967                   /tmp/lumine-refined-framework-retry-bin/lumine-compare-quickgui
+570ec246d000-570ec2471000 rw-p 013e2000 00:2c 47752967                   /tmp/lumine-refined-framework-retry-bin/lumine-compare-quickgui
 570ec2471000-570ec2475000 rw-p 00000000 00:00 0 
 570ef3842000-570ef8365000 rw-p 00000000 00:00 0                          [heap]
 7ad210000000-7ad210021000 rw-p 00000000 00:00 0 
@@ -441,11 +441,11 @@
 7ad40151d000-7ad401523000 r--p 00016000 09:03 1314147                    /usr/lib/x86_64-linux-gnu/libz.so.1.3.1
 7ad401523000-7ad401524000 r--p 0001c000 09:03 1314147                    /usr/lib/x86_64-linux-gnu/libz.so.1.3.1
 7ad401524000-7ad401525000 rw-p 0001d000 09:03 1314147                    /usr/lib/x86_64-linux-gnu/libz.so.1.3.1
-7ad401525000-7ad40152d000 r--p 00000000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-7ad40152d000-7ad40157a000 r-xp 00008000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-7ad40157a000-7ad4015ad000 r--p 00055000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-7ad4015ad000-7ad4015ae000 r--p 00088000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
-7ad4015ae000-7ad4015af000 rw-p 00089000 00:2c 47389904                   /tmp/zgui-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7ad401525000-7ad40152d000 r--p 00000000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7ad40152d000-7ad40157a000 r-xp 00008000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7ad40157a000-7ad4015ad000 r--p 00055000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7ad4015ad000-7ad4015ae000 r--p 00088000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
+7ad4015ae000-7ad4015af000 rw-p 00089000 00:2c 47389904                   /tmp/lumine-ci-loader-check/build/loader/libvulkan.so.1.4.345
 7ad4015af000-7ad401db3000 rw-p 00000000 00:00 0 
 7ad401db3000-7ad401e00000 rw-p 00000000 00:00 0 
 7ad401e00000-7ad4020ed000 r--p 00000000 09:03 1310816                    /usr/lib/locale/locale-archive

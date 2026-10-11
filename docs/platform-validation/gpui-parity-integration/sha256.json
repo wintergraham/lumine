@@ -162,7 +162,7 @@
   "native-binaries.json": "756b49590de87d5dea83cc3c3c5b7f0c8c9097dc84973572fd98d5c6b02c4dbc",
   "source.json": "67eba615092a7aec6f10778a931220dc2d79f81f10a92b4669332704c1c8fcba",
   "source.tar.gz": "448e763544dde94cbf3f483e3be0778741868b0443ca6ea493f8d672815246c0",
-  "zgui-parity-integrated.py": "cfbefd244b2940d140ad2206f57bc5cf205e29441f023a0ef7d69396c1ff5127",
-  "zgui-parity-native-build.py": "2fe431647dcb28b0012a4116405b89b4494266c8a9774426e98b89dd73e5c589",
-  "zgui-parity-native-checks.py": "aff8684c291fa2170ef619ee7bdc39bb5b77ff960432ca6336c2c4fcb66f64b5"
+  "lumine-parity-integrated.py": "cfbefd244b2940d140ad2206f57bc5cf205e29441f023a0ef7d69396c1ff5127",
+  "lumine-parity-native-build.py": "2fe431647dcb28b0012a4116405b89b4494266c8a9774426e98b89dd73e5c589",
+  "lumine-parity-native-checks.py": "aff8684c291fa2170ef619ee7bdc39bb5b77ff960432ca6336c2c4fcb66f64b5"
 }

@@ -1,7 +1,7 @@
 Traceback (most recent call last):
-  File "/home/ubuntu/GitHub/zgui/docs/results/measured-framework-workers4/run.py", line 136, in <module>
+  File "/home/ubuntu/GitHub/lumine/docs/results/measured-framework-workers4/run.py", line 136, in <module>
     main()
     ~~~~^^
-  File "/home/ubuntu/GitHub/zgui/docs/results/measured-framework-workers4/run.py", line 68, in main
+  File "/home/ubuntu/GitHub/lumine/docs/results/measured-framework-workers4/run.py", line 68, in main
     raise RuntimeError('builds must be paused before sampling: ' + repr(busy))
 RuntimeError: builds must be paused before sampling: ['4167761 cargo']

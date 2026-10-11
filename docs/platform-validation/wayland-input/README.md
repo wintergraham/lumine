@@ -2,8 +2,8 @@ Native Wayland input validation
 ===============================
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p zgui-desktop --example form
-LD_LIBRARY_PATH=/tmp/zgui-ci-loader-check/build/loader python3 scripts/wayland_input_smoke.py /tmp/zgui-target/debug/examples/form --output docs/platform-validation/wayland-input
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p lumine-desktop --example form
+LD_LIBRARY_PATH=/tmp/lumine-ci-loader-check/build/loader python3 scripts/wayland_input_smoke.py /tmp/lumine-target/debug/examples/form --output docs/platform-validation/wayland-input
 ```
 
 The script owns an Xvfb server, Openbox, and Weston 14 using its X11 backend,

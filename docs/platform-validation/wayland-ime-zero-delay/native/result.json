@@ -1,7 +1,7 @@
 {
   "result": "diagnostic_completed",
   "findings": {
-    "zgui-delay0": {
+    "lumine-delay0": {
       "cold": {
         "trials": 1,
         "full_preedit": 1,
@@ -18,9 +18,9 @@
   },
   "sessions": [
     {
-      "mode": "zgui",
+      "mode": "lumine",
       "cursor_delay_ms": 0,
-      "application": "zgui native_ime",
+      "application": "lumine native_ime",
       "server_protocol_trace": true,
       "session": 1,
       "client_display_unset": true,

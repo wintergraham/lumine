@@ -858,7 +858,7 @@ Thread 1 (Thread 0x7d7d334c7a40 (LWP 4088105) "dynamic_menus"):
 #14 0x00005a6657f43982 in <wgpu_core::global::Global>::surface_present ()
 #15 0x00005a6657c5e89b in <wgpu::backend::wgpu_core::CoreSurfaceOutputDetail as wgpu::dispatch::SurfaceOutputDetailInterface>::present ()
 #16 0x00005a6657c9587c in <wgpu::api::surface_texture::SurfaceTexture>::present ()
-#17 0x00005a6657acc4a1 in <zgui_gpu::GpuRenderer>::present_with_status ()
-#18 0x00005a6657417cde in <zgui_desktop::application::Host>::draw ()
-#19 0x00005a665741c701 in <zgui_desktop::application::Host>::update ()
+#17 0x00005a6657acc4a1 in <lumine_gpu::GpuRenderer>::present_with_status ()
+#18 0x00005a6657417cde in <lumine_desktop::application::Host>::draw ()
+#19 0x00005a665741c701 in <lumine_desktop::application::Host>::update ()
 [Inferior 1 (process 4088105) detached]

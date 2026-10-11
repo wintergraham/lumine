@@ -4,7 +4,7 @@
     "cargo",
     "build",
     "-p",
-    "zgui-desktop",
+    "lumine-desktop",
     "--example",
     "hidden_updates",
     "--example",
@@ -16,9 +16,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/image_fit_smoke.py",
-        "/tmp/zgui-target/debug/examples/image_fit",
+        "/tmp/lumine-target/debug/examples/image_fit",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/effect-normalization/image_fit"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/effect-normalization/image_fit"
       ],
       "binary_sha256": "10ecbdf3dbdd7ee599496dc2d3a0f67cb1194f25a441ee7e0419df1d00dbcd4c"
     },
@@ -26,9 +26,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/hidden_updates_smoke.py",
-        "/tmp/zgui-target/debug/examples/hidden_updates",
+        "/tmp/lumine-target/debug/examples/hidden_updates",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/effect-normalization/hidden_updates"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/effect-normalization/hidden_updates"
       ],
       "binary_sha256": "8f777dfdf0cc521aa83647f76a6f7b7606473facf2e7eed1ae6ca0881729f57c"
     }
@@ -38,10 +38,10 @@
   "source_unchanged": true,
   "backend": "owned Xvfb/Openbox, private services, Mesa llvmpipe Vulkan",
   "environment": {
-    "CARGO_TARGET_DIR": "/tmp/zgui-target",
+    "CARGO_TARGET_DIR": "/tmp/lumine-target",
     "CARGO_PROFILE_DEV_DEBUG": "0",
     "CARGO_INCREMENTAL": "0",
-    "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader"
+    "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader"
   },
   "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
 }

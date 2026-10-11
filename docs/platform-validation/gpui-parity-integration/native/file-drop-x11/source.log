@@ -1,4 +1,4 @@
-SOURCE_DATA ['file:///tmp/zgui-parity-native/file-drop-x11/first.txt', 'file:///tmp/zgui-parity-native/file-drop-x11/second%20file.txt']
+SOURCE_DATA ['file:///tmp/lumine-parity-native/file-drop-x11/first.txt', 'file:///tmp/lumine-parity-native/file-drop-x11/second%20file.txt']
 SOURCE_END
-SOURCE_DATA ['file:///tmp/zgui-parity-native/file-drop-x11/first.txt', 'file:///tmp/zgui-parity-native/file-drop-x11/second%20file.txt']
+SOURCE_DATA ['file:///tmp/lumine-parity-native/file-drop-x11/first.txt', 'file:///tmp/lumine-parity-native/file-drop-x11/second%20file.txt']
 SOURCE_END

@@ -19,9 +19,9 @@ counts and held/released colors, cancels a pending press through focus changes,
 and verifies an event handler can prevent activation.
 
 ```sh
-cargo build -p zgui-desktop --example keyboard_chords --locked
+cargo build -p lumine-desktop --example keyboard_chords --locked
 python3 scripts/keyboard_chords_smoke.py target/debug/examples/keyboard_chords \
-  --output /tmp/zgui-keyboard-chords
+  --output /tmp/lumine-keyboard-chords
 ```
 
 The runner owns its Xvfb/Openbox processes and isolates desktop settings.

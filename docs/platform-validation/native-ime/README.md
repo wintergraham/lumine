@@ -3,8 +3,8 @@ Native Linux input-method validation
 
 ```sh
 sudo apt-get install --no-install-recommends ibus ibus-libpinyin fonts-droid-fallback
-CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p zgui-desktop --example native_ime
-LD_LIBRARY_PATH=/tmp/zgui-ci-loader-check/build/loader python3 scripts/native_ime_smoke.py /tmp/zgui-target/debug/examples/native_ime --output docs/platform-validation/native-ime
+CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p lumine-desktop --example native_ime
+LD_LIBRARY_PATH=/tmp/lumine-ci-loader-check/build/loader python3 scripts/native_ime_smoke.py /tmp/lumine-target/debug/examples/native_ime --output docs/platform-validation/native-ime
 ```
 
 The probe uses real IBus/libpinyin through XIM. The script owns Xvfb, Openbox,
@@ -36,7 +36,7 @@ caret movement and the second editor's vertical position within 3px. Screenshots
 were inspected: the candidate panel appears below the composing text, and
 preedit, committed text, and focus borders remain visible.
 Chinese glyphs are readable through the installed Droid Sans Fallback font
-(`fc-match 'sans:charset=4f60'`); no large font asset is bundled with zgui.
+(`fc-match 'sans:charset=4f60'`); no large font asset is bundled with lumine.
 
 This exposed a host integration issue: winit 0.30.13's X11 implementation ignores
 the size passed to `set_ime_cursor_area`. The desktop host now supplies the caret

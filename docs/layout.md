@@ -3,7 +3,7 @@
 Build children with `div`, `row`, `column`, and reusable functions or components. Layout is a style refinement; it does not require appending scene commands:
 
 ```rust
-use zgui::{compose::prelude::*, layout::ContentAlign};
+use lumine::{compose::prelude::*, layout::ContentAlign};
 let dashboard = div().grid().grid_cols(4).grid_rows(3)
     .gap_x(12.).gap_y(8.).w_full().h(240.)
     .child(div().col_span_full().child(text("Header")))
@@ -22,4 +22,4 @@ Scrollable views forward container layout to their retained content, so `scroll(
 
 Ordinary row/column/overlay layouts keep the existing small cached layout path. Advanced containers allocate one retained Taffy 0.9 tree for their immediate children. Stable child IDs and Taffy caches survive resize and content updates; removed children release cache entries. Layout options use an optional shared allocation, so default styles do not allocate an extended options block. An unchanged scene performs no layout work. See [the feature cost audit](performance-feature-audit.md) for default-path and cache bounds.
 
-Run `cargo run -p zgui-desktop --example layout` for the resizable gallery. `cargo test -p zgui --test advanced_layout` covers geometry, refinement precedence, visibility and scrolling; the core retained-cache regression checks allocation reuse and stale-child removal. These tests establish the documented cases, not universal browser CSS conformance.
+Run `cargo run -p lumine-desktop --example layout` for the resizable gallery. `cargo test -p lumine --test advanced_layout` covers geometry, refinement precedence, visibility and scrolling; the core retained-cache regression checks allocation reuse and stale-child removal. These tests establish the documented cases, not universal browser CSS conformance.

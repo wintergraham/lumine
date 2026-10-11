@@ -1,6 +1,6 @@
-   Compiling zgui-desktop v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-desktop)
+   Compiling lumine-desktop v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-desktop)
     Finished `test` profile [unoptimized] target(s) in 3.09s
-     Running unittests src/lib.rs (/tmp/zgui-target/debug/deps/zgui_desktop-d1e0ad2ee9727860)
+     Running unittests src/lib.rs (/tmp/lumine-target/debug/deps/lumine_desktop-d1e0ad2ee9727860)
 
 running 2 tests
 test application::tests::host_suspend_recreates_native_resources_and_retains_editor_state ... ok
@@ -10,7 +10,7 @@ failures:
 
 ---- application::tests::retained_window_factory_releases_native_clipboard_after_manager_shutdown stdout ----
 
-thread 'application::tests::retained_window_factory_releases_native_clipboard_after_manager_shutdown' (3965144) panicked at crates/zgui-desktop/src/application.rs:2202:14:
+thread 'application::tests::retained_window_factory_releases_native_clipboard_after_manager_shutdown' (3965144) panicked at crates/lumine-desktop/src/application.rs:2202:14:
 called `Result::unwrap()` on an `Err` value: RecreationAttempt
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -20,4 +20,4 @@ failures:
 
 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.14s
 
-error: test failed, to rerun pass `-p zgui-desktop --lib`
+error: test failed, to rerun pass `-p lumine-desktop --lib`

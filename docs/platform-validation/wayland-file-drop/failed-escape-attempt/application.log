@@ -121,7 +121,7 @@
 [3088910.413]  -> wl_region#37.add(0, 0, 2147483647, 2147483647)
 [3088910.419]  -> wl_surface#29.set_opaque_region(wl_region#37)
 [3088910.427]  -> wl_region#37.destroy()
-[3088910.436]  -> xdg_toplevel#31.set_title("zgui typed drag")
+[3088910.436]  -> xdg_toplevel#31.set_title("lumine typed drag")
 [3088910.442]  -> xdg_toplevel#31.set_min_size(2, 1)
 [3088910.446]  -> xdg_toplevel#31.set_max_size(0, 0)
 [3088910.501] {Display Queue} wl_display#1.delete_id(35)
@@ -2540,7 +2540,7 @@
 [3090684.545] {mesa vk display queue}  -> wl_surface#29.damage_buffer(0, 0, 2147483647, 2147483647)
 [3090684.548] {mesa vk display queue}  -> wl_surface#29.frame(new id wl_callback#109)
 [3090684.551] {mesa vk display queue}  -> wl_surface#29.commit()
-FILE_DROP ["/tmp/zgui-wayland-files-first/first.txt", "/tmp/zgui-wayland-files-first/second file.txt"]
+FILE_DROP ["/tmp/lumine-wayland-files-first/first.txt", "/tmp/lumine-wayland-files-first/second file.txt"]
 [3090695.402] {Display Queue} wl_display#1.delete_id(108)
 [3090695.411] {Display Queue} wl_display#1.delete_id(109)
 [3090695.415] wl_callback#108.done(423144554)
@@ -2626,7 +2626,7 @@ FILE_DROP ["/tmp/zgui-wayland-files-first/first.txt", "/tmp/zgui-wayland-files-f
 [3091760.778] {mesa vk display queue}  -> wl_surface#29.damage_buffer(0, 0, 2147483647, 2147483647)
 [3091760.781] {mesa vk display queue}  -> wl_surface#29.frame(new id wl_callback#109)
 [3091760.783] {mesa vk display queue}  -> wl_surface#29.commit()
-FILE_DROP ["/tmp/zgui-wayland-files-first/first.txt", "/tmp/zgui-wayland-files-first/second file.txt"]
+FILE_DROP ["/tmp/lumine-wayland-files-first/first.txt", "/tmp/lumine-wayland-files-first/second file.txt"]
 [3091779.462] {Display Queue} wl_display#1.delete_id(108)
 [3091779.473] {Display Queue} wl_display#1.delete_id(109)
 [3091779.478] wl_callback#108.done(423145638)

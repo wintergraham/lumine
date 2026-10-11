@@ -1,6 +1,6 @@
 # Component API release smoke
 
-A release build of `zgui-desktop --example component_workload` completed all four five-second modes on Linux Xvfb with Mesa llvmpipe software Vulkan. All active modes reported 299 workload ticks (approximately 60 Hz), so the earlier debug streaming slowdown was not reproduced in this release smoke. Every application exited successfully. The Xvfb and Openbox processes created by the harness were terminated afterward.
+A release build of `lumine-desktop --example component_workload` completed all four five-second modes on Linux Xvfb with Mesa llvmpipe software Vulkan. All active modes reported 299 workload ticks (approximately 60 Hz), so the earlier debug streaming slowdown was not reproduced in this release smoke. Every application exited successfully. The Xvfb and Openbox processes created by the harness were terminated afterward.
 
 | Mode | Workload ticks | Mounted rows at exit | CPU (% of one core) | Mean RSS (MiB) |
 | --- | ---: | ---: | ---: | ---: |
@@ -16,5 +16,5 @@ These are single runs with a one-second process-start warmup and 50 ms `/proc` s
 Build command:
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build --release -p zgui-desktop --example component_workload --locked
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build --release -p lumine-desktop --example component_workload --locked
 ```

@@ -22,7 +22,7 @@ Seeded 180-tick screenshots were captured before sampling and visually checked f
 
 | Framework | Minimum | Maximum | Failed active trials |
 | --- | ---: | ---: | ---: |
-| zgui | 47.85 | 59.95 | 3/9 |
+| lumine | 47.85 | 59.95 | 3/9 |
 | gpui | 15.00 | 59.60 | 8/9 |
 | quickgui | 19.45 | 58.75 | 8/9 |
 
@@ -32,16 +32,16 @@ Descriptive process metrics only; unequal completed work prohibits performance r
 
 | Mode | Framework | CPU median [min–max] | RSS median [min–max], MiB |
 | --- | --- | ---: | ---: |
-| idle | zgui | 0.00 [0.00–0.00] | 107.60 [107.41–108.10] |
+| idle | lumine | 0.00 [0.00–0.00] | 107.60 [107.41–108.10] |
 | idle | gpui | 0.32 [0.20–0.33] | 112.95 [112.46–112.98] |
 | idle | quickgui | 0.06 [0.00–0.07] | 136.19 [134.33–136.64] |
-| stream | zgui | 30.44 [28.52–31.59] | 112.75 [112.14–114.64] |
+| stream | lumine | 30.44 [28.52–31.59] | 112.75 [112.14–114.64] |
 | stream | gpui | 143.41 [71.37–200.51] | 116.01 [113.11–116.08] |
 | stream | quickgui | 167.41 [68.28–180.60] | 139.50 [139.03–141.02] |
-| scroll | zgui | 15.28 [12.74–15.80] | 116.11 [115.55–116.36] |
+| scroll | lumine | 15.28 [12.74–15.80] | 116.11 [115.55–116.36] |
 | scroll | gpui | 160.81 [138.37–183.81] | 111.68 [111.37–112.74] |
 | scroll | quickgui | 141.79 [138.26–147.72] | 143.48 [141.82–144.17] |
-| both | zgui | 35.57 [32.36–35.58] | 115.95 [114.08–116.34] |
+| both | lumine | 35.57 [32.36–35.58] | 115.95 [114.08–116.34] |
 | both | gpui | 175.11 [101.26–201.06] | 113.87 [112.82–113.88] |
 | both | quickgui | 180.21 [87.98–196.00] | 142.91 [142.09–144.47] |
 
@@ -49,10 +49,10 @@ Descriptive process metrics only; unequal completed work prohibits performance r
 
 | Framework | Mode | Repeat (zero based) | Updates/requested second |
 | --- | --- | ---: | ---: |
-| zgui | stream | 0 | 57.75 |
+| lumine | stream | 0 | 57.75 |
 | gpui | stream | 0 | 15.00 |
 | quickgui | stream | 0 | 19.45 |
-| zgui | scroll | 0 | 56.40 |
+| lumine | scroll | 0 | 56.40 |
 | gpui | scroll | 0 | 31.70 |
 | quickgui | scroll | 0 | 41.00 |
 | gpui | both | 0 | 30.45 |
@@ -66,7 +66,7 @@ Descriptive process metrics only; unequal completed work prohibits performance r
 | quickgui | stream | 2 | 50.60 |
 | gpui | stream | 2 | 39.80 |
 | quickgui | scroll | 2 | 43.65 |
-| zgui | scroll | 2 | 47.85 |
+| lumine | scroll | 2 | 47.85 |
 | gpui | both | 2 | 56.30 |
 
 ## Prior accepted run

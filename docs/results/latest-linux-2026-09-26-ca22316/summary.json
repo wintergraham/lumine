@@ -1,8 +1,8 @@
 {
-  "source_csv": "/home/ubuntu/GitHub/zgui/docs/results/latest-linux-2026-09-26-ca22316/current.csv",
+  "source_csv": "/home/ubuntu/GitHub/lumine/docs/results/latest-linux-2026-09-26-ca22316/current.csv",
   "groups": [
     {
-      "framework": "zgui",
+      "framework": "lumine",
       "mode": "idle",
       "repeats": 3,
       "cpu_percent_one_core": {
@@ -92,7 +92,7 @@
       }
     },
     {
-      "framework": "zgui",
+      "framework": "lumine",
       "mode": "stream",
       "repeats": 3,
       "cpu_percent_one_core": {
@@ -182,7 +182,7 @@
       }
     },
     {
-      "framework": "zgui",
+      "framework": "lumine",
       "mode": "scroll",
       "repeats": 3,
       "cpu_percent_one_core": {
@@ -272,7 +272,7 @@
       }
     },
     {
-      "framework": "zgui",
+      "framework": "lumine",
       "mode": "both",
       "repeats": 3,
       "cpu_percent_one_core": {

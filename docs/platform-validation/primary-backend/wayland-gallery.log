@@ -9,7 +9,7 @@ SEMANTIC "Volume level" None
 SEMANTIC "Disabled" None
 SEMANTIC "Name — selection, clipboard, undo, IME" None
 SEMANTIC "Name" Some("Hello, 世界 👋")
-SEMANTIC "zgui · Linux & macOS" None
+SEMANTIC "lumine · Linux & macOS" None
 SEMANTIC "Notes" Some("Tab moves focus. Shift+Tab moves back.\nTry selecting Unicode text and composing with your IME.\nUse Ctrl/Cmd+A, C, X, V, Z.")
 SEMANTIC "Notes — multiline editing" None
 SEMANTIC "Async update" None

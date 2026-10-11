@@ -124,7 +124,7 @@ D2026-09-22 20:02:39.862296 waylandimserverv2.cpp:113] INIT IM V2
 [3645596.103] {Default Queue} wl_keyboard#19.keymap(1, fd 25, 34206)
 [3645596.117] {Default Queue} wl_keyboard#19.repeat_info(25, 600)
 [3645931.119] {Default Queue} zwlr_foreign_toplevel_manager_v1#7.toplevel(new id zwlr_foreign_toplevel_handle_v1#4278190080)
-[3645931.152] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.title("zgui native IME")
+[3645931.152] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.title("lumine native IME")
 [3645931.157] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.state(array[4])
 [3645931.162] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.state(array[8])
 [3645931.169] {Default Queue} zwlr_foreign_toplevel_handle_v1#4278190080.done()

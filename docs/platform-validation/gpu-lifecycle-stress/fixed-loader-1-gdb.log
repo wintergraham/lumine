@@ -7,11 +7,11 @@ independent device stress: 24 workers, 10 iterations each
 [Switching to Thread 0x7ffff5ff16c0 (LWP 767617)]
 
 Thread 16 "independent_dev" hit Catchpoint 1
-  Inferior loaded /tmp/zgui-vulkan-loader-1.4.345/build/loader/libvulkan.so.1
+  Inferior loaded /tmp/lumine-vulkan-loader-1.4.345/build/loader/libvulkan.so.1
 dl_open_worker_begin (a=0x7ffff5febb10) at ./elf/dl-open.c:734
 warning: 734	./elf/dl-open.c: No such file or directory
 From                To                  Syms Read   Shared Object Library
-0x00007ffff494b000  0x00007ffff49d5000  Yes         /tmp/zgui-vulkan-loader-1.4.345/build/loader/libvulkan.so.1
+0x00007ffff494b000  0x00007ffff49d5000  Yes         /tmp/lumine-vulkan-loader-1.4.345/build/loader/libvulkan.so.1
 test independent_device_lifecycle_stress ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; finished in 12.97s

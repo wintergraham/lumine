@@ -121,7 +121,7 @@
 [4025381.322]  -> wl_region#37.add(0, 0, 2147483647, 2147483647)
 [4025381.330]  -> wl_surface#29.set_opaque_region(wl_region#37)
 [4025381.340]  -> wl_region#37.destroy()
-[4025381.351]  -> xdg_toplevel#31.set_title("zgui typed drag")
+[4025381.351]  -> xdg_toplevel#31.set_title("lumine typed drag")
 [4025381.359]  -> xdg_toplevel#31.set_min_size(2, 1)
 [4025381.366]  -> xdg_toplevel#31.set_max_size(0, 0)
 [4025381.373]  -> wl_surface#29.commit()
@@ -2538,7 +2538,7 @@
 [4027097.412] {mesa vk display queue}  -> wl_surface#29.damage_buffer(0, 0, 2147483647, 2147483647)
 [4027097.415] {mesa vk display queue}  -> wl_surface#29.frame(new id wl_callback#109)
 [4027097.418] {mesa vk display queue}  -> wl_surface#29.commit()
-FILE_DROP ["/tmp/zgui-parity-native/file-drop-wayland/first.txt", "/tmp/zgui-parity-native/file-drop-wayland/second file.txt"]
+FILE_DROP ["/tmp/lumine-parity-native/file-drop-wayland/first.txt", "/tmp/lumine-parity-native/file-drop-wayland/second file.txt"]
 [4027108.262] {Display Queue} wl_display#1.delete_id(108)
 [4027108.269] {Display Queue} wl_display#1.delete_id(109)
 [4027108.279] wl_callback#108.done(424080967)

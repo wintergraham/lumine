@@ -1,5 +1,5 @@
     Finished `test` profile [unoptimized] target(s) in 0.16s
-     Running unittests src/lib.rs (/tmp/zgui-target/debug/deps/zgui_desktop-d1e0ad2ee9727860)
+     Running unittests src/lib.rs (/tmp/lumine-target/debug/deps/lumine_desktop-d1e0ad2ee9727860)
 
 running 1 test
 test application::tests::host_suspend_recreates_native_resources_and_retains_editor_state ... ok

@@ -6,9 +6,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/wayland_ime_smoke.py",
-        "/tmp/zgui-target/debug/examples/native_ime",
+        "/tmp/lumine-target/debug/examples/native_ime",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/wayland-cancellation/composition"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/wayland-cancellation/composition"
       ],
       "binary_sha256": "6d901b665ffe10d4ad4a5181091696873881fa4008a7e78a1dcc0b3b2efb9da0"
     },
@@ -17,9 +17,9 @@
       "command": [
         "/usr/bin/python3",
         "scripts/wayland_external_ime_smoke.py",
-        "/tmp/zgui-target/debug/examples/external_ime",
+        "/tmp/lumine-target/debug/examples/external_ime",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/wayland-cancellation/external"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/wayland-cancellation/external"
       ],
       "binary_sha256": "b96e71192aabf36c61d2b4a879939d1bac00217870404061a9e05b313a0446db"
     },
@@ -28,10 +28,10 @@
       "command": [
         "/usr/bin/python3",
         "scripts/wayland_external_ime_smoke.py",
-        "/tmp/zgui-target/debug/examples/external_ime",
+        "/tmp/lumine-target/debug/examples/external_ime",
         "--read-only-test",
         "--output",
-        "/home/ubuntu/GitHub/zgui/docs/platform-validation/wayland-cancellation/read_only"
+        "/home/ubuntu/GitHub/lumine/docs/platform-validation/wayland-cancellation/read_only"
       ],
       "binary_sha256": "b96e71192aabf36c61d2b4a879939d1bac00217870404061a9e05b313a0446db"
     }
@@ -41,7 +41,7 @@
     "build",
     "--locked",
     "-p",
-    "zgui-desktop",
+    "lumine-desktop",
     "--example",
     "native_ime",
     "--example",
@@ -53,8 +53,8 @@
   "source_archive_sha256": "848c1ca597df2ac7c8e44c674c5b3045f6493cf23a74c5534c7fd984badce4a1",
   "source_unchanged": true,
   "environment": {
-    "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader",
-    "CARGO_TARGET_DIR": "/tmp/zgui-target",
+    "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader",
+    "CARGO_TARGET_DIR": "/tmp/lumine-target",
     "CARGO_PROFILE_DEV_DEBUG": "0",
     "CARGO_INCREMENTAL": "0",
     "CARGO_BUILD_JOBS": "1"

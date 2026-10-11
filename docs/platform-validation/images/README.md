@@ -2,8 +2,8 @@ Native declarative image validation
 ==================================
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p zgui-desktop --example images
-python3 scripts/images_smoke.py /tmp/zgui-target/debug/examples/images --output docs/platform-validation/images
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p lumine-desktop --example images
+python3 scripts/images_smoke.py /tmp/lumine-target/debug/examples/images --output docs/platform-validation/images
 ```
 
 An owned Xvfb/Openbox session displays two reactive images and one static yellow

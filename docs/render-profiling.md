@@ -1,6 +1,6 @@
 # Rendering performance tools
 
-These tools live in zgui and work without Ask. Run from the zgui checkout with
+These tools live in lumine and work without Ask. Run from the lumine checkout with
 Python 3.10+ and the normal Rust/platform build environment:
 
 ```sh
@@ -69,12 +69,12 @@ must finish before timing. A short run is a smoke test, not a stable baseline.
 
 ## Profile an application
 
-Enable `zgui-gpu`'s optional `benchmark` feature in a development dependency.
-`zgui_gpu::benchmark::{Config, summary, emit, Trace}` supplies the same format and
+Enable `lumine-gpu`'s optional `benchmark` feature in a development dependency.
+`lumine_gpu::benchmark::{Config, summary, emit, Trace}` supplies the same format and
 configuration. An application's ignored lib test can use the standard runner:
 
 ```sh
-python zgui/scripts/render_bench.py --manifest Cargo.toml --test catalogue_render_matrix --profile dev --repeats 3 --output components.jsonl
+python lumine/scripts/render_bench.py --manifest Cargo.toml --test catalogue_render_matrix --profile dev --repeats 3 --output components.jsonl
 ```
 
 Tests control their own workloads and sizes. They must emit `RENDER_BENCH` records
@@ -95,8 +95,8 @@ for frame in renderer.take_gpu_profiles() { // nonblocking device poll
 let dropped = renderer.dropped_gpu_profiles();
 ```
 
-`ZGUI_GPU_PROFILE=1` enables it at renderer construction. With
-`ZGUI_GPU_STATS=1`, desktop logs also report GPU scope means, copy area, phase-cache
+`LUMINE_GPU_PROFILE=1` enables it at renderer construction. With
+`LUMINE_GPU_STATS=1`, desktop logs also report GPU scope means, copy area, phase-cache
 hits/memory and existing CPU/work counters. The collector never waits: it caps
 pending readbacks at eight, completed results at 64 and scopes at 64 per frame,
 recycles buffers and drops samples under backpressure. Poll/drain results
@@ -116,7 +116,7 @@ regularly. `wait_idle()` is available for tests; don't add it to normal frames.
 | Cache/allocation growth | Lifetime/eviction, repeated buffer growth, resize churn |
 
 Check pixels against a fresh full repaint before accepting a retained-rendering
-optimization (`cargo test -p zgui-gpu --test pixels -- --test-threads=1`). Keep
+optimization (`cargo test -p lumine-gpu --test pixels -- --test-threads=1`). Keep
 performance gates tied to the target adapter and environment; headless timing
 does not establish presentation/input latency.
 

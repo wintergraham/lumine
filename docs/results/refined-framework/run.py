@@ -24,9 +24,9 @@ def stop(process):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--binaries', type=Path, default=Path('/tmp/zgui-refined-framework-bin'))
+    parser.add_argument('--binaries', type=Path, default=Path('/tmp/lumine-refined-framework-bin'))
     parser.add_argument('--build-manifest', type=Path, required=True)
-    parser.add_argument('--loader', type=Path, default=Path('/tmp/zgui-vulkan-loader-1.4.345/build/loader'))
+    parser.add_argument('--loader', type=Path, default=Path('/tmp/lumine-vulkan-loader-1.4.345/build/loader'))
     parser.add_argument('--preflight-only', action='store_true')
     parser.add_argument('--output', type=Path, default=Path(__file__).resolve().parent)
     args = parser.parse_args()
@@ -41,9 +41,9 @@ def main():
         for relative, expected in manifest['source_sha256'].items():
             if sha(ROOT / relative) != expected:
                 raise RuntimeError('source changed since build: ' + relative)
-    names = {'zgui': 'component_workload', 'gpui': 'zgui-compare-gpui', 'quickgui': 'zgui-compare-quickgui'}
+    names = {'lumine': 'component_workload', 'gpui': 'lumine-compare-gpui', 'quickgui': 'lumine-compare-quickgui'}
     for name, filename in names.items():
-        record = (built if name == 'zgui' else references)['binaries'][name]
+        record = (built if name == 'lumine' else references)['binaries'][name]
         if sha(args.binaries / filename) != record['sha256']:
             raise RuntimeError('binary differs from build proof: ' + name)
     loader = (args.loader / 'libvulkan.so.1').resolve(strict=True)
@@ -53,8 +53,8 @@ def main():
         protocol='three frameworks, four modes, three rotated repeats, 20s total each, 5s excluded warmup')
     (out / 'preflight.json').write_text(json.dumps(preflight, indent=2) + '\n')
     shutil.copyfile(reference_path, out / 'reference-build-manifest.json')
-    if args.build_manifest.resolve() != out / 'zgui-build-manifest.json':
-        shutil.copyfile(args.build_manifest, out / 'zgui-build-manifest.json')
+    if args.build_manifest.resolve() != out / 'lumine-build-manifest.json':
+        shutil.copyfile(args.build_manifest, out / 'lumine-build-manifest.json')
     if args.preflight_only:
         print('Preflight passes; no GUI processes or samples started')
         return
@@ -84,7 +84,7 @@ def main():
         VK_ICD_FILENAMES='/usr/share/vulkan/icd.d/lvp_icd.json', WGPU_BACKEND='vulkan',
         LD_LIBRARY_PATH=str(args.loader.resolve()))
     for key in ('DISPLAY', 'WAYLAND_DISPLAY', 'SWAYSOCK', 'I3SOCK', 'X11_SCALE_FACTOR',
-                'WINIT_X11_SCALE_FACTOR', 'ZGUI_EFFECTS', 'ZGUI_RENDERER'):
+                'WINIT_X11_SCALE_FACTOR', 'LUMINE_EFFECTS', 'LUMINE_RENDERER'):
         env.pop(key, None)
     desktop = wm = None
     try:
@@ -99,13 +99,13 @@ def main():
         time.sleep(.5)
         subprocess.run(['xdotool', 'mousemove', '1090', '810'], env=env, check=True)
         command = ['python3', str(ROOT / 'scripts/compare.py'),
-            '--zgui', str(args.binaries / 'component_workload'),
-            '--gpui', str(args.binaries / 'zgui-compare-gpui'),
-            '--quickgui', str(args.binaries / 'zgui-compare-quickgui'),
+            '--lumine', str(args.binaries / 'component_workload'),
+            '--gpui', str(args.binaries / 'lumine-compare-gpui'),
+            '--quickgui', str(args.binaries / 'lumine-compare-quickgui'),
             '--seconds', '20', '--warmup', '5', '--repeats', '3', '--output', str(out / 'current.csv')]
         (out / 'measurement-environment.json').write_text(json.dumps({key: env.get(key) for key in (
             'DISPLAY', 'WAYLAND_DISPLAY', 'LD_LIBRARY_PATH', 'VK_ICD_FILENAMES', 'LIBGL_ALWAYS_SOFTWARE',
-            'WINIT_UNIX_BACKEND', 'WGPU_BACKEND', 'ZGUI_RENDERER', 'ZGUI_EFFECTS')}, indent=2) + '\n')
+            'WINIT_UNIX_BACKEND', 'WGPU_BACKEND', 'LUMINE_RENDERER', 'LUMINE_EFFECTS')}, indent=2) + '\n')
         subprocess.run(command, cwd=ROOT, env=env, check=True)
         subprocess.run(['python3', str(ROOT / 'scripts/summarize_comparison.py'), str(out / 'current.csv'),
             '--output', str(out / 'summary.json')], cwd=ROOT, check=True)

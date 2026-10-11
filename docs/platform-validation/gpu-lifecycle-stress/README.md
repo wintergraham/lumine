@@ -19,7 +19,7 @@ failure cannot be proven identical, and finite passing stress runs do not prove
 all renderer or driver concurrency correct.
 
 A separate diagnostic run with only `WGPU_DEBUG=0` also passed on the old loader.
-That is an isolation experiment, not a product workaround: zgui still honors wgpu
+That is an isolation experiment, not a product workaround: lumine still honors wgpu
 configuration and retains debug-build defaults. The three fixed-loader runs did
 not disable debug labels or validation flags. The Khronos Vulkan validation layer
 was not installed in this environment; wgpu internal validation remained enabled.
@@ -32,13 +32,13 @@ The opt-in test is ignored by ordinary workspace tests, which retain bounded
 four-device concurrency coverage and serialize other GPU fixture lifetimes:
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 \
-  cargo test -p zgui-gpu --test pixels \
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 \
+  cargo test -p lumine-gpu --test pixels \
   -- --ignored --exact independent_device_lifecycle_stress --nocapture
 ```
 
-`ZGUI_GPU_STRESS_WORKERS` accepts 1–64 (default 24), and
-`ZGUI_GPU_STRESS_ITERATIONS` accepts 1–100 (default 10). Independent device creation
+`LUMINE_GPU_STRESS_WORKERS` accepts 1–64 (default 24), and
+`LUMINE_GPU_STRESS_ITERATIONS` accepts 1–100 (default 10). Independent device creation
 can consume substantial driver resources. Use a Vulkan loader containing PR 1866
 (for example 1.4.345 or a distribution backport) for concurrent-device stress.
 No system library was replaced for this investigation.
@@ -47,13 +47,13 @@ The controlled fixed-loader runs used the already-built binary recorded in
 `metadata.json`, not a rebuild:
 
 ```sh
-LD_LIBRARY_PATH=/tmp/zgui-vulkan-loader-1.4.345/build/loader \
+LD_LIBRARY_PATH=/tmp/lumine-vulkan-loader-1.4.345/build/loader \
   gdb -q -batch \
   -ex 'set print thread-events off' \
   -ex 'catch load libvulkan[.]so' -ex run \
   -ex 'info sharedlibrary libvulkan' -ex 'disable 1' \
   -ex continue -ex 'bt 30' \
-  --args /tmp/zgui-target/debug/deps/pixels-6d784e015f9db18b \
+  --args /tmp/lumine-target/debug/deps/pixels-6d784e015f9db18b \
   --ignored --exact independent_device_lifecycle_stress --nocapture
 ```
 

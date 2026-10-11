@@ -47,7 +47,7 @@ xwininfo: Window id: 0x21f (the root window) (has no name)
      0x200170 (has no name): ()  1x1+0+0  +0+0
      0x20017b (has no name): ()  642x365+191+201  +191+201
         56 children:
-        0xc00004 "zgui native IME": ("native_ime" "native_ime")  640x340+1+20  +192+221
+        0xc00004 "lumine native IME": ("native_ime" "native_ime")  640x340+1+20  +192+221
         0x2001c7 (has no name): ()  1x1+0+0  +191+201
         0x2001c6 (has no name): ()  1x1+0+0  +191+201
         0x2001c5 (has no name): ()  1x1+0+0  +191+201

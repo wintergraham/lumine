@@ -1,5 +1,5 @@
-    Checking zgui v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui)
-    Checking zgui-gpu v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-gpu)
-    Checking zgui-workload v0.1.0 (/home/ubuntu/GitHub/zgui/comparisons/workload)
-    Checking zgui-desktop v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-desktop)
+    Checking lumine v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine)
+    Checking lumine-gpu v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-gpu)
+    Checking lumine-workload v0.1.0 (/home/ubuntu/GitHub/lumine/comparisons/workload)
+    Checking lumine-desktop v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-desktop)
     Finished `dev` profile [unoptimized] target(s) in 2.35s

@@ -7,7 +7,7 @@ client sent a cursor rectangle change and text-input commit after receiving `n`;
 Fcitx received the next input-method `done` only after sending the queued updates.
 
 This trace is consistent with stale input-method transactions during a backlog,
-but does not isolate responsibility to zgui, winit, Fcitx or Sway. No renderer or
+but does not isolate responsibility to lumine, winit, Fcitx or Sway. No renderer or
 editor correction was made on the strength of this observation. Later paced
 functional smoke tests do not resolve or disprove this failure. Rapid typing
 under load remains a separate compatibility issue to investigate.

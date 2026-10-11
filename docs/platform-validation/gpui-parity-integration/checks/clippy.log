@@ -1,9 +1,9 @@
-    Checking zgui v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui)
-    Checking zgui-gpu v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-gpu)
-    Checking zgui-workload v0.1.0 (/home/ubuntu/GitHub/zgui/comparisons/workload)
-    Checking zgui-desktop v0.1.0 (/home/ubuntu/GitHub/zgui/crates/zgui-desktop)
+    Checking lumine v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine)
+    Checking lumine-gpu v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-gpu)
+    Checking lumine-workload v0.1.0 (/home/ubuntu/GitHub/lumine/comparisons/workload)
+    Checking lumine-desktop v0.1.0 (/home/ubuntu/GitHub/lumine/crates/lumine-desktop)
 error: a `Vec` of `Range` that is only one element
-   --> crates/zgui/src/rich_text.rs:237:13
+   --> crates/lumine/src/rich_text.rs:237:13
     |
 237 |             vec![0..2],
     |             ^^^^^^^^^^
@@ -22,4 +22,4 @@ help: if you wanted a `Vec` of len 2, try
 237 +             vec![0; 2],
     |
 
-error: could not compile `zgui` (lib test) due to 1 previous error
+error: could not compile `lumine` (lib test) due to 1 previous error

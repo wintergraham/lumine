@@ -1,5 +1,5 @@
 {
   "script_sha256": "1dd15cb438a7feecb9a4808d1eac2c87d187a732ae127c82c4d0495b18ba9094",
   "binary_sha256": "8d9afd4f6f4d41b53ae4fbe22d482c38fefa50f23f533e8b9682b53b69799bcc",
-  "command": "LD_LIBRARY_PATH=/tmp/zgui-ci-loader-check/build/loader /usr/bin/python3 scripts/wayland_ime_burst_probe.py /tmp/zgui-target/debug/examples/wayland_ime_probe --output /tmp/zgui-wayland-ime-burst-probe-final"
+  "command": "LD_LIBRARY_PATH=/tmp/lumine-ci-loader-check/build/loader /usr/bin/python3 scripts/wayland_ime_burst_probe.py /tmp/lumine-target/debug/examples/wayland_ime_probe --output /tmp/lumine-wayland-ime-burst-probe-final"
 }

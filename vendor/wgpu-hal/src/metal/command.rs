@@ -154,7 +154,7 @@ impl super::CommandEncoder {
         self.raw_cmd_buf.as_deref()
     }
 
-    /// zgui patch: the Metal command buffer, created on first use.
+    /// lumine patch: the Metal command buffer, created on first use.
     fn command_buffer(&mut self) -> Retained<ProtocolObject<dyn MTLCommandBuffer>> {
         if let Some(raw) = &self.raw_cmd_buf {
             return raw.clone();
@@ -181,7 +181,7 @@ impl super::CommandEncoder {
         raw
     }
 
-    /// zgui patch: encode a buffer fill or copy without a blit encoder (see
+    /// lumine patch: encode a buffer fill or copy without a blit encoder (see
     /// `buffer_writes`). Returns false, recording nothing, when it cannot.
     fn write_buffer_words(
         &mut self,
@@ -532,7 +532,7 @@ impl crate::CommandEncoder for super::CommandEncoder {
             );
             return Err(crate::DeviceError::Lost);
         }
-        // zgui patch: reserve atomically before lazy allocation. Otherwise many
+        // lumine patch: reserve atomically before lazy allocation. Otherwise many
         // empty encoders could pass this guard and later exhaust Metal together.
         self.raw_cmd_buf = None;
         self.pending_label = Some(label.map(str::to_owned));

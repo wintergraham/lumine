@@ -1,13 +1,13 @@
 # Motion
 
-`zgui::motion` animates retained scalar signals. Every value using the same
+`lumine::motion` animates retained scalar signals. Every value using the same
 `FrameClock` and reactive `Runtime` shares one parked task. Only active values
 are sampled, and all writes are batched before reactive styles run. A clock
 shared across different runtimes gets a separate driver for each runtime.
 
 ```rust,no_run
 use std::time::Duration;
-use zgui::compose::prelude::*;
+use lumine::compose::prelude::*;
 
 let view = component(|cx| {
     let value = cx.motion_value(0.0);
@@ -68,7 +68,7 @@ Create `Presence` in the parent that owns the conditional region:
 
 ```rust,no_run
 use std::time::Duration;
-use zgui::compose::prelude::*;
+use lumine::compose::prelude::*;
 
 let view = component(|cx| {
     let presence = Presence::new(cx, true);
@@ -114,7 +114,7 @@ rotation and nonuniform scale. Method call order changes property precedence
 rather than matrix order. The same methods work on reactive `Styles`:
 
 ```rust,no_run
-use zgui::compose::prelude::*;
+use lumine::compose::prelude::*;
 let view = component(|cx| {
     let hover = cx.motion_value(0.0);
     let progress = hover.signal();
@@ -134,21 +134,21 @@ subtree transform. `Scene::layout_bounds` reads allocation; `Scene::bounds`
 reads transformed world coverage. Literal matrices remain available through
 `Scene::set_paint_transform`, independently of layout projection.
 
-Run correctness checks with `cargo test -p zgui motion`. The ignored release
+Run correctness checks with `cargo test -p lumine motion`. The ignored release
 benchmark reports scheduling and reactive-consumer cost without claiming GPU
 or end-to-end presentation performance.
 See [measured results and reproduction](motion-performance.md).
 
 ## Continuous shader effects
 
-Use `zgui::effects` for decorative loops. It owns a separate shared task and
+Use `lumine::effects` for decorative loops. It owns a separate shared task and
 window budget; reducing that budget does not interrupt finite Motion transitions.
 The driver sleeps until the next selected effect's sample is due. Different
 cadences share one task without polling every display refresh. Rates round down
 to whole display refreshes and respect the window's frame cap.
 
 ```rust,no_run
-use zgui::{compose::prelude::*, effects::{EffectOptions, EffectScheduler}};
+use lumine::{compose::prelude::*, effects::{EffectOptions, EffectScheduler}};
 
 let view = component(|cx| {
     let scheduler = EffectScheduler::new(cx);
@@ -200,7 +200,7 @@ when applying a scene color or use `.premultiplied()` for linear shader inputs.
 
 ```rust,no_run
 use std::time::Duration;
-use zgui::compose::prelude::*;
+use lumine::compose::prelude::*;
 
 let view = component(|cx| {
     let timeline = Timeline::new(cx);
@@ -268,7 +268,7 @@ to continue from an earlier mount's projected layout rectangle:
 
 ```rust,no_run
 use std::time::Duration;
-use zgui::compose::prelude::*;
+use lumine::compose::prelude::*;
 let view = component(|cx| {
     let scope = SharedLayoutScope::new(cx);
     let expanded = cx.state(false);
@@ -339,11 +339,11 @@ rendered frame's layout nodes, shader dispatches/resource allocations and blur
 passes. CPU motion sample time includes batched reactive consumers; it is not
 GPU time. Existing GPU benchmarks measure shader cost separately.
 
-Run `cargo run -p zgui-desktop --example motion` for coordinated translation,
+Run `cargo run -p lumine-desktop --example motion` for coordinated translation,
 opacity, backdrop blur and a persistent dither shader, playback controls,
 interruptible grouped exits, drag/snap, measured scrolling, layout projection
 and inspector snapshots. The shader has a lazy matching CPU fallback.
 
-Run regressions with `cargo test -p zgui motion --lib`. Measure typed timeline
-sampling with `cargo test -p zgui --release compiled_timeline_release_benchmark
+Run regressions with `cargo test -p lumine motion --lib`. Measure typed timeline
+sampling with `cargo test -p lumine --release compiled_timeline_release_benchmark
 --lib -- --ignored --nocapture`.

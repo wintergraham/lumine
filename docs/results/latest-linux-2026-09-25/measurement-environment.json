@@ -1,12 +1,12 @@
 {
   "DISPLAY": ":0",
   "WAYLAND_DISPLAY": null,
-  "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader",
+  "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader",
   "VK_ICD_FILENAMES": "/usr/share/vulkan/icd.d/lvp_icd.json",
   "LIBGL_ALWAYS_SOFTWARE": "1",
   "WINIT_UNIX_BACKEND": "x11",
   "WGPU_BACKEND": "vulkan",
-  "ZGUI_RENDERER": null,
-  "ZGUI_EFFECTS": null,
+  "LUMINE_RENDERER": null,
+  "LUMINE_EFFECTS": null,
   "LP_NUM_THREADS": "4"
 }

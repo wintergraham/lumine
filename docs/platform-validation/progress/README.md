@@ -2,8 +2,8 @@ Native declarative progress validation
 =====================================
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p zgui-desktop --example progress
-python3 scripts/progress_smoke.py /tmp/zgui-target/debug/examples/progress --output docs/platform-validation/progress
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p lumine-desktop --example progress
+python3 scripts/progress_smoke.py /tmp/lumine-target/debug/examples/progress --output docs/platform-validation/progress
 ```
 
 The script owns its Xvfb/Openbox session. It drives the example's state button

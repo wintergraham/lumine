@@ -1,12 +1,12 @@
 {
   "DISPLAY": ":140",
   "WINIT_UNIX_BACKEND": "x11",
-  "LD_LIBRARY_PATH": "/tmp/zgui-ci-loader-check/build/loader",
+  "LD_LIBRARY_PATH": "/tmp/lumine-ci-loader-check/build/loader",
   "VK_ICD_FILENAMES": "/usr/share/vulkan/icd.d/lvp_icd.json",
   "LIBGL_ALWAYS_SOFTWARE": "1",
   "WGPU_BACKEND": "vulkan",
   "LP_NUM_THREADS": "4",
-  "ZGUI_MODE": "idle",
-  "ZGUI_SECONDS": "3",
-  "ZGUI_INITIAL_TICKS": "180"
+  "LUMINE_MODE": "idle",
+  "LUMINE_SECONDS": "3",
+  "LUMINE_INITIAL_TICKS": "180"
 }

@@ -16,11 +16,11 @@ log and screenshot are from the fixed host. The independently archived failing
 run is in `../live-dpi-pointer-before`.
 
 ```sh
-CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 \
-  cargo build -p zgui-desktop --example live_dpi_pointer --offline
-LD_LIBRARY_PATH=/tmp/zgui-ci-loader-check/build/loader \
+CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 \
+  cargo build -p lumine-desktop --example live_dpi_pointer --offline
+LD_LIBRARY_PATH=/tmp/lumine-ci-loader-check/build/loader \
   python3 scripts/live_dpi_pointer_smoke.py \
-  /tmp/zgui-target/debug/examples/live_dpi_pointer \
+  /tmp/lumine-target/debug/examples/live_dpi_pointer \
   --output docs/platform-validation/live-dpi-pointer
 ```
 

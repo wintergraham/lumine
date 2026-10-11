@@ -2,8 +2,8 @@ Native component menu validation
 ================================
 
 ```sh
-CARGO_TARGET_DIR=/tmp/zgui-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p zgui-desktop --example menus
-python3 scripts/menus_smoke.py /tmp/zgui-target/debug/examples/menus --output docs/platform-validation/menus
+CARGO_TARGET_DIR=/tmp/lumine-target CARGO_PROFILE_DEV_DEBUG=0 cargo build -p lumine-desktop --example menus
+python3 scripts/menus_smoke.py /tmp/lumine-target/debug/examples/menus --output docs/platform-validation/menus
 ```
 
 The example uses component children, fluent styles, a signal-controlled menu,
@@ -15,7 +15,7 @@ semantic labels. Callback logs verify that open is already false when selection
 handlers run. The disabled item must never activate.
 
 The recorded run used the isolated Vulkan Loader 1.4.345 at
-`/tmp/zgui-ci-loader-check/build/loader`, with default wgpu debug/validation flags preserved. The Khronos Vulkan
+`/tmp/lumine-ci-loader-check/build/loader`, with default wgpu debug/validation flags preserved. The Khronos Vulkan
 validation layer was not installed.
 Stage 3 was visually inspected: Middle is focused and Unavailable is muted.
 
