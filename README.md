@@ -1,4 +1,4 @@
-# lumine
+# Lumine
 
 A retained Rust GUI framework for **Linux, macOS and Windows**, focused on fine-grained updates, bounded rendering resources, and low idle CPU usage. It has a platform-independent core, a wgpu renderer, and a desktop host with native input, clipboard, IME, accessibility, and multiple windows.
 
