@@ -2,7 +2,7 @@
 
 Lumine is a retained native UI engine written in Rust. It combines reactive components, GPU rendering, native desktop integration and a built-in motion system for Linux, macOS and Windows.
 
-Lumine is an independent fork of [zgui](https://github.com/senxd/zgui) and powers the native interface in [Ask](https://github.com/wintergraham/ask). Ask is its first application. The engine has its own workspace, examples and validation tools, and can run independently of Ask.
+Lumine is an independent fork of [zgui](https://github.com/senxd/zgui) and powers the native interface in [Ask](https://thisisask.com). Ask is its first application. The engine has its own workspace, examples and validation tools, and can run independently of Ask.
 
 Components mount once. Signals update their retained targets, while the engine tracks layout, paint and composition work separately. Rendering resources are bounded, and idle motion schedules no frames.
 
