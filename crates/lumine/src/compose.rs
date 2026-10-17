@@ -2614,6 +2614,9 @@ fn mount_scroll(
         let mut content_style = scene.style(content);
         content_style.width = (!horizontal && !fit_cross_axis).then_some(width);
         content_style.height = (horizontal && !fit_cross_axis).then_some(height);
+        if horizontal {
+            content_style.min_width = Some(width);
+        }
         content_style.flex_shrink = 0.;
         scene.set_style(content, content_style);
         scene.set_transform(content, translation(position));

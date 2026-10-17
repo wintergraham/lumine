@@ -217,9 +217,7 @@ impl Styles {
                 options.gap_x = None;
                 options.gap_y = None;
             }
-            if other.pointer_events.is_some() { self.pointer_events = other.pointer_events; }
-        if other.clip_insets.is_some() { self.clip_insets = other.clip_insets; }
-        if other.clip.is_some() {
+            if other.clip.is_some() {
                 options.clip_x = None;
                 options.clip_y = None;
             }
@@ -238,6 +236,12 @@ impl Styles {
             if other.layout.is_some() {
                 options.reverse = None;
             }
+        }
+        if other.pointer_events.is_some() {
+            self.pointer_events = other.pointer_events;
+        }
+        if other.clip_insets.is_some() {
+            self.clip_insets = other.clip_insets;
         }
         if let Some(options) = &other.layout_options {
             if let Some(current) = &self.layout_options {

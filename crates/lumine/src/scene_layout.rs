@@ -498,6 +498,60 @@ impl Scene {
                 mapped.size.height = dim(Length::Px(natural.1 + padding.top + padding.bottom));
             }
         }
+        // Taffy floors negative intrinsic flex contributions, adding back a gap
+        // that a clipped reveal has cancelled with its trailing margin.
+        let has_negative_margin = ids.iter().any(|child| {
+            let style = &self.node(*child).style;
+            let options = style.layout_options.as_deref().copied().unwrap_or_default();
+            let negative = |value: Option<Length>, fallback: f32| match value {
+                Some(Length::Px(value) | Length::Percent(value)) => value < 0.,
+                Some(Length::Auto) => false,
+                None => fallback < 0.,
+            };
+            !style.absolute && options.display != Some(ViewDisplay::None)
+                && (negative(options.margin.top, style.margin.top)
+                    || negative(options.margin.bottom, style.margin.bottom))
+        });
+        if has_negative_margin && layout == Layout::Column && mapped.size.height.is_auto()
+            && root_options.display != Some(ViewDisplay::Grid)
+            && root_options.wrap.unwrap_or_default() == ViewWrap::NoWrap
+            && matches!(root_options.gap_y, None | Some(Length::Px(_)))
+            && !ids.iter().any(|child| {
+                let style = &self.node(*child).style;
+                !style.absolute && style.flex_grow > 0.
+            })
+        {
+            let padding = self.resolved_padding(id, constraints);
+            let width = constraints.force_width.or(root_style.width)
+                .or_else(|| percentage(root_style.width_percent, constraints.percent_width))
+                .or(constraints.width)
+                .map(|w| (w - padding.left - padding.right).max(0.));
+            let mut total = 0.;
+            let mut count = 0usize;
+            let mut cancelled = false;
+            for child in &ids {
+                let style = self.node(*child).style.clone();
+                let options = style.layout_options.as_deref().copied().unwrap_or_default();
+                if style.absolute || options.display == Some(ViewDisplay::None) { continue; }
+                let px = |value: Option<Length>, fallback: f32| match value {
+                    Some(Length::Px(value)) => value,
+                    Some(Length::Percent(value)) => width.unwrap_or(0.) * value,
+                    Some(Length::Auto) => 0.,
+                    None => fallback,
+                };
+                let top = px(options.margin.top, style.margin.top);
+                let bottom = px(options.margin.bottom, style.margin.bottom);
+                let size = self.measure(*child, Constraints { width, percent_width: width, ..Default::default() });
+                let contribution = size.1 + top + bottom;
+                cancelled |= contribution < 0.;
+                total += contribution;
+                count += 1;
+            }
+            if cancelled {
+                let gap = match root_options.gap_y { Some(Length::Px(value)) => value, _ => root_style.gap };
+                mapped.size.height = dim(Length::Px(total + gap * count.saturating_sub(1) as f32 + padding.top + padding.bottom));
+            }
+        }
         if cache.tree.style(root).expect("retained root style") != &mapped {
             cache
                 .tree
