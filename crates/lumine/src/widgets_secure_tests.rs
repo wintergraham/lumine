@@ -60,7 +60,11 @@ fn secure_paint_shaping_measurement_and_cache_never_receive_source_text() {
     editor.set_secure(true);
     assert_eq!(paint_text(&ui, &editor), "••••");
     assert_eq!(editor.measure_text(None), (24., 14.));
-    assert!(shaped.borrow().iter().all(|text| text == "••••"));
+    assert!(
+        shaped.borrow().iter().all(|text| text == "••••"),
+        "secure transition shaped source text: {:?}",
+        shaped.borrow().as_slice(),
+    );
     assert_eq!(editor.value.get(), source);
     let first = ui
         .storage
@@ -107,6 +111,7 @@ fn secure_paint_shaping_measurement_and_cache_never_receive_source_text() {
 
 #[test]
 fn masked_layout_maps_unicode_hits_carets_selections_and_visual_affinity() {
+    let mut hit_affinities = [false; 2];
     for source in ["", "a👩‍💻e\u{301}z", "🇬🇧👍🏽אב\r\n👨‍👩‍👧‍👦"]
     {
         let masked = MaskedText::new(source);
@@ -161,7 +166,15 @@ fn masked_layout_maps_unicode_hits_carets_selections_and_visual_affinity() {
                 assert_eq!(layout.hit_test(caret.x + 1., caret.y + 1.), offset);
                 let hit = layout.hit_position(caret.x + 5., caret.y + 1.);
                 assert_eq!(hit.byte_offset, end);
-                assert_eq!(hit.affinity, TextAffinity::Before);
+                let expected_hit = expected.hit_position(caret.x + 5., caret.y + 1.);
+                hit_affinities[usize::from(expected_hit.affinity == TextAffinity::After)] = true;
+                assert_eq!(
+                    hit,
+                    TextPosition {
+                        byte_offset: masked.source_offset(expected_hit.byte_offset),
+                        ..expected_hit
+                    }
+                );
                 let selection = expected.selection(index * 3..(index + 1) * 3);
                 assert_eq!(layout.selection(offset..end), selection);
                 assert_eq!(layout.selection(end..offset), selection);
@@ -173,6 +186,87 @@ fn masked_layout_maps_unicode_hits_carets_selections_and_visual_affinity() {
         }
         assert!(layout.selection(source.len()..source.len()).is_empty());
         assert_eq!(layout.hit_test(f32::MAX, f32::MAX), source.len());
+    }
+    assert_eq!(
+        hit_affinities,
+        [true, true],
+        "exercise both native affinities"
+    );
+}
+
+#[test]
+fn atomic_redaction_never_measures_old_text_after_shaper_revision_changes() {
+    let source = "a👩‍💻e\u{301}z";
+    let color = Color(255, 255, 255, 255);
+    for rich in [false, true] {
+        let mut scene = Scene::new(120., 40.);
+        let kind = if rich {
+            NodeKind::RichText {
+                text: std::sync::Arc::new(
+                    crate::rich_text::RichText::new(
+                        source,
+                        vec![crate::rich_text::TextRun {
+                            range: 0..source.len(),
+                            font_size: 10.,
+                            color,
+                            ..Default::default()
+                        }],
+                    )
+                    .unwrap(),
+                ),
+            }
+        } else {
+            NodeKind::Text {
+                text: source.into(),
+                font_size: 10.,
+                color,
+            }
+        };
+        let node = scene.append(scene.root(), kind, fixed(90., 20.));
+        scene.set_isolated(node, true);
+        scene.flush();
+        let shaped = Rc::new(RefCell::new(Vec::new()));
+        let plain_calls = shaped.clone();
+        scene.set_font_text_shaper(
+            move |text: &str, size, width, font: &FontStyle| -> Box<dyn TextLayout> {
+                plain_calls.borrow_mut().push(text.to_owned());
+                Box::new(FallbackTextLayout::with_font(text, size, width, font))
+            },
+        );
+        let rich_calls = shaped.clone();
+        scene.set_rich_text_measurer(move |text, width| {
+            rich_calls.borrow_mut().push(text.text().to_owned());
+            FallbackTextLayout::with_rich(text, width).size()
+        });
+        let layout_revision = scene.layout_revision();
+        let paint_revision = scene.paint_revision(node);
+        let layer_revision = scene.layer_revision(node);
+        let masked = NodeKind::Text {
+            text: "••••".into(),
+            font_size: 10.,
+            color,
+        };
+        scene.redact_text(node, masked.clone());
+        assert_eq!(scene.kind(node), &masked);
+        assert!(
+            shaped.borrow().is_empty(),
+            "redaction measured the old source: {:?}",
+            shaped.borrow()
+        );
+        assert!(scene.paint_revision(node) > paint_revision);
+        assert!(scene.layer_revision(node) > layer_revision);
+        let report = scene.flush();
+        assert!(scene.layout_revision() > layout_revision);
+        assert!(report.damage.contains(&Rect::new(0., 0., 120., 40.)));
+        assert!(
+            !shaped.borrow().is_empty(),
+            "new masked text must be laid out"
+        );
+        assert!(
+            shaped.borrow().iter().all(|text| text == "••••"),
+            "layout retained source: {:?}",
+            shaped.borrow()
+        );
     }
 }
 

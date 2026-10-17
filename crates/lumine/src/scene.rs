@@ -1238,6 +1238,29 @@ impl Scene {
             self.invalidate_layout(id);
         }
     }
+    /// Redact an editor's Text/RichText before any old-ink measurement can shape
+    /// its source. Repaint the viewport once because old glyph coverage is unknown.
+    pub(crate) fn redact_text(&mut self, id: NodeId, kind: NodeKind) {
+        assert!(
+            matches!(kind, NodeKind::Text { .. }),
+            "redaction requires masked Text"
+        );
+        assert!(
+            matches!(
+                self.node(id).kind,
+                NodeKind::Text { .. } | NodeKind::RichText { .. }
+            ),
+            "redaction requires a Text or RichText source"
+        );
+        let kind_changed = matches!(self.node(id).kind, NodeKind::RichText { .. });
+        self.node_mut(id).kind = kind;
+        if kind_changed {
+            self.content_revision = self.content_revision.wrapping_add(1);
+        }
+        self.invalidate(id, PAINT);
+        self.invalidate_layout(id);
+        self.add_damage(self.viewport);
+    }
     pub fn append(&mut self, parent: NodeId, kind: NodeKind, mut style: Style) -> NodeId {
         self.content_revision = self.content_revision.wrapping_add(1);
         self.tree_revision = self.tree_revision.wrapping_add(1);

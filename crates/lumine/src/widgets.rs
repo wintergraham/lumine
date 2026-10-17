@@ -1865,6 +1865,7 @@ impl Ui {
         let draw_secure = secure.clone();
         let gesture = Rc::new(EditorDrag::default());
         let draw_gesture = gesture.clone();
+        let painted_secure = Cell::new(false);
         let refresh: Rc<dyn Fn()> = Rc::new(move || {
             let e = edit.borrow();
             let selection = e.selection();
@@ -1887,7 +1888,7 @@ impl Ui {
                 return;
             }
             let (color, size, font) = draw_typography.borrow().clone();
-            // Replace source paint before layout can measure the previous visible text.
+            // Ordinary set_kind measures old ink before replacing the source.
             if let Some(masked) = &masked {
                 let paint_text = match s.kind(text) {
                     NodeKind::Text { text, .. } if text.as_ref() == masked.text.as_str() => {
@@ -1895,15 +1896,18 @@ impl Ui {
                     }
                     _ => std::sync::Arc::from(masked.text.as_str()),
                 };
-                s.set_kind(
-                    text,
-                    NodeKind::Text {
-                        text: paint_text,
-                        color,
-                        font_size: size,
-                    },
-                );
+                let kind = NodeKind::Text {
+                    text: paint_text,
+                    color,
+                    font_size: size,
+                };
+                if painted_secure.get() {
+                    s.set_kind(text, kind);
+                } else {
+                    s.redact_text(text, kind);
+                }
                 s.set_font(text, font.clone());
+                painted_secure.set(true);
             }
             s.prepare_layout();
             let bounds = s.layout_bounds(root);
@@ -1961,6 +1965,7 @@ impl Ui {
                     },
                 );
                 s.set_font(text, font.clone());
+                painted_secure.set(false);
             }
             s.set_kind(caret, NodeKind::Rect(color));
             let wrap_width = draw_wrap.get().then_some(inner_width.max(1.));
