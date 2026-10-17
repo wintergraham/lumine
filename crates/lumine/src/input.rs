@@ -170,11 +170,16 @@ pub struct EventContext {
     capture: Option<Option<NodeId>>,
     pointer_modifiers: Modifiers,
     click_count: u8,
+    keyboard_code: Option<String>,
     drag_request: Option<DragRequest>,
     drag_accepted: Option<NodeId>,
     scene: Weak<RefCell<Scene>>,
 }
 impl EventContext {
+    /// Physical DOM key code supplied by the platform for this keyboard event.
+    pub fn keyboard_code(&self) -> Option<&str> {
+        self.keyboard_code.as_deref()
+    }
     /// Pointer position in the listener's parent's layout coordinates. Excludes
     /// the listener's own animated translation, so dragging cannot feed back.
     pub fn pointer_in_parent(&self, x: f32, y: f32) -> Option<(f32, f32)> {
@@ -328,6 +333,7 @@ impl ClickTracker {
 }
 #[derive(Default)]
 struct State {
+    keyboard_code: Option<String>,
     entries: HashMap<NodeId, Vec<Entry>>,
     options: HashMap<NodeId, NodeInput>,
     pointer_transparent: std::collections::HashSet<NodeId>,
@@ -407,6 +413,28 @@ pub struct DispatchResult {
     pub focus_changed: bool,
 }
 impl InputDispatcher {
+    /// Scope platform key identity to a dispatch without changing logical key handling.
+    pub fn with_keyboard_code<T>(
+        &self,
+        code: impl Into<String>,
+        dispatch: impl FnOnce() -> T,
+    ) -> T {
+        struct Restore {
+            input: InputDispatcher,
+            previous: Option<String>,
+        }
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                self.input.state.borrow_mut().keyboard_code = self.previous.take();
+            }
+        }
+        let previous = self.state.borrow_mut().keyboard_code.replace(code.into());
+        let _restore = Restore {
+            input: self.clone(),
+            previous,
+        };
+        dispatch()
+    }
     pub fn new() -> Self {
         Self::default()
     }
@@ -981,6 +1009,12 @@ impl InputDispatcher {
                 id = parent;
             }
         }
+        let keyboard_code =
+            if matches!(event, InputEvent::KeyDown { .. } | InputEvent::KeyUp { .. }) {
+                self.state.borrow().keyboard_code.clone()
+            } else {
+                None
+            };
         let mut ctx = EventContext {
             event,
             target,
@@ -993,6 +1027,7 @@ impl InputDispatcher {
             capture: None,
             pointer_modifiers,
             click_count,
+            keyboard_code,
             drag_request: None,
             drag_accepted: None,
             scene: Rc::downgrade(scene),

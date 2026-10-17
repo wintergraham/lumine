@@ -480,3 +480,47 @@ fn menu_radio_and_checkbox_roles_participate_in_keyboard_navigation() {
         "a multi-select option owns its dismissal policy"
     );
 }
+
+#[test]
+fn physical_keyboard_code_is_scoped_and_independent_of_logical_layout() {
+    use std::cell::RefCell;
+    let mut ui = Ui::new(300., 100.);
+    let observed = Rc::new(RefCell::new(Vec::new()));
+    let recorded = observed.clone();
+    let root_id = ui.root();
+    let _listener = ui.input.listen(root_id, move |event| {
+        if matches!(event.event, InputEvent::KeyDown { .. }) {
+            recorded
+                .borrow_mut()
+                .push(event.keyboard_code().map(str::to_owned));
+        }
+    });
+    let input = ui.input.clone();
+    let key = || InputEvent::KeyDown {
+        key: Key::Character("a".into()),
+        modifiers: Modifiers::default(),
+        repeat: false,
+    };
+    input.with_keyboard_code("KeyQ", || {
+        ui.dispatch(key());
+        input.with_keyboard_code("KeyA", || {
+            ui.dispatch(key());
+        });
+        ui.dispatch(key());
+    });
+    ui.dispatch(key());
+    assert_eq!(
+        &*observed.borrow(),
+        &[
+            Some("KeyQ".into()),
+            Some("KeyA".into()),
+            Some("KeyQ".into()),
+            None
+        ]
+    );
+    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        input.with_keyboard_code("KeyZ", || panic!("interrupted platform dispatch"));
+    }));
+    ui.dispatch(key());
+    assert_eq!(observed.borrow().last(), Some(&None));
+}

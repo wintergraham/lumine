@@ -17,7 +17,7 @@ use winit::{
     dpi::{LogicalPosition, LogicalSize, PhysicalSize},
     event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy},
-    keyboard::{Key as WKey, NamedKey},
+    keyboard::{Key as WKey, NamedKey, PhysicalKey},
     raw_window_handle::{HasDisplayHandle, RawDisplayHandle},
     window::{CursorIcon, Window, WindowId},
 };
@@ -1762,19 +1762,25 @@ impl Host {
                 if let Some(key) = key
                     && !self.ime_active
                 {
+                    let input = self.context.ui.input.clone();
+                    let code = physical_key_code(&event.physical_key);
                     if event.state == ElementState::Pressed {
-                        prevented = self.dispatch_prevented(InputEvent::KeyDown {
-                            key: key.clone(),
-                            modifiers: self.modifiers,
-                            repeat: event.repeat,
+                        prevented = input.with_keyboard_code(code, || {
+                            self.dispatch_prevented(InputEvent::KeyDown {
+                                key: key.clone(),
+                                modifiers: self.modifiers,
+                                repeat: event.repeat,
+                            })
                         })?;
                         if !prevented {
                             prevented = self.clipboard_key(&key);
                         }
                     } else {
-                        self.dispatch(InputEvent::KeyUp {
-                            key,
-                            modifiers: self.modifiers,
+                        input.with_keyboard_code(code, || {
+                            self.dispatch(InputEvent::KeyUp {
+                                key,
+                                modifiers: self.modifiers,
+                            })
                         })?;
                     }
                 }
@@ -2466,6 +2472,15 @@ impl ApplicationHandler<Event> for WindowManager {
         });
     }
 }
+fn physical_key_code(key: &PhysicalKey) -> String {
+    match key {
+        PhysicalKey::Code(winit::keyboard::KeyCode::SuperLeft) => "MetaLeft".into(),
+        PhysicalKey::Code(winit::keyboard::KeyCode::SuperRight) => "MetaRight".into(),
+        PhysicalKey::Code(code) => format!("{code:?}"),
+        PhysicalKey::Unidentified(_) => "Unidentified".into(),
+    }
+}
+
 fn map_key(key: &WKey) -> Option<Key> {
     Some(match key {
         WKey::Character(k) if k.as_str() == " " => Key::Space,
