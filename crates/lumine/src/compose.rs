@@ -1156,25 +1156,7 @@ pub fn virtual_list<K: Eq + std::hash::Hash + Clone + 'static>(
                 )
             });
             let wheel_offset = offset.clone();
-            let fades=fade_band.map(|(band,duration)| {
-        let mut cx=Context::new(ui.runtime.clone(),environment.clone());
-        let left=crate::motion::MotionValue::new(&mut cx,0.);let right=crate::motion::MotionValue::new(&mut cx,0.);
-        let l=left.clone();let r=right.clone();let read_offset=offset.clone();let read_extent=extent.clone();let read_size=size.clone();
-        let mut previous=(false,false);
-        cx.retain(cx.runtime().effect(move || {
-            let limit = (main_size(read_extent.get())
-                - main_size(read_size.get()))
-            .max(0.);
-            let at=read_offset.get().clamp(0.,limit);let next=(at>1.,limit-at>1.);
-            let transition=crate::motion::Transition::tween(duration(),crate::motion::Easing::cubic_bezier(0.,0.,0.58,1.));
-            if next.0!=previous.0 {l.animate_to(if next.0 {band}else{0.},transition);}
-            if next.1!=previous.1 {r.animate_to(if next.1 {band}else{0.},transition);}
-            previous=next;
-        }));
-        cx.finish(ui,root);
-        (left,right)
-    });
-    let wheel_size = size.clone();
+            let wheel_size = size.clone();
             let wheel_extent = extent.clone();
             ui.on_event(root, false, move |cx| {
                 if cx.phase == EventPhase::Capture || cx.default_prevented() {
@@ -2522,6 +2504,34 @@ fn mount_scroll(
             horizontal,
         );
     }
+    let fades = fade_band.map(|(band, duration)| {
+        let mut cx = Context::new(ui.runtime.clone(), environment.clone());
+        let start = crate::motion::MotionValue::new(&mut cx, 0.);
+        let end = crate::motion::MotionValue::new(&mut cx, 0.);
+        let read_start = start.clone();
+        let read_end = end.clone();
+        let read_offset = offset.clone();
+        let read_extent = extent.clone();
+        let read_size = size.clone();
+        let mut previous = (false, false);
+        cx.retain(cx.runtime().effect(move || {
+            let limit = (main_size(read_extent.get()) - main_size(read_size.get())).max(0.);
+            let position = read_offset.get().clamp(0., limit);
+            let next = (position > 1., limit - position > 1.);
+            let transition = crate::motion::Transition::tween(
+                duration(), crate::motion::Easing::cubic_bezier(0., 0., 0.58, 1.),
+            );
+            if next.0 != previous.0 {
+                read_start.animate_to(if next.0 { band } else { 0. }, transition);
+            }
+            if next.1 != previous.1 {
+                read_end.animate_to(if next.1 { band } else { 0. }, transition);
+            }
+            previous = next;
+        }));
+        cx.finish(ui, root);
+        (start, end)
+    });
     let wheel_size = size.clone();
     let wheel_extent = extent.clone();
     let wheel_offset = offset.clone();
