@@ -273,7 +273,8 @@ impl AccessibilityTree {
             }
             if matches!(
                 semantic.role,
-                Role::Button | Role::Link | Role::CheckBox | Role::MenuItem | Role::MenuItemCheckbox | Role::MenuItemRadio
+                Role::Button | Role::Link | Role::CheckBox | Role::RadioButton | Role::Switch
+                    | Role::MenuItem | Role::MenuItemCheckbox | Role::MenuItemRadio
             ) {
                 n.add_action(Action::Click);
             }
@@ -289,6 +290,8 @@ impl AccessibilityTree {
                 Role::Button
                     | Role::Link
                     | Role::CheckBox
+                    | Role::RadioButton
+                    | Role::Switch
                     | Role::MenuItem
                     | Role::MenuItemCheckbox
                     | Role::MenuItemRadio
@@ -509,6 +512,9 @@ fn role(r: Role) -> accesskit::Role {
         Role::Button => accesskit::Role::Button,
         Role::Link => accesskit::Role::Link,
         Role::CheckBox => accesskit::Role::CheckBox,
+        Role::RadioGroup => accesskit::Role::RadioGroup,
+        Role::RadioButton => accesskit::Role::RadioButton,
+        Role::Switch => accesskit::Role::Switch,
         Role::Slider => accesskit::Role::Slider,
         Role::TextInput => accesskit::Role::TextInput,
         Role::MultilineTextInput => accesskit::Role::MultilineTextInput,

@@ -2586,7 +2586,8 @@ fn native_cursor(cursor: lumine::cursor::Cursor) -> CursorIcon {
 }
 fn cursor_for_role(role: Option<Role>) -> CursorIcon {
     match role {
-        Some(Role::Button | Role::Link | Role::CheckBox | Role::MenuItem) => CursorIcon::Pointer,
+        Some(Role::Button | Role::Link | Role::CheckBox | Role::RadioButton | Role::Switch
+            | Role::MenuItem | Role::MenuItemCheckbox | Role::MenuItemRadio) => CursorIcon::Pointer,
         Some(Role::TextInput | Role::MultilineTextInput) => CursorIcon::Text,
         Some(Role::Slider) => CursorIcon::EwResize,
         _ => CursorIcon::Default,

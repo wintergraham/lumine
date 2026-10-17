@@ -448,8 +448,8 @@ fn composed_progress_exports_read_only_live_numeric_state() {
 
 #[test]
 fn composed_image_exports_alt_text_and_removes_native_identity() {
-    use std::sync::Arc;
     use lumine::{compose::prelude::*, image::ImageData};
+    use std::sync::Arc;
     let mut ui = Ui::new(400., 100.);
     let pixels = Arc::new(ImageData::new(2, 2, vec![255; 16]).unwrap());
     let mounted = ui.mount(image("Project diagram", pixels).p(4.).size(100., 60.));
@@ -703,11 +703,11 @@ fn overlay_scrollbar_exports_value_actions_orientation_and_hides_without_overflo
 
 #[test]
 fn virtual_keyboard_navigation_exports_offscreen_row_position_with_bounded_work() {
-    use std::{cell::Cell, rc::Rc};
     use lumine::{
         compose::prelude::*,
         input::{Key, Modifiers},
     };
+    use std::{cell::Cell, rc::Rc};
     let mut ui = Ui::new(400., 200.);
     let count = ui.signal(1_000_000usize);
     let read_count = count.clone();
@@ -793,4 +793,55 @@ fn virtual_keyboard_navigation_exports_offscreen_row_position_with_bounded_work(
         1.,
     );
     consumer.update_and_process_changes(update, &mut Changes::default());
+}
+
+#[test]
+fn native_radio_and_switch_roles_preserve_selection_and_actions() {
+    use accesskit::Toggled;
+    use lumine::compose::prelude::*;
+    let mut ui = Ui::new(400., 100.);
+    let root = ui.mount(
+        row()
+            .accessibility(|node| {
+                node.role = Role::RadioGroup;
+                node.label = "Page".into();
+            })
+            .child(button().child(text("Controls")).accessibility(|node| {
+                node.role = Role::RadioButton;
+                node.checked = Some(true);
+            }))
+            .child(button().child(text("Reduce motion")).accessibility(|node| {
+                node.role = Role::Switch;
+                node.checked = Some(false);
+            })),
+    );
+    ui.prepare_frame();
+    let mut adapter = AccessibilityTree::new();
+    let update = adapter.update(
+        &ui.scene.borrow(),
+        &ui.semantics.borrow(),
+        None,
+        "Motion lab",
+        1.,
+    );
+    let find = |label: &str| {
+        &update
+            .nodes
+            .iter()
+            .find(|(_, node)| node.label() == Some(label))
+            .unwrap()
+            .1
+    };
+    assert_eq!(find("Page").role(), NativeRole::RadioGroup);
+    let radio = find("Controls");
+    assert_eq!(radio.role(), NativeRole::RadioButton);
+    assert_eq!(radio.toggled(), Some(Toggled::True));
+    let switch = find("Reduce motion");
+    assert_eq!(switch.role(), NativeRole::Switch);
+    assert_eq!(switch.toggled(), Some(Toggled::False));
+    for node in [radio, switch] {
+        assert!(node.supports_action(Action::Click));
+        assert!(node.supports_action(Action::Focus));
+    }
+    root.unmount();
 }
