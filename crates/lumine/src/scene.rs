@@ -333,6 +333,9 @@ struct Node {
     measurement: Option<Measurement>,
     /// Other recent results under different constraints, most recent first.
     alternates: Vec<Measurement>,
+    /// Size-only Taffy probes must not evict the child geometry used by arrange.
+    intrinsic_sizes: Vec<(Constraints, u64, (f32, f32))>,
+    measure_revision: u64,
     /// Everything this subtree can paint, including its own translation but not
     /// its ancestors'. Rendering skips subtrees whose ink misses the damage.
     /// A valid visible node has only valid descendants, so invalidation stops
@@ -394,14 +397,16 @@ struct Measurement {
     /// later probe (a flex basis, an intrinsic size) can leave a child holding
     /// another result; `arrange` restores this one before placing it.
     child_constraints: Vec<Option<Constraints>>,
-    /// Layout pass that produced this result. A dirty node may reuse only
-    /// results from the pass in progress.
-    pass: u64,
+    /// Subtree source and font-engine revisions, independent of layout probes.
+    revision: (u64, u64),
 }
 /// Flex layout measures a child with its natural, flexed and stretched
 /// constraints in one pass. Keeping a few results lets a clean child answer all
 /// of them instead of re-measuring its whole subtree each time an ancestor lays out.
 const MEASUREMENT_ALTERNATES: usize = 3;
+// Nested flex/grid probes include intrinsic, definite and percentage bases.
+// Store only sizes here so retaining more probes does not multiply child geometry.
+const INTRINSIC_MEASUREMENTS: usize = 64;
 fn dimension(value: f32, min: Option<f32>, max: Option<f32>) -> f32 {
     value
         .max(0.0)
@@ -556,7 +561,8 @@ pub struct Scene {
     text_shaper_revision: u64,
     pending_layout_nodes: usize,
     layout_revision: u64,
-    layout_pass: u64,
+    #[cfg(test)]
+    measure_calls: usize,
     content_revision: u64,
     /// Dirty fixed-size containers whose ancestors stayed clean.
     layout_roots: Vec<NodeId>,
@@ -617,6 +623,8 @@ impl Scene {
                     queued: true,
                     measurement: None,
                     alternates: Vec::new(),
+                    intrinsic_sizes: Vec::new(),
+                    measure_revision: 0,
                     ink: std::cell::Cell::new(None),
                     ink_valid: std::cell::Cell::new(false),
                     text_size: TextSizes::default(),
@@ -651,7 +659,8 @@ impl Scene {
             text_shaper_revision: 0,
             pending_layout_nodes: 0,
             layout_revision: 0,
-            layout_pass: 0,
+            #[cfg(test)]
+            measure_calls: 0,
             content_revision: 0,
             layout_roots: Vec::new(),
             geometry_revision: 0,
@@ -1288,6 +1297,8 @@ impl Scene {
             queued: true,
             measurement: None,
             alternates: Vec::new(),
+            intrinsic_sizes: Vec::new(),
+            measure_revision: 0,
             ink: std::cell::Cell::new(None),
             ink_valid: std::cell::Cell::new(false),
             text_size: TextSizes::default(),
@@ -1584,6 +1595,8 @@ impl Scene {
         node.dirty |= flags;
         if flags & LAYOUT != 0 {
             node.text_size = TextSizes::default();
+            node.intrinsic_sizes.clear();
+            node.measure_revision = node.measure_revision.wrapping_add(1);
         }
         if !node.queued {
             node.queued = true;
@@ -1931,13 +1944,39 @@ impl Scene {
             self.add_damage(bounds);
         }
     }
+    /// Intrinsic probes consume only a size. Keep them separate from the few
+    /// complete measurements that must restore descendant geometry for arrange.
+    fn measure_intrinsic(&mut self, id: NodeId, constraints: Constraints) -> (f32, f32) {
+        let revision = self.text_shaper_revision;
+        if let Some(index) = self
+            .node(id)
+            .intrinsic_sizes
+            .iter()
+            .position(|(cached, shaper, _)| *cached == constraints && *shaper == revision)
+        {
+            let sizes = &mut self.node_mut(id).intrinsic_sizes;
+            let hit = sizes.remove(index);
+            let size = hit.2;
+            sizes.insert(0, hit);
+            return size;
+        }
+        let size = self.measure(id, constraints);
+        let sizes = &mut self.node_mut(id).intrinsic_sizes;
+        sizes.truncate(INTRINSIC_MEASUREMENTS - 1);
+        sizes.insert(0, (constraints, revision, size));
+        size
+    }
     fn measure(&mut self, id: NodeId, mut constraints: Constraints) -> (f32, f32) {
+        #[cfg(test)]
+        {
+            self.measure_calls += 1;
+        }
         let node = self.node(id);
         constraints.hidden |= node.style.layout_options.as_deref()
             .is_some_and(|options| options.display == Some(crate::layout::Display::None));
-        let pass = self.layout_pass;
         let usable = |m: &Measurement| {
-            m.constraints == constraints && (node.dirty & LAYOUT == 0 || m.pass == pass)
+            m.constraints == constraints
+                && m.revision == (node.measure_revision, self.text_shaper_revision)
         };
         if let Some(current) = &node.measurement
             && usable(current)
@@ -2376,7 +2415,6 @@ impl Scene {
         size: (f32, f32),
         children: Vec<(NodeId, Rect)>,
     ) {
-        let pass = self.layout_pass;
         let child_constraints = children
             .iter()
             .map(|(child, _)| {
@@ -2386,14 +2424,15 @@ impl Scene {
                     .map(|m| m.constraints)
             })
             .collect();
+        let shaper_revision = self.text_shaper_revision;
         let node = self.node_mut(id);
-        let dirty = node.dirty & LAYOUT != 0;
+        let revision = (node.measure_revision, shaper_revision);
         if let Some(previous) = node.measurement.take() {
             node.alternates.insert(0, previous);
         }
         // Results from before a node changed are stale.
         node.alternates
-            .retain(|m| m.constraints != constraints && (!dirty || m.pass == pass));
+            .retain(|m| m.constraints != constraints && m.revision == revision);
         node.alternates.truncate(MEASUREMENT_ALTERNATES);
         node.arrange_dirty = true;
         node.measurement = Some(Measurement {
@@ -2401,7 +2440,7 @@ impl Scene {
             size,
             children,
             child_constraints,
-            pass,
+            revision,
         });
     }
     /// `covered`: an ancestor moved and already damaged this whole subtree at
@@ -2451,7 +2490,6 @@ impl Scene {
         if self.node(self.root).dirty & LAYOUT == 0 && self.layout_roots.is_empty() {
             return;
         }
-        self.layout_pass = self.layout_pass.wrapping_add(1);
         let mut report = FrameReport::default();
         if self.node(self.root).dirty & LAYOUT != 0 {
             self.measure(self.root, Constraints::default());

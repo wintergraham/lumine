@@ -9,8 +9,9 @@ use taffy::{
 pub(super) struct AdvancedLayoutCache {
     tree: t::TaffyTree<NodeId>,
     root: t::NodeId,
-    nodes: std::collections::HashMap<NodeId, t::NodeId>,
+    nodes: std::collections::HashMap<NodeId, (t::NodeId, u64)>,
     order: Vec<NodeId>,
+    measure_context: (Option<f32>, Option<f32>, u64),
 }
 impl AdvancedLayoutCache {
     fn new() -> Self {
@@ -24,6 +25,7 @@ impl AdvancedLayoutCache {
             root,
             nodes: Default::default(),
             order: Vec::new(),
+            measure_context: (None, None, 0),
         }
     }
 }
@@ -388,7 +390,7 @@ impl Scene {
             .copied()
             .collect();
         for removed in removed {
-            let key = cache.nodes.remove(&removed).unwrap();
+            let (key, _) = cache.nodes.remove(&removed).unwrap();
             cache.tree.remove(key).expect("owned retained layout child");
         }
         let children: Vec<_> = ids
@@ -409,18 +411,21 @@ impl Scene {
                         }
                     }
                 }
-                if let Some(key) = cache.nodes.get(child).copied() {
+                let revision = self.node(*child).measure_revision;
+                if let Some((key, cached_revision)) = cache.nodes.get_mut(child) {
+                    let key = *key;
                     if cache.tree.style(key).expect("retained style") != &mapped {
                         cache
                             .tree
                             .set_style(key, mapped)
                             .expect("retained style update");
                     }
-                    if self.node(*child).dirty & LAYOUT != 0 {
+                    if *cached_revision != revision {
                         cache
                             .tree
                             .mark_dirty(key)
                             .expect("retained child invalidation");
+                        *cached_revision = revision;
                     }
                     key
                 } else {
@@ -428,7 +433,7 @@ impl Scene {
                         .tree
                         .new_leaf_with_context(mapped, *child)
                         .expect("retained leaf");
-                    cache.nodes.insert(*child, key);
+                    cache.nodes.insert(*child, (key, revision));
                     key
                 }
             })
@@ -476,7 +481,7 @@ impl Scene {
                 if child_style.absolute {
                     continue;
                 }
-                let size = self.measure(
+                let size = self.measure_intrinsic(
                     *child,
                     Constraints {
                         width: constraints.width,
@@ -541,7 +546,7 @@ impl Scene {
                 };
                 let top = px(options.margin.top, style.margin.top);
                 let bottom = px(options.margin.bottom, style.margin.bottom);
-                let size = self.measure(*child, Constraints { width, percent_width: width, ..Default::default() });
+                let size = self.measure_intrinsic(*child, Constraints { width, percent_width: width, ..Default::default() });
                 let contribution = size.1 + top + bottom;
                 cancelled |= contribution < 0.;
                 total += contribution;
@@ -569,6 +574,21 @@ impl Scene {
             .or(root_style.height)
             .or_else(|| percentage(root_style.height_percent, constraints.percent_height))
             .map(|height| (height - padding.top - padding.bottom).max(0.));
+        let measure_context = (
+            child_percent_width,
+            child_percent_height,
+            self.text_shaper_revision,
+        );
+        if cache.measure_context != measure_context {
+            // Percentage bases and the font engine are external to Taffy's cache key.
+            for child in &children {
+                cache
+                    .tree
+                    .mark_dirty(*child)
+                    .expect("retained measurement context update");
+            }
+            cache.measure_context = measure_context;
+        }
         cache
             .tree
             .compute_layout_with_measure(
@@ -582,7 +602,7 @@ impl Scene {
                         return t::Size::ZERO;
                     };
                     let child = *context;
-                    let size = self.measure(
+                    let size = self.measure_intrinsic(
                         child,
                         Constraints {
                             width: known.width.or_else(|| bound(space.width)),
@@ -643,6 +663,238 @@ impl Scene {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{cell::Cell, rc::Rc};
+
+    fn label(value: &str) -> NodeKind {
+        NodeKind::Text {
+            text: value.into(),
+            color: Color(255, 255, 255, 255),
+            font_size: 16.,
+        }
+    }
+
+    fn deep_scene() -> (Scene, Vec<NodeId>, NodeId, NodeId, Rc<Cell<usize>>) {
+        let mut scene = Scene::new(320., 2000.);
+        let calls = Rc::new(Cell::new(0));
+        let counter = calls.clone();
+        // Native hosts install this font-aware measurement callback. Keep the
+        // regression independent of a platform font database and GPU runtime.
+        scene.set_font_text_measurer(move |text, size, width, font| {
+            counter.set(counter.get() + 1);
+            assert!(
+                counter.get() < 4096,
+                "nested layout repeatedly reshaped text"
+            );
+            crate::text_layout::FallbackTextLayout::measure_with_font(text, size, width, font)
+        });
+        let mut parent = scene.root();
+        let mut containers = Vec::new();
+        for depth in 0..18 {
+            parent = scene.append(
+                parent,
+                NodeKind::Container(Layout::Column),
+                Style {
+                    layout_options: Some(Arc::new(crate::layout::LayoutOptions {
+                        display: Some(if depth % 2 == 0 {
+                            ViewDisplay::Grid
+                        } else {
+                            ViewDisplay::Flex
+                        }),
+                        columns: Some(1),
+                        wrap: Some(ViewWrap::NoWrap),
+                        ..Default::default()
+                    })),
+                    ..Default::default()
+                },
+            );
+            containers.push(parent);
+            scene.append(
+                parent,
+                label("sibling"),
+                Style {
+                    text_wrap: true,
+                    ..Default::default()
+                },
+            );
+        }
+        let text = scene.append(
+            parent,
+            label("a paragraph with enough words to wrap at several widths"),
+            Style {
+                text_wrap: true,
+                ..Default::default()
+            },
+        );
+        let hidden = scene.append(
+            parent,
+            NodeKind::Container(Layout::Column),
+            Style {
+                layout_options: Some(Arc::new(crate::layout::LayoutOptions {
+                    display: Some(ViewDisplay::None),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        );
+        scene.append(hidden, label("hidden descendant"), Style::default());
+        (scene, containers, text, hidden, calls)
+    }
+
+    #[test]
+    fn deep_mixed_layout_reuses_intrinsic_constraints_without_replacing_arrange_geometry() {
+        let (mut scene, containers, _, _, calls) = deep_scene();
+        let outer = containers[0];
+        let probes: Vec<_> = [None, Some(96.), Some(128.), Some(160.), Some(192.), Some(256.)]
+            .into_iter()
+            .flat_map(|width| {
+                [false, true].map(|known| Constraints {
+                    width,
+                    percent_width: width,
+                    force_width: if known { width } else { None },
+                    ..Default::default()
+                })
+            })
+            .collect();
+        let sizes: Vec<_> = probes
+            .iter()
+            .map(|probe| scene.measure_intrinsic(outer, *probe))
+            .collect();
+        let first_calls = calls.get();
+        assert!(first_calls > 0);
+        let arranged_from = scene.node(outer).measurement.as_ref().unwrap().constraints;
+        for _ in 0..3 {
+            for (probe, size) in probes.iter().zip(&sizes) {
+                assert_eq!(scene.measure_intrinsic(outer, *probe), *size);
+            }
+        }
+        assert_eq!(
+            calls.get(), first_calls,
+            "repeated intrinsic constraints reshaped text"
+        );
+        assert_eq!(
+            scene.node(outer).measurement.as_ref().unwrap().constraints,
+            arranged_from
+        );
+
+        // A size-only hit must still restore complete child geometry at arrange.
+        scene.flush();
+        let (mut cold, _, _, _, _) = deep_scene();
+        cold.flush();
+        for (actual, expected) in scene.slots.iter().zip(&cold.slots) {
+            assert_eq!(
+                actual.node.as_ref().unwrap().bounds,
+                expected.node.as_ref().unwrap().bounds
+            );
+        }
+        // Revisit complete measurements after Taffy has computed another width.
+        // Arrange must restore every descendant's matching snapshot on a hit.
+        for width in [96., 192., 96., 256., 96., 192.] {
+            let constraints = Constraints {
+                width: Some(width),
+                percent_width: Some(width),
+                force_width: Some(width),
+                ..Default::default()
+            };
+            scene.measure(outer, constraints);
+            scene.arrange(outer, 0., 0., &mut FrameReport::default(), false);
+            let (mut cold, cold_containers, _, _, _) = deep_scene();
+            cold.measure(cold_containers[0], constraints);
+            cold.arrange(cold_containers[0], 0., 0., &mut FrameReport::default(), false);
+            for (actual, expected) in scene.slots.iter().zip(&cold.slots).skip(1) {
+                assert_eq!(
+                    actual.node.as_ref().unwrap().bounds,
+                    expected.node.as_ref().unwrap().bounds,
+                    "arrange restored the wrong constraint snapshot at width {width}"
+                );
+            }
+        }
+        assert!(
+            scene.measure_calls < 50_000,
+            "{} Scene measurements",
+            scene.measure_calls
+        );
+    }
+
+    #[test]
+    fn deep_mixed_layout_invalidates_text_style_fonts_and_hidden_descendants() {
+        fn change(
+            scene: &mut Scene,
+            containers: &[NodeId],
+            text: NodeId,
+            hidden: NodeId,
+            phase: usize,
+        ) {
+            if phase >= 1 {
+                scene.set_kind(text, label("short"));
+            }
+            if phase >= 2 {
+                let id = *containers.last().unwrap();
+                let mut style = scene.style(id);
+                style.padding = 7.;
+                scene.set_style(id, style);
+            }
+            if phase >= 3 {
+                scene.set_font(
+                    text,
+                    crate::text_layout::FontStyle {
+                        letter_spacing: crate::text_layout::LetterSpacing::px(2.),
+                        ..Default::default()
+                    },
+                );
+                let descendant = scene.node(hidden).children[0];
+                scene.set_kind(descendant, label("replacement while hidden"));
+            }
+            if phase >= 4 {
+                let mut style = scene.style(hidden);
+                style.layout_options = None;
+                scene.set_style(hidden, style);
+            }
+        }
+        let (mut scene, containers, text, hidden, calls) = deep_scene();
+        for phase in 0..=4 {
+            change(&mut scene, &containers, text, hidden, phase);
+            scene.flush();
+            let (mut cold, cold_containers, cold_text, cold_hidden, _) = deep_scene();
+            change(&mut cold, &cold_containers, cold_text, cold_hidden, phase);
+            cold.flush();
+            for (actual, expected) in scene.slots.iter().zip(&cold.slots) {
+                assert_eq!(
+                    actual.node.as_ref().unwrap().bounds,
+                    expected.node.as_ref().unwrap().bounds,
+                    "warm and cold geometry differ after change {phase}"
+                );
+            }
+        }
+        assert!(calls.get() > 0);
+        assert!(
+            scene.measure_calls < 50_000,
+            "{} Scene measurements",
+            scene.measure_calls
+        );
+    }
+
+    #[test]
+    fn intrinsic_probe_cache_is_bounded_and_invalidates_before_arrange() {
+        let mut scene = Scene::new(320., 200.);
+        let text = scene.append(scene.root(), label("original"), Style::default());
+        for width in 0..INTRINSIC_MEASUREMENTS + 16 {
+            scene.measure_intrinsic(
+                text,
+                Constraints {
+                    width: Some(width as f32),
+                    ..Default::default()
+                },
+            );
+        }
+        assert!(scene.node(text).intrinsic_sizes.len() <= INTRINSIC_MEASUREMENTS);
+        let constraints = Constraints::default();
+        let before = scene.measure_intrinsic(text, constraints);
+        scene.set_kind(text, label("a much longer replacement"));
+        assert!(scene.measure_intrinsic(text, constraints).0 > before.0);
+        scene.set_font_text_measurer(|_, _, _, _| (5., 7.));
+        assert_eq!(scene.measure_intrinsic(text, constraints), (5., 7.));
+    }
+
     #[test]
     fn advanced_cache_survives_changes_and_removes_stale_children() {
         let mut scene = Scene::new(500., 300.);
