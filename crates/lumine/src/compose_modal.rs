@@ -7,6 +7,26 @@ use crate::{
     widgets::{Ui, WeakUi},
 };
 
+pub(crate) struct Presentation {
+    alpha: crate::motion::MotionValue,
+    scale: crate::motion::MotionValue,
+    policy: Box<dyn FnMut() -> crate::compose::PopupMotion>,
+    open: bool,
+}
+impl Presentation {
+    pub(crate) fn new(
+        cx: &mut crate::compose::Context,
+        policy: Box<dyn FnMut() -> crate::compose::PopupMotion>,
+    ) -> Self {
+        Self {
+            alpha: crate::motion::MotionValue::new(cx, 0.),
+            scale: crate::motion::MotionValue::new(cx, 1.),
+            policy,
+            open: false,
+        }
+    }
+}
+
 pub(crate) struct Portal {
     pub overlay: NodeId,
     pub position: NodeId,
@@ -65,6 +85,7 @@ pub(crate) fn activate(
     logical_parent: Option<NodeId>,
     return_focus: Option<NodeId>,
     focusable: bool,
+    mut presentation: Option<Presentation>,
 ) {
     let overlay = portal.overlay;
     let mut semantics = SemanticNode::new(role, label);
@@ -154,13 +175,52 @@ pub(crate) fn activate(
         if !ui.scene.borrow().contains(overlay) {
             return;
         }
+        let (alpha, scale, origin) = if let Some(presentation) = &mut presentation {
+            let policy = (presentation.policy)();
+            let reactivated = desired
+                && ui
+                    .input
+                    .options(overlay)
+                    .is_some_and(|options| options.disabled);
+            if presentation.open != desired || reactivated {
+                presentation.open = desired;
+                if desired {
+                    presentation.alpha.set(0.);
+                    presentation.scale.set(policy.enter_scale);
+                    presentation.alpha.animate_to(1., policy.enter);
+                    presentation.scale.animate_to(1., policy.enter);
+                } else {
+                    presentation.alpha.animate_to(0., policy.exit);
+                }
+            }
+            (
+                presentation.alpha.signal().get(),
+                presentation.scale.signal().get(),
+                policy.origin,
+            )
+        } else {
+            (if desired { 1. } else { 0. }, 1., [0.5, 0.5])
+        };
         ui.scene.borrow_mut().set_effects(
             overlay,
             Effects {
-                opacity: if desired { 1. } else { 0. },
+                // Opacity-zero portals cannot acquire a focus scope. Preserve
+                // logical entry immediately; this rounds to transparent paint.
+                opacity: if desired && presentation.is_some() {
+                    alpha.max(f32::EPSILON)
+                } else {
+                    alpha
+                },
                 ..Default::default()
             },
         );
+        if presentation.is_some() {
+            ui.scene.borrow_mut().set_paint_transform_origin(
+                panel,
+                crate::affine::Affine::scale(scale, scale),
+                origin,
+            );
+        }
         ui.input.set_options(
             overlay,
             NodeInput {
@@ -168,6 +228,7 @@ pub(crate) fn activate(
                 ..Default::default()
             },
         );
+        ui.input.set_pointer_transparent(overlay, !desired);
         if desired {
             let already_active = {
                 let scene = ui.scene.borrow();

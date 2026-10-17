@@ -62,6 +62,7 @@ pub(crate) fn mount(
     anchor: NodeId,
     overlay: NodeId,
     dismiss_backdrop: bool,
+    external_anchor: Option<crate::compose::AboveAnchor>,
 ) {
     menu.overlay.set(Some(overlay));
     if menu.submenu {
@@ -114,6 +115,13 @@ pub(crate) fn mount(
             } = cx.event
         {
             if let Some(ui) = weak.upgrade() {
+                let reactivate = external_anchor.as_ref().is_some_and(|bounds| {
+                    let bounds = bounds.bounds.get();
+                    x >= bounds.x
+                        && x < bounds.x + bounds.width
+                        && y >= bounds.y
+                        && y < bounds.y + bounds.height
+                });
                 let mut ancestor = menu.parent.clone();
                 let mut destination = None;
                 while let Some(parent) = ancestor {
@@ -162,6 +170,8 @@ pub(crate) fn mount(
                         .get()
                         .is_some_and(|panel| ui.scene.borrow().contains(panel))
                 {
+                    ui.input.dispatch(&ui.scene, cx.event.clone());
+                } else if reactivate && ui.input.focus_scope().is_none() {
                     ui.input.dispatch(&ui.scene, cx.event.clone());
                 }
             }

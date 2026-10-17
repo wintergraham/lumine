@@ -4,6 +4,60 @@ use crate::{
     widgets::Ui,
 };
 
+/// An imported control may live outside the popup's logical owner.
+/// Observe its retained rectangle instead of manufacturing a placement offset.
+pub(crate) fn mount_above(
+    ui: &mut Ui,
+    owner: NodeId,
+    anchor: crate::compose::AboveAnchor,
+    overlay: NodeId,
+    position: NodeId,
+    panel: NodeId,
+) {
+    let viewport = ui.observe_bounds(overlay);
+    let panel_bounds = ui.observe_bounds(panel);
+    let current = ui.observe_bounds(position);
+    let weak = ui.downgrade();
+    ui.bind(owner, move || {
+        let align_right = anchor.align_right.as_ref().is_some_and(|s| s.get());
+        let gap = anchor.gap;
+        let anchor = anchor.bounds.get();
+        let viewport = viewport.get();
+        let panel = panel_bounds.get();
+        let current = current.get();
+        let x = (if align_right {
+            anchor.x + anchor.width - panel.width
+        } else {
+            anchor.x
+        })
+        .clamp(
+            viewport.x + 8.,
+            (viewport.x + viewport.width - panel.width - 8.).max(viewport.x + 8.),
+        );
+        let y = (anchor.y - panel.height - gap).clamp(
+            viewport.y + 8.,
+            (viewport.y + viewport.height - panel.height - 8.).max(viewport.y + 8.),
+        );
+        if let Some(ui) = weak.upgrade() {
+            let mut scene = ui.scene.borrow_mut();
+            if scene.contains(position) {
+                let previous = scene.transform(position);
+                let dx = x - current.x;
+                let dy = y - current.y;
+                if dx.abs() > 0.01 || dy.abs() > 0.01 {
+                    scene.set_transform(
+                        position,
+                        Transform {
+                            x: previous.x + dx,
+                            y: previous.y + dy,
+                        },
+                    );
+                }
+            }
+        }
+    });
+}
+
 /// Position the private placement host, preserving the public panel's styles.
 /// Registrations belong to the logical owner so disposal removes subscriptions.
 pub(crate) fn mount(

@@ -203,6 +203,7 @@ enum Kind {
     Submenu {
         label: String,
         open: Signal<bool>,
+        anchor: Option<Box<View>>,
     },
     Menu {
         label: String,
@@ -258,6 +259,23 @@ enum Kind {
 }
 type EventListener = Box<dyn FnMut(&mut EventContext)>;
 
+#[derive(Clone)]
+pub(crate) struct AboveAnchor {
+    pub bounds: Signal<crate::scene::Rect>,
+    pub align_right: Option<Signal<bool>>,
+    pub gap: f32,
+}
+
+/// Optional portal presentation. Focus and hit routing follow logical visibility.
+#[derive(Clone, Copy)]
+pub struct PopupMotion {
+    pub enter: crate::motion::Transition,
+    pub exit: crate::motion::Transition,
+    pub enter_scale: f32,
+    /// Normalized transform origin within the panel's unscaled rectangle.
+    pub origin: [f32; 2],
+}
+
 /// A mount description, consumed into owned retained nodes and subscriptions.
 /// `.child`/`.children` compose views; `.style` and fluent methods apply to their root.
 pub struct View {
@@ -283,9 +301,12 @@ pub struct View {
     horizontal_wheel: Option<bool>,
     slider_chrome: Option<bool>,
     slider_step: Option<f32>,
+    slider_thumb_width: Option<f32>,
     animation: Option<animation::Animated>,
     keyboard_navigation: Option<bool>,
     dismiss_backdrop: Option<bool>,
+    anchor_above: Option<AboveAnchor>,
+    popup_motion: Option<Box<dyn FnMut() -> PopupMotion>>,
     layout_target: Option<Signal<Option<NodeId>>>,
     trigger_id: Option<String>,
     menu_trigger: Option<Signal<bool>>,
@@ -300,6 +321,10 @@ pub struct View {
     morph_effect: Option<CompiledMorphEffect>,
 }
 impl View {
+    pub fn popup_motion(mut self, policy: impl FnMut() -> PopupMotion + 'static) -> Self {
+        self.popup_motion = Some(Box::new(policy));
+        self
+    }
     /// Set the controlled checked state of a menu item, including accessibility.
     pub fn menu_checked(mut self, checked: bool) -> Self {
         assert!(
@@ -375,9 +400,12 @@ impl View {
             horizontal_wheel: None,
             slider_chrome: None,
             slider_step: None,
+            slider_thumb_width: None,
             animation: None,
             keyboard_navigation: None,
             dismiss_backdrop: None,
+            anchor_above: None,
+            popup_motion: None,
             layout_target: None,
             trigger_id: None,
             menu_trigger: None,
@@ -407,6 +435,12 @@ impl View {
     pub fn slider_step(mut self, step: f32) -> Self {
         assert!(matches!(self.kind, Kind::Slider { .. }) && step.is_finite() && step > 0., "slider_step requires a slider and positive finite interval");
         self.slider_step = Some(step);
+        self
+    }
+    /// Match the pointer travel to a custom painted thumb, or use zero for a fill bar.
+    pub fn slider_thumb_width(mut self, width: f32) -> Self {
+        assert!(matches!(self.kind, Kind::Slider { .. }) && width.is_finite() && width >= 0., "slider_thumb_width requires a slider and nonnegative finite width");
+        self.slider_thumb_width = Some(width);
         self
     }
     pub fn morph_effect(mut self,effect:CompiledMorphEffect)->Self {
@@ -593,6 +627,31 @@ impl View {
         self.focusable = Some(focusable);
         self
     }
+    /// Present above an external retained trigger. Repeated trigger presses
+    /// dismiss the old menu and route the press back to that trigger.
+    pub fn anchor_above(mut self, bounds: Signal<crate::scene::Rect>) -> Self {
+        self.anchor_above = Some(AboveAnchor {
+            bounds,
+            align_right: None,
+            gap: 8.,
+        });
+        self
+    }
+    /// Align an external anchored panel to either edge of its trigger.
+    pub fn anchor_above_aligned(
+        mut self,
+        bounds: Signal<crate::scene::Rect>,
+        align_right: Signal<bool>,
+        gap: f32,
+    ) -> Self {
+        assert!(gap.is_finite() && gap >= 0.);
+        self.anchor_above = Some(AboveAnchor {
+            bounds,
+            align_right: Some(align_right),
+            gap,
+        });
+        self
+    }
     pub fn hover(mut self, style: impl FnOnce(Styles) -> Styles) -> Self {
         self.variants.hover = Some(style(Styles::new()));
         self
@@ -672,6 +731,7 @@ impl View {
         inner.horizontal_wheel = self.horizontal_wheel.or(inner.horizontal_wheel);
         inner.slider_chrome = self.slider_chrome.or(inner.slider_chrome);
         inner.slider_step = self.slider_step.or(inner.slider_step);
+        inner.slider_thumb_width = self.slider_thumb_width.or(inner.slider_thumb_width);
         if self.accessibility.is_some() { inner.accessibility = self.accessibility; }
         inner.layout_motion = self.layout_motion.or(inner.layout_motion);
         inner.layout_id = self.layout_id.or(inner.layout_id);
@@ -682,6 +742,10 @@ impl View {
         if self.dismiss_backdrop.is_some() {
             inner.dismiss_backdrop = self.dismiss_backdrop;
         }
+        if self.anchor_above.is_some() {
+            inner.anchor_above = self.anchor_above;
+        }
+        inner.popup_motion = self.popup_motion.or(inner.popup_motion);
         if self.keyboard_navigation.is_some() {
             inner.keyboard_navigation = self.keyboard_navigation;
         }
@@ -951,6 +1015,15 @@ pub fn submenu(label: impl Into<String>, open: Signal<bool>) -> View {
     View::new(Kind::Submenu {
         label: label.into(),
         open,
+        anchor: None,
+    })
+}
+/// A side-opening submenu with the caller's styled, accessible trigger.
+pub fn submenu_with_anchor(label: impl Into<String>, open: Signal<bool>, anchor: View) -> View {
+    View::new(Kind::Submenu {
+        label: label.into(),
+        open,
+        anchor: Some(Box::new(anchor)),
     })
 }
 pub fn menu_item(label: impl Into<String>) -> View {
@@ -1462,14 +1535,16 @@ fn mount(ui: &mut Ui, parent: NodeId, mut view: View, mut environment: Environme
             true,
             false,
         ),
-        Kind::Submenu { label, open } => {
+        Kind::Submenu { label, open, anchor } => {
             assert!(
                 environment.menu.is_some(),
                 "submenu requires an enclosing menu"
             );
-            let mut anchor = menu_item(label.clone());
+            let mut anchor = anchor.map_or_else(|| menu_item(label.clone()), |view| *view);
             anchor.menu_trigger = Some(open.clone());
-            anchor.id = view.trigger_id.take();
+            if let Some(id) = view.trigger_id.take() {
+                anchor.id = Some(id);
+            }
             mount_portal(
                 ui,
                 parent,
@@ -1498,6 +1573,12 @@ fn mount_portal(
     is_submenu: bool,
 ) -> NodeId {
     let anchored = anchor.is_some();
+    let external_anchor = view.anchor_above.clone();
+    let presentation = view.popup_motion.take().map(|policy| {
+        let mut cx = Context::new(ui.runtime.clone(), environment.clone());
+        let presentation = crate::compose_modal::Presentation::new(&mut cx, policy);
+        (cx, presentation)
+    });
     let owner = ui.container(
         parent,
         Layout::Overlay,
@@ -1637,10 +1718,20 @@ fn mount_portal(
             anchor.expect("menu anchor"),
             portal.overlay,
             dismiss_backdrop,
+            external_anchor.clone(),
         );
     }
     if let Some(anchor) = anchor {
-        if is_submenu {
+        if let Some(bounds) = external_anchor {
+            crate::compose_popover::mount_above(
+                ui,
+                owner,
+                bounds,
+                portal.overlay,
+                portal.position,
+                panel,
+            );
+        } else if is_submenu {
             crate::compose_popover::mount_submenu(
                 ui,
                 owner,
@@ -1662,6 +1753,10 @@ fn mount_portal(
     } else {
         crate::compose_modal::center(ui, owner, portal.position);
     }
+    let presentation = presentation.map(|(cx, presentation)| {
+        cx.finish(ui, owner);
+        presentation
+    });
     crate::compose_modal::activate(
         ui,
         owner,
@@ -1678,6 +1773,7 @@ fn mount_portal(
             .and_then(|parent| parent.panel.get()),
         if is_submenu { anchor } else { None },
         panel_focusable,
+        presentation,
     );
     owner
 }
@@ -2314,7 +2410,7 @@ fn mount_element(
         mount_progress(ui, root, value, environment.typography.clone());
     }
     if let Some((value, range)) = slider_state {
-        mount_slider(ui, root, value, range, environment.typography.clone(), view.slider_chrome.unwrap_or(true), view.slider_step);
+        mount_slider(ui, root, value, range, environment.typography.clone(), view.slider_chrome.unwrap_or(true), view.slider_step, view.slider_thumb_width.unwrap_or(10.));
     }
     if let Some(editor) = editor {
         if let Some(select) = view.select_all_on_focus {
@@ -2900,6 +2996,7 @@ fn mount_slider(
     typography: Signal<Typography>,
     chrome: bool,
     step_size: Option<f32>,
+    painted_thumb_width: f32,
 ) {
     use crate::{
         input::{Key, PointerButton},
@@ -2943,7 +3040,7 @@ fn mount_slider(
             observed_value.set(val);
         }
         let (width, height) = size.get();
-        let thumb_width = width.min(10.);
+        let thumb_width = width.min(painted_thumb_width);
         let thumb_height = height.min(20.);
         let travel = (width - thumb_width).max(0.);
         let x = ((val as f64 - min) / span * travel as f64) as f32;
@@ -3191,7 +3288,7 @@ pub mod prelude {
     pub use super::{
         CompiledMorphAnimation, CompiledMorphEffect, CompiledMorphTiming, compiled_morph, Context, Slot, VariableHeights, View, button, checkbox, column, component, div, image,
         image_signal, keyed, measured_rows, measured_virtual_list, menu, menu_item, modal, overlay,
-        popover, progress, provide, provide_with, row, scroll, scroll_x, slider, submenu, switch,
+        popover, progress, provide, provide_with, row, scroll, scroll_x, slider, submenu, submenu_with_anchor, switch,
         text, text_area, text_input, text_signal, variable_virtual_list, virtual_list,
     };
     pub use super::{RichTextView, TextSpan, rich_text, rich_text_signal, text_span};
