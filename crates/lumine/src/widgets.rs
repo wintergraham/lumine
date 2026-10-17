@@ -16,6 +16,13 @@ use std::{
 };
 use unicode_segmentation::UnicodeSegmentation;
 
+#[path = "widgets_secure.rs"]
+mod secure;
+use secure::{MaskedLayout, MaskedText};
+#[cfg(test)]
+#[path = "widgets_secure_tests.rs"]
+mod secure_tests;
+
 #[derive(Clone, Copy, Debug)]
 pub struct Theme {
     pub background: Color,
@@ -58,6 +65,7 @@ struct Owned {
 pub struct EditorHandle {
     multiline: bool,
     read_only: Rc<Cell<bool>>,
+    secure: Rc<Cell<bool>>,
     /// Retained caret geometry for native IME candidate-window placement.
     pub caret: NodeId,
     pub node: NodeId,
@@ -112,9 +120,36 @@ impl EditorHandle {
         let (_, size, font) = self.typography.borrow().clone();
         let scene = self.scene.borrow();
         let value = self.value.get();
-        inline_rich_text(&scene, &value, size, &font, Color(255,255,255,255), &self.inline_objects.borrow())
-            .map_or_else(|| scene.shape_text_with_font(&value,size,width,&font).size(),
-                |rich| scene.shape_rich_text(&rich,width).size())
+        if self.is_secure() {
+            let editor = self.editor.borrow();
+            let mut display = std::borrow::Cow::Borrowed(value.as_str());
+            if editor.text() == value
+                && let Some(preedit) = editor.preedit()
+            {
+                display
+                    .to_mut()
+                    .replace_range(editor.selection().range(), &preedit.text);
+            }
+            return scene
+                .shape_text_with_font(&MaskedText::new(&display).text, size, width, &font)
+                .size();
+        }
+        inline_rich_text(
+            &scene,
+            &value,
+            size,
+            &font,
+            Color(255, 255, 255, 255),
+            &self.inline_objects.borrow(),
+        )
+        .map_or_else(
+            || {
+                scene
+                    .shape_text_with_font(&value, size, width, &font)
+                    .size()
+            },
+            |rich| scene.shape_rich_text(&rich, width).size(),
+        )
     }
     pub fn set_select_all_on_focus(&self, select: bool) {
         self.select_all_on_focus.set(select);
@@ -146,6 +181,17 @@ impl EditorHandle {
     /// Whether user editing is blocked. Selection, copying and model writes remain available.
     pub fn is_read_only(&self) -> bool {
         self.read_only.get()
+    }
+    /// Whether the editor masks text and blocks copying and cutting.
+    pub fn is_secure(&self) -> bool {
+        self.secure.get()
+    }
+    /// Mask graphemes while retaining focus, source selection, composition and undo history.
+    pub fn set_secure(&self, secure: bool) {
+        if self.secure.replace(secure) != secure {
+            self.preferred_x.set(None);
+            self.refresh();
+        }
     }
     /// Change editing policy without moving focus or changing committed text/history.
     /// Entering read-only mode cancels an existing composition.
@@ -228,14 +274,22 @@ impl EditorHandle {
     pub fn refresh(&self) {
         (self.refresh)();
     }
+    /// Copy the selection, expanding inline objects. Secure inputs return nothing.
     pub fn copy(&self) -> String {
+        if self.is_secure() {
+            return String::new();
+        }
         let objects = self.inline_objects.borrow();
         self.editor.borrow().selected_text().chars().map(|c| {
             objects.iter().find(|o| o.marker == c).map_or_else(|| c.to_string(), |o| o.text.clone())
         }).collect()
     }
     /// Copy the selection and delete it when editable. Read-only cut is copy-only.
+    /// Secure cut neither exports nor deletes text.
     pub fn cut(&self) -> String {
+        if self.is_secure() {
+            return String::new();
+        }
         if self.is_read_only() {
             return self.copy();
         }
@@ -300,6 +354,7 @@ const EDITOR_CACHE_WEIGHT_LIMIT: usize = 1024 * 1024;
 struct EditorLayoutEntry {
     node: NodeId,
     text: String,
+    secure_offsets: Option<Rc<[usize]>>,
     size: u32,
     width: Option<u32>,
     font: FontStyle,
@@ -342,14 +397,22 @@ fn editor_layout(
     size: f32,
     width: Option<f32>,
     font: &FontStyle,
+    secure: bool,
 ) -> Rc<dyn TextLayout> {
     let storage = storage.upgrade();
+    let inline = storage
+        .as_ref()
+        .and_then(|s| s.editors.borrow().get(&node).cloned());
+    let masked = secure.then(|| MaskedText::new(text));
+    let secure_offsets = masked.as_ref().map(|masked| masked.source_offsets.clone());
+    let source_len = text.len();
+    let text = masked.as_ref().map_or(text, |masked| masked.text.as_str());
     let eligible = storage
         .as_ref()
         .is_some_and(|s| s.input.focused() == Some(node))
+        && source_len <= EDITOR_CACHE_TEXT_LIMIT
         && text.len() <= EDITOR_CACHE_TEXT_LIMIT;
     let revision = scene.text_shaper_revision();
-    let inline = storage.as_ref().and_then(|s| s.editors.borrow().get(&node).cloned());
     let inline_revision = inline.as_ref().map_or(0, |e| e.inline_revision.get());
     let width_bits = width.map(f32::to_bits);
     if eligible {
@@ -361,6 +424,7 @@ fn editor_layout(
             && entry.font == *font
             && entry.revision == revision
             && entry.inline_revision == inline_revision
+            && entry.secure_offsets == secure_offsets
             && entry.text == text
         {
             return entry.layout.clone();
@@ -380,12 +444,36 @@ fn editor_layout(
         };
         drop(old);
     }
-    let rich = inline.as_ref().and_then(|e| inline_rich_text(scene,text,size,font,Color(255,255,255,255),&e.inline_objects.borrow()));
-    let layout: Rc<dyn TextLayout> = rich.map_or_else(
-        || scene.shape_text_with_font(text,size,width,font), |rich| scene.shape_rich_text(&rich,width)).into();
+    let layout: Rc<dyn TextLayout> = if let Some(offsets) = &secure_offsets {
+        Rc::new(MaskedLayout {
+            layout: scene.shape_text_with_font(text, size, width, font),
+            source_offsets: offsets.clone(),
+        })
+    } else {
+        let rich = inline.as_ref().and_then(|e| {
+            inline_rich_text(
+                scene,
+                text,
+                size,
+                font,
+                Color(255, 255, 255, 255),
+                &e.inline_objects.borrow(),
+            )
+        });
+        rich.map_or_else(
+            || scene.shape_text_with_font(text, size, width, font),
+            |rich| scene.shape_rich_text(&rich, width),
+        )
+        .into()
+    };
     if eligible {
         let key_weight = std::mem::size_of::<EditorLayoutEntry>()
             .saturating_add(text.len())
+            .saturating_add(
+                secure_offsets
+                    .as_ref()
+                    .map_or(0, |offsets| std::mem::size_of_val(offsets.as_ref())),
+            )
             .saturating_add(font.storage_bytes())
             .saturating_add(2 * std::mem::size_of::<usize>());
         if layout
@@ -401,6 +489,7 @@ fn editor_layout(
                 .replace(EditorLayoutEntry {
                     node,
                     text: text.to_owned(),
+                    secure_offsets,
                     size: size.to_bits(),
                     width: width_bits,
                     font: font.clone(),
@@ -1772,6 +1861,8 @@ impl Ui {
         let draw_storage = Rc::downgrade(&self.storage);
         let read_only = Rc::new(Cell::new(false));
         let draw_read_only = read_only.clone();
+        let secure = Rc::new(Cell::new(false));
+        let draw_secure = secure.clone();
         let gesture = Rc::new(EditorDrag::default());
         let draw_gesture = gesture.clone();
         let refresh: Rc<dyn Fn()> = Rc::new(move || {
@@ -1790,9 +1881,29 @@ impl Ui {
                 selection.focus
             };
             let display_cursor = display_cursor.min(display.len());
+            let masked = draw_secure.get().then(|| MaskedText::new(&display));
             let mut s = scene.borrow_mut();
             if !s.contains(root) {
                 return;
+            }
+            let (color, size, font) = draw_typography.borrow().clone();
+            // Replace source paint before layout can measure the previous visible text.
+            if let Some(masked) = &masked {
+                let paint_text = match s.kind(text) {
+                    NodeKind::Text { text, .. } if text.as_ref() == masked.text.as_str() => {
+                        text.clone()
+                    }
+                    _ => std::sync::Arc::from(masked.text.as_str()),
+                };
+                s.set_kind(
+                    text,
+                    NodeKind::Text {
+                        text: paint_text,
+                        color,
+                        font_size: size,
+                    },
+                );
+                s.set_font(text, font.clone());
             }
             s.prepare_layout();
             let bounds = s.layout_bounds(root);
@@ -1820,26 +1931,49 @@ impl Ui {
             if let Some(bg) = bg {
                 s.set_style(bg, fixed(bounds.width, bounds.height));
             }
-            let (color, size, font) = draw_typography.borrow().clone();
-            // Selection and policy changes retain the same immutable paint text.
-            let paint_text = match s.kind(text) {
-                NodeKind::Text { text, .. } if text.as_ref() == display.as_ref() => text.clone(),
-                _ => std::sync::Arc::from(display.as_ref()),
-            };
-            let rich = inline_rich_text(&s,&display,size,&font,color,&draw_inline_objects.borrow());
-            s.set_kind(text, if let Some(rich) = rich {
-                NodeKind::RichText { text: std::sync::Arc::new(rich) }
-            } else {
-                NodeKind::Text {
-                    text: paint_text,
+            if masked.is_none() {
+                let paint_text = match s.kind(text) {
+                    NodeKind::Text { text, .. } if text.as_ref() == display.as_ref() => {
+                        text.clone()
+                    }
+                    _ => std::sync::Arc::from(display.as_ref()),
+                };
+                let rich = inline_rich_text(
+                    &s,
+                    &display,
+                    size,
+                    &font,
                     color,
-                    font_size: size,
-                }
-            });
-            s.set_font(text, font.clone());
+                    &draw_inline_objects.borrow(),
+                );
+                s.set_kind(
+                    text,
+                    if let Some(rich) = rich {
+                        NodeKind::RichText {
+                            text: std::sync::Arc::new(rich),
+                        }
+                    } else {
+                        NodeKind::Text {
+                            text: paint_text,
+                            color,
+                            font_size: size,
+                        }
+                    },
+                );
+                s.set_font(text, font.clone());
+            }
             s.set_kind(caret, NodeKind::Rect(color));
             let wrap_width = draw_wrap.get().then_some(inner_width.max(1.));
-            let layout = editor_layout(&draw_storage, &s, root, &display, size, wrap_width, &font);
+            let layout = editor_layout(
+                &draw_storage,
+                &s,
+                root,
+                &display,
+                size,
+                wrap_width,
+                &font,
+                draw_secure.get(),
+            );
             let prior_position = draw_position.get();
             let caret_position =
                 if e.preedit().is_none() && prior_position.byte_offset == display_cursor {
@@ -1910,10 +2044,28 @@ impl Ui {
                 },
             );
             let (scroll_x, scroll_y) = *scroll;
-            let inline: Vec<_> = display.char_indices().filter(|(_,c)| draw_inline_objects.borrow().iter().any(|o| o.marker == *c))
-                .flat_map(|(offset,marker)| layout.selection(offset..offset+marker.len_utf8()).into_iter().map(move |r| InlineObjectBounds {
-                    marker,offset,rect:Rect::new(padding.left+r.x-scroll_x, padding.top+text_y+r.y-scroll_y,r.width,r.height)
-                })).collect();
+            let inline: Vec<_> = display
+                .char_indices()
+                .filter(|(_, c)| {
+                    !draw_secure.get()
+                        && draw_inline_objects.borrow().iter().any(|o| o.marker == *c)
+                })
+                .flat_map(|(offset, marker)| {
+                    layout
+                        .selection(offset..offset + marker.len_utf8())
+                        .into_iter()
+                        .map(move |r| InlineObjectBounds {
+                            marker,
+                            offset,
+                            rect: Rect::new(
+                                padding.left + r.x - scroll_x,
+                                padding.top + text_y + r.y - scroll_y,
+                                r.width,
+                                r.height,
+                            ),
+                        })
+                })
+                .collect();
             draw_inline_bounds.set(inline);
             let mut effects = s.effects(caret);
             let caret_active = *focus.borrow() && selection.is_empty() && e.preedit().is_none();
@@ -2000,12 +2152,25 @@ impl Ui {
                 s.set_style(*id, fixed(w, 1.));
                 s.set_transform(*id, Transform { x, y });
             }
-            sem.borrow_mut().update_text_input(
-                root,
-                e.text(),
-                (selection.anchor, selection.focus),
-                draw_read_only.get(),
-            );
+            if draw_secure.get() {
+                let committed = MaskedText::new(e.text());
+                sem.borrow_mut().update_text_input(
+                    root,
+                    &committed.text,
+                    (
+                        committed.display_offset(selection.anchor),
+                        committed.display_offset(selection.focus),
+                    ),
+                    draw_read_only.get(),
+                );
+            } else {
+                sem.borrow_mut().update_text_input(
+                    root,
+                    e.text(),
+                    (selection.anchor, selection.focus),
+                    draw_read_only.get(),
+                );
+            }
         });
         // Geometry refresh may make an existing stationary drag scrollable.
         // The weak callback avoids refresh -> arm -> tick -> refresh ownership cycles.
@@ -2023,6 +2188,7 @@ impl Ui {
         let handle = EditorHandle {
             multiline,
             read_only: read_only.clone(),
+            secure: secure.clone(),
             caret,
             node: root,
             editor: editor.clone(),
@@ -2097,6 +2263,7 @@ impl Ui {
             let scroll = scroll.clone();
             let typography = typography.clone();
             let wrap = wrap.clone();
+            let secure = secure.clone();
             let position = position.clone();
             let input_storage = input_storage.clone();
             Rc::new(move || {
@@ -2119,6 +2286,7 @@ impl Ui {
                     size,
                     wrap.get().then_some(bounds.width.max(1.)),
                     &font,
+                    secure.get(),
                 );
                 let (px, py) = gesture.pointer.get();
                 let Some((px, py)) = s.world_to_local(viewport, px, py) else {
@@ -2372,6 +2540,12 @@ impl Ui {
                 }
                 InputEvent::SetTextSelection { anchor, focus } => {
                     let mut edit = editor.borrow_mut();
+                    let (anchor, focus) = if secure.get() {
+                        let masked = MaskedText::new(edit.text());
+                        (masked.source_offset(anchor), masked.source_offset(focus))
+                    } else {
+                        (anchor, focus)
+                    };
                     edit.set_selection(anchor, focus);
                     position.set(TextPosition {
                         byte_offset: edit.selection().focus,
@@ -2400,6 +2574,7 @@ impl Ui {
                     let layout = editor_layout(
                         &input_storage, &s, root, edit.text(), size,
                         wrap.get().then_some(bounds.width.max(1.)), &font,
+                        secure.get(),
                     );
                     let x = local_x + scroll.0;
                     let y = local_y + scroll.1;
@@ -2460,9 +2635,9 @@ impl Ui {
                     let command = modifiers.primary_shortcut();
                     let word = modifiers.word_navigation();
                     let visual_edge = match key {
-                        Key::Home | Key::End if !command && wrap.get() => Some(key == Key::End),
+                        Key::Home | Key::End if !command && (wrap.get() || secure.get()) => Some(key == Key::End),
                         Key::ArrowLeft | Key::ArrowRight
-                            if cfg!(target_os = "macos") && modifiers.meta && wrap.get() =>
+                            if cfg!(target_os = "macos") && modifiers.meta && (wrap.get() || secure.get()) =>
                         {
                             Some(key == Key::ArrowRight)
                         }
@@ -2482,8 +2657,9 @@ impl Ui {
                             root,
                             e.text(),
                             size,
-                            Some(s.layout_bounds(viewport).width.max(1.)),
+                            wrap.get().then_some(s.layout_bounds(viewport).width.max(1.)),
                             &font,
+                            secure.get(),
                         );
                         let old = position.get();
                         let current = if old.byte_offset == e.selection().focus {
@@ -2550,6 +2726,7 @@ impl Ui {
                                     size,
                                     wrap.get().then_some(s.layout_bounds(viewport).width.max(1.)),
                                     &font,
+                                    secure.get(),
                                 );
                                 let old = position.get();
                                 let current = if old.byte_offset == e.selection().focus {
@@ -2667,7 +2844,8 @@ impl Ui {
             .default_prevented
     }
     /// Change committed-text selection through normal input and modal guards.
-    /// Editor controls clamp offsets to grapheme boundaries and cancel preedit.
+    /// Offsets refer to the semantic value, masked when secure. Editor controls
+    /// map them to source grapheme boundaries and cancel preedit.
     pub fn set_accessible_text_selection(
         &mut self,
         node: NodeId,
@@ -3272,8 +3450,26 @@ mod editor_layout_cache_tests {
         let storage = Rc::downgrade(&ui.storage);
         let scene = ui.scene.borrow();
         let font = FontStyle::default();
-        let first = editor_layout(&storage, &scene, editor.node, "short", 12., None, &font);
-        let second = editor_layout(&storage, &scene, editor.node, "short", 12., None, &font);
+        let first = editor_layout(
+            &storage,
+            &scene,
+            editor.node,
+            "short",
+            12.,
+            None,
+            &font,
+            false,
+        );
+        let second = editor_layout(
+            &storage,
+            &scene,
+            editor.node,
+            "short",
+            12.,
+            None,
+            &font,
+            false,
+        );
         assert!(Rc::ptr_eq(&first, &second));
         let huge_font = FontStyle {
             family: FontFamily::Named("f".repeat(EDITOR_CACHE_WEIGHT_LIMIT).into()),
@@ -3287,6 +3483,7 @@ mod editor_layout_cache_tests {
             12.,
             None,
             &huge_font,
+            false,
         );
         assert!(ui.storage.editor_layout.borrow().is_none());
         editor_layout(
@@ -3297,6 +3494,7 @@ mod editor_layout_cache_tests {
             12.,
             None,
             &font,
+            false,
         );
         assert!(ui.storage.editor_layout.borrow().is_none());
     }
