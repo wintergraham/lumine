@@ -330,6 +330,7 @@ impl ClickTracker {
 struct State {
     entries: HashMap<NodeId, Vec<Entry>>,
     options: HashMap<NodeId, NodeInput>,
+    pointer_transparent: std::collections::HashSet<NodeId>,
     disabled_observers: HashMap<NodeId, Signal<bool>>,
     next: u64,
     focused: Option<NodeId>,
@@ -696,12 +697,23 @@ impl InputDispatcher {
     pub fn options(&self, node: NodeId) -> Option<NodeInput> {
         self.state.borrow().options.get(&node).copied()
     }
+    /// Exclude a decorative subtree from pointer and wheel targeting.
+    /// Keyboard focus, semantics and painting remain independent.
+    pub fn set_pointer_transparent(&self, node: NodeId, transparent: bool) {
+        let mut state = self.state.borrow_mut();
+        if transparent {
+            state.pointer_transparent.insert(node);
+        } else {
+            state.pointer_transparent.remove(&node);
+        }
+    }
     /// Disconnect a removed node, including metadata-only container state.
     pub fn unregister(&self, node: NodeId) {
         let mut s = self.state.borrow_mut();
         let removed = s.entries.remove(&node);
         let observer = s.disabled_observers.remove(&node);
         s.options.remove(&node);
+        s.pointer_transparent.remove(&node);
         if s.clicks.0.is_some_and(|click| click.target == node) {
             s.clicks.0 = None;
         }
@@ -1116,6 +1128,15 @@ impl InputDispatcher {
     fn hit_target(&self, scene: &Scene, x: f32, y: f32, scroll: bool) -> Option<NodeId> {
         let mut fallback = None;
         for hit in scene.hit_test_all(x, y) {
+            let transparent = {
+                let state = self.state.borrow();
+                std::iter::once(hit)
+                    .chain(scene.ancestors(hit))
+                    .any(|node| state.pointer_transparent.contains(&node))
+            };
+            if transparent {
+                continue;
+            }
             let mut node = Some(hit);
             while let Some(id) = node {
                 if !scroll && self.options(id).is_some_and(|options| options.disabled) {

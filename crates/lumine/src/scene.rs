@@ -288,6 +288,8 @@ pub struct Style {
     pub padding_edges: Option<Insets>,
     pub gap: f32,
     pub clip: bool,
+    /// A reveal clip independent of layout and normal overflow clipping.
+    pub clip_insets: Option<Insets>,
     /// Fade descendants out over these bands (top, bottom) at the edges of
     /// this node's clip, in the fragment shader: a scroll view whose content
     /// dissolves under a titlebar or into a composer, without a layer.
@@ -1646,6 +1648,8 @@ impl Scene {
             }
             if current != id || !has_outer_shadow(&ancestor.kind) {
                 clip = clipped_affine_bounds(clip, ancestor.bounds, matrix, &ancestor.style);
+            } else {
+                clip = own_reveal_clip(clip, ancestor.bounds, matrix, &ancestor.style);
             }
         }
         (matrix.bounds(self.node(id).bounds), effects, clip)
@@ -1683,7 +1687,7 @@ impl Scene {
         let bounds = transform.bounds(node.bounds);
         let clip = clipped_affine_bounds(parent_clip, node.bounds, transform, &node.style);
         let paint_clip = if has_outer_shadow(&node.kind) {
-            parent_clip
+            own_reveal_clip(parent_clip, node.bounds, transform, &node.style)
         } else {
             clip
         };
@@ -2920,7 +2924,7 @@ impl Scene {
                 clip_regions: if has_outer_shadow(&node.kind)
                     || rounded_clip(&node.style, &node.kind).is_some()
                 {
-                    parent_regions
+                    own_reveal_regions(parent_regions, node.bounds, matrix, &node.style)
                 } else {
                     regions
                 },
@@ -2930,7 +2934,7 @@ impl Scene {
                 text_options: node.style.text_options,
                 effects,
                 clip: if has_outer_shadow(&node.kind) {
-                    parent_clip
+                    own_reveal_clip(parent_clip, node.bounds, matrix, &node.style)
                 } else {
                     clip
                 },
@@ -2974,7 +2978,28 @@ fn clip_axes(style: &Style) -> (bool, bool) {
         options.and_then(|o| o.clip_y).unwrap_or(style.clip),
     )
 }
+fn reveal_bounds(bounds: Rect, style: &Style) -> Rect {
+    let Some(i) = style.clip_insets else { return bounds };
+    Rect::new(bounds.x+i.left, bounds.y+i.top,
+        (bounds.width-i.left-i.right).max(0.), (bounds.height-i.top-i.bottom).max(0.))
+}
+fn own_reveal_clip(parent: Option<Rect>, bounds: Rect, matrix: Affine, style: &Style) -> Option<Rect> {
+    if style.clip_insets.is_none() { return parent; }
+    let mask = matrix.bounds(reveal_bounds(bounds, style));
+    Some(parent.map_or(mask, |p| p.intersection(mask).unwrap_or_default()))
+}
+fn own_reveal_regions(parent: std::rc::Rc<[PaintClip]>, bounds: Rect, matrix: Affine, style: &Style) -> std::rc::Rc<[PaintClip]> {
+    if style.clip_insets.is_none() { return parent; }
+    let mut clips = parent.to_vec();
+    clips.push(PaintClip { bounds: reveal_bounds(bounds, style),
+        inverse: matrix.inverse().unwrap_or(Affine::IDENTITY), axes: [true,true], corners: [0.;4] });
+    clips.into()
+}
 fn clipped_bounds(parent: Option<Rect>, bounds: Rect, style: &Style) -> Option<Rect> {
+    let parent = if style.clip_insets.is_some() {
+        let mask = reveal_bounds(bounds, style);
+        Some(parent.map_or(mask, |p| p.intersection(mask).unwrap_or_default()))
+    } else { parent };
     let (x, y) = clip_axes(style);
     if !x && !y {
         return parent;
@@ -3046,7 +3071,7 @@ impl<'a> Iterator for PaintIter<'a> {
             clip_regions: if has_outer_shadow(&node.kind)
                 || rounded_clip(&node.style, &node.kind).is_some()
             {
-                parent_regions
+                own_reveal_regions(parent_regions, node.bounds, matrix, &node.style)
             } else {
                 regions
             },
@@ -3056,7 +3081,7 @@ impl<'a> Iterator for PaintIter<'a> {
             text_options: node.style.text_options,
             effects,
             clip: Some(if has_outer_shadow(&node.kind) {
-                parent_clip
+                own_reveal_clip(Some(parent_clip), node.bounds, matrix, &node.style).unwrap_or(parent_clip)
             } else {
                 clip
             }),
@@ -3111,11 +3136,16 @@ fn transformed_clips(
 ) -> std::rc::Rc<[PaintClip]> {
     let axes = clip_axes(style);
     let rounded = rounded_clip(style, kind);
-    if axes == (false, false) || matrix.is_translation() && rounded.is_none() {
+    if style.clip_insets.is_none() && (axes == (false, false) || matrix.is_translation() && rounded.is_none()) {
         return inherited;
     }
     let mut regions = inherited.to_vec();
     if let Some(inverse) = matrix.inverse() {
+        if style.clip_insets.is_some() {
+            regions.push(PaintClip { bounds: reveal_bounds(bounds, style), inverse,
+                axes: [true, true], corners: [0.;4] });
+        }
+        if axes != (false, false) {
         regions.push(PaintClip {
             bounds,
             inverse,
@@ -3124,6 +3154,7 @@ fn transformed_clips(
                 .unwrap_or([0.; 4])
                 .map(|r| r.min(bounds.width.min(bounds.height).max(0.) * 0.5)),
         });
+        }
     } else {
         regions.push(PaintClip {
             bounds: Rect::default(),
@@ -3140,11 +3171,17 @@ fn clipped_affine_bounds(
     matrix: Affine,
     style: &Style,
 ) -> Option<Rect> {
+    let parent = if style.clip_insets.is_some() {
+        let mask = matrix.bounds(reveal_bounds(bounds, style));
+        Some(parent.map_or(mask, |p| p.intersection(mask).unwrap_or_default()))
+    } else { parent };
     let axes = clip_axes(style);
     if !matrix.is_translation() && axes != (true, true) {
         return parent;
     }
-    clipped_bounds(parent, matrix.bounds(bounds), style)
+    let mut overflow = style.clone();
+    overflow.clip_insets = None;
+    clipped_bounds(parent, matrix.bounds(bounds), &overflow)
 }
 fn transformed_fade(
     inherited: Option<FadeMask>,

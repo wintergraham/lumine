@@ -18,6 +18,10 @@ use std::{
     rc::{Rc, Weak},
 };
 
+#[path = "compose_compiled_morph.rs"]
+mod compiled_morph;
+pub use compiled_morph::{CompiledMorphAnimation, CompiledMorphEffect, CompiledMorphTiming, compiled_morph};
+
 #[path = "compose_animation.rs"]
 mod animation;
 #[path = "compose_variable.rs"]
@@ -262,6 +266,7 @@ pub struct View {
     children: Vec<View>,
     variants: Variants,
     reactive_style: Option<Box<dyn FnMut() -> Styles>>,
+    accessibility: Option<Box<dyn FnMut(&mut SemanticNode)>>,
     disabled: Option<Box<dyn FnMut() -> bool>>,
     read_only: Option<Box<dyn FnMut() -> bool>>,
     selection_style: Option<(crate::scene::Color, f32, crate::scene::Insets)>,
@@ -274,6 +279,10 @@ pub struct View {
     focusable: Option<bool>,
     id: Option<String>,
     scrollbar: Option<bool>,
+    scroll_fit_cross_axis: Option<bool>,
+    horizontal_wheel: Option<bool>,
+    slider_chrome: Option<bool>,
+    slider_step: Option<f32>,
     animation: Option<animation::Animated>,
     keyboard_navigation: Option<bool>,
     dismiss_backdrop: Option<bool>,
@@ -283,9 +292,11 @@ pub struct View {
     menu_checked: Option<bool>,
     visibility: Vec<Signal<bool>>,
     bounds: Vec<Signal<crate::scene::Rect>>,
+    layout_bounds: Vec<Signal<Option<crate::scene::Rect>>>,
     layout_motion: Option<crate::motion::Transition>,
     layout_id: Option<String>,
     scroll_progress: Option<Signal<f32>>,
+    morph_effect: Option<CompiledMorphEffect>,
 }
 impl View {
     /// Set the controlled checked state of a menu item, including accessibility.
@@ -346,6 +357,7 @@ impl View {
             children: Vec::new(),
             variants: Variants::default(),
             reactive_style: None,
+            accessibility: None,
             disabled: None,
             read_only: None,
             selection_style: None,
@@ -358,6 +370,10 @@ impl View {
             focusable: None,
             id: None,
             scrollbar: None,
+            scroll_fit_cross_axis: None,
+            horizontal_wheel: None,
+            slider_chrome: None,
+            slider_step: None,
             animation: None,
             keyboard_navigation: None,
             dismiss_backdrop: None,
@@ -367,14 +383,42 @@ impl View {
             menu_checked: None,
             visibility: Vec::new(),
             bounds: Vec::new(),
+            layout_bounds: Vec::new(),
             layout_motion: None,
             layout_id: None,
             scroll_progress: None,
+            morph_effect: None,
         }
     }
     /// Overlay scrollbars are enabled by default; pass false to hide one.
     pub fn scrollbar(mut self, visible: bool) -> Self {
         self.scrollbar = Some(visible);
+        self
+    }
+    /// Keep slider input and semantics while the caller supplies its paint.
+    pub fn slider_chrome(mut self, visible: bool) -> Self {
+        assert!(matches!(self.kind, Kind::Slider { .. }), "slider_chrome requires a slider");
+        self.slider_chrome = Some(visible);
+        self
+    }
+    /// Quantize pointer, keyboard and accessibility changes to this interval.
+    pub fn slider_step(mut self, step: f32) -> Self {
+        assert!(matches!(self.kind, Kind::Slider { .. }) && step.is_finite() && step > 0., "slider_step requires a slider and positive finite interval");
+        self.slider_step = Some(step);
+        self
+    }
+    pub fn morph_effect(mut self,effect:CompiledMorphEffect)->Self {
+        self.morph_effect=Some(effect);self
+    }
+    /// Let a scroll viewport measure its non-scrolling axis from its content.
+    pub fn fit_cross_axis(mut self, enabled: bool) -> Self {
+        self.scroll_fit_cross_axis = Some(enabled);
+        self
+    }
+    /// Let horizontal scrolling consume vertical wheel gestures.
+    pub fn horizontal_wheel(mut self, enabled: bool) -> Self {
+        assert!(matches!(self.kind, Kind::Scroll { horizontal: true, .. }), "horizontal_wheel requires scroll_x");
+        self.horizontal_wheel = Some(enabled);
         self
     }
     /// Observe clipped/offscreen visibility and native presentation. The signal
@@ -386,6 +430,63 @@ impl View {
     /// Observe settled world bounds, published by layout without per-frame scene walks.
     pub fn observe_bounds(mut self, bounds: Signal<crate::scene::Rect>) -> Self {
         self.bounds.push(bounds);
+        self
+    }
+    /// Observe untransformed layout geometry for sizing shaders and stacked
+    /// content. Animated paint transforms never feed back into this measurement.
+    pub fn observe_layout_bounds(mut self, bounds: Signal<Option<crate::scene::Rect>>) -> Self {
+        self.layout_bounds.push(bounds);
+        self
+    }
+
+    /// Decorate native parts bottom-up, retaining the existing root identity.
+    pub fn map_parts(self, mut map: impl FnMut(&str, View) -> View) -> Self {
+        fn visit(mut view: View, map: &mut impl FnMut(&str, View) -> View) -> View {
+            view.children = view.children.into_iter().map(|child| visit(child, map)).collect();
+            let id = view.id.clone();
+            let mut result = map(id.as_deref().unwrap_or(""), view);
+            if result.id.is_none() { result.id = id; }
+            result
+        }
+        visit(self, &mut map)
+    }
+    /// Refine compiled native parts before they enter a retained variant.
+    pub fn map_part_styles(mut self, mut map: impl FnMut(&str, &mut Styles)) -> Self {
+        fn visit(view: &mut View, map: &mut impl FnMut(&str, &mut Styles)) {
+            map(view.id.as_deref().unwrap_or(""), &mut view.styles);
+            for child in &mut view.children {
+                visit(child, map);
+            }
+        }
+        visit(&mut self, &mut map);
+        self
+    }
+
+    /// Omit explicitly removed parts while retaining all other permanent identities.
+    pub fn retain_parts(mut self, mut include: impl FnMut(&str) -> bool) -> Self {
+        fn visit(view: &mut View, include: &mut impl FnMut(&str) -> bool) {
+            view.children
+                .retain(|child| include(child.id.as_deref().unwrap_or("")));
+            for child in &mut view.children {
+                visit(child, include);
+            }
+        }
+        visit(&mut self, &mut include);
+        self
+    }
+
+    /// Change flow order for explicitly identified parts while retaining their native nodes.
+    pub fn order_part_children(mut self, parent: &str, mut order: impl FnMut(&str) -> i32) -> Self {
+        fn visit(view: &mut View, parent: &str, order: &mut impl FnMut(&str) -> i32) {
+            if view.id.as_deref() == Some(parent) {
+                view.children
+                    .sort_by_key(|child| order(child.id.as_deref().unwrap_or("")));
+            }
+            for child in &mut view.children {
+                visit(child, parent, order);
+            }
+        }
+        visit(&mut self, parent, &mut order);
         self
     }
     /// Project from previous layout position and size without per-frame layout.
@@ -538,6 +639,13 @@ impl View {
         self.read_only = Some(Box::new(read_only));
         self
     }
+    /// Supply reactive semantics for a styled control while retaining native
+    /// focus, disabled state and event routing. Its explicit name is independent
+    /// of decorative or overlapping presentation labels.
+    pub fn accessibility(mut self, update: impl FnMut(&mut SemanticNode) + 'static) -> Self {
+        self.accessibility = Some(Box::new(update));
+        self
+    }
     pub fn reactive_style(mut self, style: impl FnMut() -> Styles + 'static) -> Self {
         self.reactive_style = Some(Box::new(style));
         self
@@ -546,6 +654,13 @@ impl View {
     fn refine(self, mut inner: View) -> View {
         inner.visibility.extend(self.visibility);
         inner.bounds.extend(self.bounds);
+        inner.layout_bounds.extend(self.layout_bounds);
+        inner.morph_effect = self.morph_effect.or(inner.morph_effect);
+        inner.scroll_fit_cross_axis = self.scroll_fit_cross_axis.or(inner.scroll_fit_cross_axis);
+        inner.horizontal_wheel = self.horizontal_wheel.or(inner.horizontal_wheel);
+        inner.slider_chrome = self.slider_chrome.or(inner.slider_chrome);
+        inner.slider_step = self.slider_step.or(inner.slider_step);
+        if self.accessibility.is_some() { inner.accessibility = self.accessibility; }
         inner.layout_motion = self.layout_motion.or(inner.layout_motion);
         inner.layout_id = self.layout_id.or(inner.layout_id);
         inner.scroll_progress = self.scroll_progress.or(inner.scroll_progress);
@@ -1043,7 +1158,7 @@ pub fn virtual_list<K: Eq + std::hash::Hash + Clone + 'static>(
                     let after = (before + delta_y)
                         .max(0.0)
                         .min((wheel_extent.get() - wheel_size.get().1).max(0.0));
-                    if before != after {
+                    if before != after || horizontal && horizontal_wheel && limit > 0. {
                         wheel_offset.set(after);
                         cx.prevent_default();
                         cx.stop_propagation();
@@ -1893,7 +2008,10 @@ fn mount_element(
             root
         }
         Kind::Scroll { offset, horizontal } => {
-            let mut defaults = Styles::new().w(320.).h(240.).overflow_hidden();
+            let fit = view.scroll_fit_cross_axis.unwrap_or(false);
+            let mut defaults = Styles::new().overflow_hidden();
+            if horizontal || !fit { defaults = defaults.w(320.); }
+            if !horizontal || !fit { defaults = defaults.h(240.); }
             defaults.merge(&view.styles);
             view.styles = defaults;
             let root = ui.container(parent, Layout::Overlay, Default::default());
@@ -1989,7 +2107,7 @@ fn mount_element(
             }
         });
     }
-    let scroll_layout_target = is_scroll.then(|| ui.signal(None));
+    let scroll_layout_target = is_scroll.then(|| view.layout_target.clone().unwrap_or_else(|| ui.signal(None)));
     if is_scroll {
         view.layout_target = scroll_layout_target.clone();
     }
@@ -2184,7 +2302,7 @@ fn mount_element(
         mount_progress(ui, root, value, environment.typography.clone());
     }
     if let Some((value, range)) = slider_state {
-        mount_slider(ui, root, value, range, environment.typography.clone());
+        mount_slider(ui, root, value, range, environment.typography.clone(), view.slider_chrome.unwrap_or(true), view.slider_step);
     }
     if let Some(editor) = editor {
         if let Some(select) = view.select_all_on_focus {
@@ -2252,6 +2370,8 @@ fn mount_element(
             horizontal,
             scrollbar,
             view.scroll_progress,
+            view.scroll_fit_cross_axis.unwrap_or(false),
+            view.horizontal_wheel.unwrap_or(false),
             &environment,
         );
     }
@@ -2281,6 +2401,18 @@ fn mount_element(
         ui.input.set_options(root, options);
     }
     update_button_labels(ui, root);
+    if let Some(mut update) = view.accessibility {
+        if ui.semantics.borrow().get(root).is_none() {
+            ui.semantics.borrow_mut().set(root, SemanticNode::new(Role::Group, ""));
+        }
+        let semantics = ui.semantics.clone();
+        ui.bind(root, move || {
+            semantics.borrow_mut().update(root, |node| {
+                update(node);
+                node.explicit_label = true;
+            });
+        });
+    }
     if !view.visibility.is_empty() {
         let visible = ui.observe_visibility(root);
         let presented = ui.observe_presentation();
@@ -2303,6 +2435,17 @@ fn mount_element(
             }
         });
     }
+    if !view.layout_bounds.is_empty() {
+        let bounds = ui.observe_layout_bounds(root);
+        let observers = view.layout_bounds;
+        ui.bind(root, move || {
+            let bounds = bounds.get();
+            for observer in &observers {
+                observer.set(bounds);
+            }
+        });
+    }
+
     root
 }
 #[allow(clippy::too_many_arguments)]
@@ -2315,6 +2458,8 @@ fn mount_scroll(
     horizontal: bool,
     scrollbar: bool,
     progress: Option<Signal<f32>>,
+    fit_cross_axis: bool,
+    horizontal_wheel: bool,
     environment: &Environment,
 ) {
     use crate::scene::{Style, Transform};
@@ -2423,7 +2568,9 @@ fn mount_scroll(
             if cx.default_prevented() {
                 return;
             }
-            let delta = if horizontal { delta_x } else { delta_y };
+            let delta = if horizontal {
+                if horizontal_wheel && delta_y.abs() >= delta_x.abs() { delta_y } else { delta_x }
+            } else { delta_y };
             if !delta.is_finite() {
                 return;
             }
@@ -2458,15 +2605,15 @@ fn mount_scroll(
         scene.set_style(
             viewport,
             Style {
-                width: Some(width),
-                height: Some(height),
+                width: (!fit_cross_axis || horizontal).then_some(width),
+                height: (!fit_cross_axis || !horizontal).then_some(height),
                 clip: true,
                 ..Default::default()
             },
         );
         let mut content_style = scene.style(content);
-        content_style.width = (!horizontal).then_some(width);
-        content_style.height = horizontal.then_some(height);
+        content_style.width = (!horizontal && !fit_cross_axis).then_some(width);
+        content_style.height = (horizontal && !fit_cross_axis).then_some(height);
         content_style.flex_shrink = 0.;
         scene.set_style(content, content_style);
         scene.set_transform(content, translation(position));
@@ -2705,6 +2852,8 @@ fn mount_slider(
     value: Signal<f32>,
     range: std::ops::RangeInclusive<f32>,
     typography: Signal<Typography>,
+    chrome: bool,
+    step_size: Option<f32>,
 ) {
     use crate::{
         input::{Key, PointerButton},
@@ -2716,7 +2865,7 @@ fn mount_slider(
     let rail = ui
         .scene
         .borrow_mut()
-        .append(root, NodeKind::Rect(ui.theme.hover), Style::default());
+        .append(root, NodeKind::Rect(if chrome { ui.theme.hover } else { crate::scene::Color(0, 0, 0, 0) }), Style::default());
     let fill_viewport = ui.container(
         root,
         Layout::Overlay,
@@ -2727,7 +2876,7 @@ fn mount_slider(
     );
     let fill = ui.scene.borrow_mut().append(
         fill_viewport,
-        NodeKind::Rect(ui.theme.accent),
+        NodeKind::Rect(if chrome { ui.theme.accent } else { crate::scene::Color(0, 0, 0, 0) }),
         Style::default(),
     );
     let thumb = ui
@@ -2797,7 +2946,7 @@ fn mount_slider(
                 y: (height - thumb_height) / 2.,
             },
         );
-        scene.set_kind(thumb, NodeKind::Rect(typography.get().color));
+        scene.set_kind(thumb, NodeKind::Rect(if chrome { typography.get().color } else { crate::scene::Color(0, 0, 0, 0) }));
         semantics
             .borrow_mut()
             .update(root, |node| node.numeric_value = Some(val as f64));
@@ -2830,7 +2979,7 @@ fn mount_slider(
             Some((min + fraction * span).clamp(min, max) as f32)
         };
         let step =
-            |direction: f64| (value.get() as f64 + direction * span / 100.).clamp(min, max) as f32;
+            |direction: f64| (value.get() as f64 + direction * step_size.map_or(span / 100., |step| step as f64)).clamp(min, max) as f32;
         let next = match &cx.event {
             InputEvent::SetNumericValue(v) if v.is_finite() => Some(v.clamp(min, max) as f32),
             InputEvent::SetValue(v) => v
@@ -2877,6 +3026,7 @@ fn mount_slider(
         };
         if let Some(next) = next {
             if next.is_finite() {
+                let next = step_size.map_or(next, |step| ((next - min as f32) / step).round() * step + min as f32).clamp(min as f32, max as f32);
                 value.set(next);
             }
             cx.prevent_default();
@@ -2892,7 +3042,7 @@ fn update_button_labels(ui: &Ui, node: NodeId) {
             .semantics
             .borrow()
             .get(id)
-            .is_some_and(|n| n.role == Role::Button);
+            .is_some_and(|n| n.role == Role::Button && !n.explicit_label);
         if is_button {
             let mut parts = Vec::new();
             let mut pending = vec![id];
@@ -2993,7 +3143,7 @@ impl Ui {
 /// Common imports for component application code.
 pub mod prelude {
     pub use super::{
-        Context, Slot, VariableHeights, View, button, checkbox, column, component, div, image,
+        CompiledMorphAnimation, CompiledMorphEffect, CompiledMorphTiming, compiled_morph, Context, Slot, VariableHeights, View, button, checkbox, column, component, div, image,
         image_signal, keyed, measured_rows, measured_virtual_list, menu, menu_item, modal, overlay,
         popover, progress, provide, provide_with, row, scroll, scroll_x, slider, submenu, switch,
         text, text_area, text_input, text_signal, variable_virtual_list, virtual_list,
@@ -3271,6 +3421,8 @@ mod control_alignment_tests {
 /// Application bindings applied to both live and generated native view factories.
 /// The factory applies the source styles to the replacement returned by `create`.
 pub trait CompiledHost {
+    /// Namespace repeated compiled masters by their permanent application role.
+    fn identity(&self, id: &str) -> String { id.into() }
     fn create(&self, _id: &str, fallback: impl FnOnce() -> View) -> View { fallback() }
     fn decorate(&self, _id: &str, view: View) -> View { view }
 }
@@ -3299,3 +3451,7 @@ fn mount_scrollbar(
     crate::compose_scrollbar::mount(ui, &mut cx, owner, offset, size, extent, horizontal);
     cx.finish(ui, owner);
 }
+
+#[cfg(test)]
+#[path = "compose_react_host_tests.rs"]
+mod react_host_tests;

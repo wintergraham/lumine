@@ -260,6 +260,7 @@ pub(crate) fn mount_style_with_intrinsic(
             (previous.0.opacity, previous.0.blur, previous.0.edge_fade, previous.0.transform, previous.0.scale, previous.0.rotation, previous.0.transform_origin) = before;
         }
         let (resolved, current, _, _, projection) = &*applied.insert(inputs);
+        if let Some(enabled) = resolved.pointer_events { ui.input.set_pointer_transparent(node, !enabled); }
         let mut style = original_style.clone();
         if let Some(resolved_options) = &resolved.layout_options {
             if let Some(original) = &style.layout_options {
@@ -281,6 +282,7 @@ pub(crate) fn mount_style_with_intrinsic(
             style.height = resolved.height;
             style.height_percent = resolved.height_percent;
         }
+        if let Some(insets) = resolved.clip_insets { style.clip_insets = insets; }
         field!(absolute,gap,clip,fade_edges,flex_grow,flex_shrink,align,justify,text_wrap,margin);
         if matches!(original_kind, NodeKind::Text { .. } | NodeKind::RichText { .. }) { style.text_wrap = current.wrap; style.text_options = current.display; }
         if let Some(padding) = resolved.padding { style.padding_edges = Some(padding); }

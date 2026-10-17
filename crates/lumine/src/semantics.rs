@@ -42,6 +42,8 @@ pub enum PopupKind {
 pub struct SemanticNode {
     pub role: Role,
     pub label: String,
+    /// An explicit accessible name is preserved when descendants update.
+    pub explicit_label: bool,
     pub value: Option<String>,
     /// Committed-text UTF-8 byte offsets, preserving anchor/focus direction.
     pub text_selection: Option<(usize, usize)>,
@@ -74,6 +76,7 @@ impl SemanticNode {
         Self {
             role,
             label: label.into(),
+            explicit_label: false,
             value: None,
             text_selection: None,
             checked: None,

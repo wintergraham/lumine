@@ -40,6 +40,7 @@ pub struct Styles {
     pub(crate) margin: Option<Insets>,
     pub(crate) gap: Option<f32>,
     pub(crate) clip: Option<bool>,
+    pub(crate) clip_insets: Option<Option<Insets>>,
     pub(crate) fade_edges: Option<[f32; 2]>,
     pub(crate) flex_grow: Option<f32>,
     pub(crate) flex_shrink: Option<f32>,
@@ -48,6 +49,7 @@ pub struct Styles {
     pub(crate) text_wrap: Option<bool>,
     pub(crate) background: Option<Color>,
     pub(crate) cursor: Option<crate::cursor::Cursor>,
+    pub(crate) pointer_events: Option<bool>,
     pub(crate) paint_background: Option<Option<crate::decoration::Background>>,
     pub(crate) corners: Option<Option<crate::decoration::Corners>>,
     pub(crate) border_edges: Option<Option<Insets>>,
@@ -81,6 +83,72 @@ pub struct Styles {
     pub(crate) margin_sides: u8,
 }
 impl Styles {
+    /// Scale native layout metrics before mounting, so text rasterizes at its final size.
+    pub fn scale_layout(&mut self, scale: f32) {
+        assert!(scale.is_finite() && scale > 0.);
+        macro_rules! metrics {($($field:ident),*)=>{$(self.$field=self.$field.map(|v|v*scale);)*};}
+        metrics!(
+            width,
+            height,
+            min_width,
+            max_width,
+            min_height,
+            max_height,
+            gap,
+            text_size,
+            radius,
+            border_width,
+            blur
+        );
+        if let Some(line) = self.line_height.and_then(|line| line.pixels()) {
+            self.line_height = Some(crate::text_layout::LineHeight::px(line * scale));
+        }
+        if let Some(space) = self.letter_spacing {
+            self.letter_spacing = Some(crate::text_layout::LetterSpacing::px(
+                space.pixels() * scale,
+            ));
+        }
+        for insets in [&mut self.padding, &mut self.margin] {
+            if let Some(v) = insets {
+                v.top *= scale;
+                v.right *= scale;
+                v.bottom *= scale;
+                v.left *= scale;
+            }
+        }
+        if let Some(Some(i)) = &mut self.clip_insets {
+            i.top*=scale; i.right*=scale; i.bottom*=scale; i.left*=scale;
+        }
+        if let Some(o) = &mut self.layout_options {
+            let o = std::sync::Arc::make_mut(o);
+            use crate::layout::Length;
+            for edge in [&mut o.inset, &mut o.padding, &mut o.margin] {
+                for v in [
+                    &mut edge.top,
+                    &mut edge.right,
+                    &mut edge.bottom,
+                    &mut edge.left,
+                ] {
+                    if let Some(Length::Px(px)) = v {
+                        *px *= scale;
+                    }
+                }
+            }
+            for v in [
+                &mut o.basis,
+                &mut o.gap_x,
+                &mut o.gap_y,
+                &mut o.min_width,
+                &mut o.max_width,
+                &mut o.min_height,
+                &mut o.max_height,
+            ] {
+                if let Some(Length::Px(px)) = v {
+                    *px *= scale;
+                }
+            }
+        }
+    }
     pub(crate) fn layout_options_mut(&mut self) -> &mut crate::layout::LayoutOptions {
         std::sync::Arc::make_mut(self.layout_options.get_or_insert_with(Default::default))
     }
@@ -149,7 +217,9 @@ impl Styles {
                 options.gap_x = None;
                 options.gap_y = None;
             }
-            if other.clip.is_some() {
+            if other.pointer_events.is_some() { self.pointer_events = other.pointer_events; }
+        if other.clip_insets.is_some() { self.clip_insets = other.clip_insets; }
+        if other.clip.is_some() {
                 options.clip_x = None;
                 options.clip_y = None;
             }
@@ -1191,6 +1261,16 @@ pub trait Styled: Sized {
             options.clip_x = None;
             options.clip_y = None;
         }
+        self
+    }
+    /// Inset the paint and hit clip without changing layout or clipping overflow.
+    fn clip_insets(mut self, insets: Option<Insets>) -> Self {
+        self.styles_mut().clip_insets = Some(insets);
+        self
+    }
+    /// Exclude this subtree from pointer targeting while preserving paint and keyboard focus.
+    fn pointer_events(mut self, enabled: bool) -> Self {
+        self.styles_mut().pointer_events = Some(enabled);
         self
     }
     fn overflow_visible(mut self) -> Self {
