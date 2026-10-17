@@ -281,3 +281,32 @@ fn external_anchor_places_above_and_reactivates_repeated_trigger_clicks() {
     let bounds = ui.scene.borrow().bounds(panel);
     assert!((bounds.x + bounds.width - trigger_bounds.x - trigger_bounds.width).abs() < 0.1);
 }
+
+#[test]
+fn external_anchor_places_below_with_right_alignment() {
+    let mut ui = Ui::new(400., 300.);
+    let open = ui.signal(true);
+    let anchor = ui.signal(lumine::scene::Rect::new(100., 50., 80., 30.));
+    let right = ui.signal(true);
+    ui.mount(
+        overlay().w_full().h_full().child(
+            menu("Below select", open, div().size(0., 0.))
+                .anchor_below_aligned(anchor, right, 6.)
+                .w(100.)
+                .p(0.)
+                .child(menu_item("Option").h(40.)),
+        ),
+    );
+    for _ in 0..4 {
+        ui.prepare_frame();
+    }
+    let panel = ui
+        .semantics
+        .borrow()
+        .iter()
+        .find_map(|(id, semantics)| (semantics.label == "Below select").then_some(id))
+        .unwrap();
+    let bounds = ui.scene.borrow().bounds(panel);
+    assert!((bounds.x - 80.).abs() < 0.01, "{bounds:?}");
+    assert!((bounds.y - 86.).abs() < 0.01, "{bounds:?}");
+}

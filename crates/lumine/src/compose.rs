@@ -264,6 +264,7 @@ pub(crate) struct AboveAnchor {
     pub bounds: Signal<crate::scene::Rect>,
     pub align_right: Option<Signal<bool>>,
     pub gap: f32,
+    pub below: bool,
 }
 
 /// Optional portal presentation. Focus and hit routing follow logical visibility.
@@ -634,6 +635,7 @@ impl View {
             bounds,
             align_right: None,
             gap: 8.,
+            below: false,
         });
         self
     }
@@ -649,7 +651,19 @@ impl View {
             bounds,
             align_right: Some(align_right),
             gap,
+            below: false,
         });
+        self
+    }
+    /// Align a panel below an external trigger without changing its logical owner.
+    pub fn anchor_below_aligned(
+        mut self,
+        bounds: Signal<crate::scene::Rect>,
+        align_right: Signal<bool>,
+        gap: f32,
+    ) -> Self {
+        assert!(gap.is_finite() && gap >= 0.);
+        self.anchor_above = Some(AboveAnchor { bounds, align_right: Some(align_right), gap, below: true });
         self
     }
     pub fn hover(mut self, style: impl FnOnce(Styles) -> Styles) -> Self {

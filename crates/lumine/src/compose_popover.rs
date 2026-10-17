@@ -21,6 +21,7 @@ pub(crate) fn mount_above(
     ui.bind(owner, move || {
         let align_right = anchor.align_right.as_ref().is_some_and(|s| s.get());
         let gap = anchor.gap;
+        let below = anchor.below;
         let anchor = anchor.bounds.get();
         let viewport = viewport.get();
         let panel = panel_bounds.get();
@@ -34,7 +35,12 @@ pub(crate) fn mount_above(
             viewport.x + 8.,
             (viewport.x + viewport.width - panel.width - 8.).max(viewport.x + 8.),
         );
-        let y = (anchor.y - panel.height - gap).clamp(
+        let y = (if below {
+            anchor.y + anchor.height + gap
+        } else {
+            anchor.y - panel.height - gap
+        })
+        .clamp(
             viewport.y + 8.,
             (viewport.y + viewport.height - panel.height - 8.).max(viewport.y + 8.),
         );
