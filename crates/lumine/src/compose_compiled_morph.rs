@@ -1,6 +1,6 @@
 //! Reconcile compiled native variants by permanent IDs. No design interpreter or browser runtime.
 use super::*;
-use crate::motion::{Keyframe, Keyframes, MotionValue, Playback};
+use crate::motion::{AnimationGroup, Completion, Keyframe, Keyframes, MotionValue, Playback};
 use std::{
     cell::{Cell, RefCell},
     collections::{HashMap, HashSet},
@@ -848,11 +848,19 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                     let weak = ui.downgrade();
                     let nodes = mounted.clone();
                     let removed = id.clone();
-                    let delay = animation.map_or(options.duration, |a| a.duration + a.delay);
+                    let exit = if animation.is_some() {
+                        AnimationGroup::new([old.style.decoration_progress.animation()])
+                    } else {
+                        AnimationGroup::new([
+                            old.style.progress.animation(),
+                            old.style.reveal_opacity.animation(),
+                        ])
+                    };
                     let mut cx = Context::new(runtime.clone(), environment.clone());
                     cx.tasks().spawn(async move {
-                        crate::timer::sleep(delay).await;
-                        if marker.get() != generation {
+                        if exit.finished().await != Completion::Finished
+                            || marker.get() != generation
+                        {
                             return;
                         }
                         let Some(mut ui) = weak.upgrade() else {
@@ -1065,6 +1073,127 @@ fn interpolate(from: &Styles, to: &Styles, t: f32) -> Styles {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn frame_clock_exit_completion_removes_zero_height_slots_and_their_gaps() {
+        use crate::{
+            frame::{Frame, FrameClock},
+            task::LocalExecutor,
+        };
+        for (line_height, gap, count, authored_exit) in [(30., 6., 4, true), (39., 9., 5, false)] {
+            let mut ui = Ui::new(200., 300.);
+            let executor = Rc::new(RefCell::new(LocalExecutor::new()));
+            let frames = FrameClock::new();
+            let selected = ui.signal(true);
+            let choice = selected.clone();
+            let root = ui.mount(provide(
+                TaskRunner::from_executor(executor.clone()),
+                provide(
+                    frames.clone(),
+                    compiled_morph(
+                        move || choice.get(),
+                        move |expanded| {
+                            let mut view = column()
+                                .id("stack")
+                                .w(100.)
+                                .gap(gap)
+                                .child(div().id("first").h(line_height))
+                                .child(div().id("second").h(line_height));
+                            if expanded {
+                                for i in 0..count {
+                                    let mut slot = div().id(format!("exit-{i}")).h(0.);
+                                    if authored_exit {
+                                        slot = slot.morph_effect(CompiledMorphEffect {
+                                            exit: Some(CompiledMorphAnimation {
+                                                duration: Duration::from_millis(120),
+                                                delay: Duration::ZERO,
+                                                curve: std::array::from_fn(|i| i as f32 / 48.),
+                                                offset_y: 0.,
+                                                scale: 1.,
+                                                blur: 0.,
+                                            }),
+                                            ..Default::default()
+                                        });
+                                    }
+                                    view = view.child(slot);
+                                }
+                            }
+                            view
+                        },
+                        || CompiledMorphTiming {
+                            duration: Duration::from_millis(120),
+                            crossfade: Duration::from_millis(40),
+                            color_duration: Duration::from_millis(40),
+                            curve: std::array::from_fn(|i| i as f32 / 48.),
+                        },
+                    ),
+                ),
+            ));
+            ui.prepare_frame();
+            let stack = root.find("stack").unwrap();
+            let first = root.find("first").unwrap();
+            let second = root.find("second").unwrap();
+            let exits: Vec<_> = (0..count)
+                .map(|i| {
+                    (
+                        format!("exit-{i}"),
+                        root.find(&format!("exit-{i}")).unwrap(),
+                    )
+                })
+                .collect();
+            let settled_height = 2. * line_height + gap;
+            assert_eq!(
+                ui.scene.borrow().layout_bounds(stack).height,
+                settled_height + count as f32 * gap
+            );
+            let mut time = std::time::Instant::now();
+            let mut index = 0;
+            let mut advance = |ms: u64| {
+                executor.borrow_mut().tick();
+                index += 1;
+                time += Duration::from_millis(ms);
+                frames.deliver(Frame {
+                    index,
+                    time,
+                    interval: Duration::from_millis(ms),
+                });
+                executor.borrow_mut().tick();
+                executor.borrow_mut().tick();
+                ui.prepare_frame();
+            };
+            selected.set(false);
+            advance(50);
+            for (id, node) in &exits {
+                assert_eq!(root.find(id), Some(*node), "{id} removed before completion");
+            }
+            selected.set(true);
+            advance(800);
+            for (id, node) in &exits {
+                assert_eq!(
+                    root.find(id),
+                    Some(*node),
+                    "{id} removed by a cancelled exit"
+                );
+            }
+            selected.set(false);
+            advance(800);
+            for (id, node) in &exits {
+                assert_eq!(root.find(id), None, "{id} retained after frame completion");
+                assert!(!ui.scene.borrow().contains(*node));
+            }
+            let scene = ui.scene.borrow();
+            assert_eq!(scene.children(stack), &[first, second]);
+            assert_eq!(scene.layout_bounds(stack).height, settled_height);
+            assert_eq!(
+                scene.layout_bounds(second).y - scene.layout_bounds(first).y,
+                line_height + gap
+            );
+            drop(scene);
+            root.unmount();
+            executor.borrow_mut().tick();
+        }
+    }
+
     #[test]
     fn pinned_glyph_exit_keeps_the_replacement_and_neighbours_in_their_slots() {
         let mut ui = Ui::new(200., 200.);
