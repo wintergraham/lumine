@@ -232,6 +232,13 @@ fn bound(value: t::AvailableSpace) -> Option<f32> {
         _ => None,
     }
 }
+fn content_dimension(value: t::Dimension, basis: f32) -> t::Dimension {
+    if value.tag() == taffy::style::CompactLength::PERCENT_TAG {
+        t::Dimension::length(value.value() * basis)
+    } else {
+        value
+    }
+}
 impl Scene {
     /// Resolved padding from the most recent layout, including percentages.
     pub fn padding(&self, id: NodeId) -> Insets {
@@ -393,59 +400,7 @@ impl Scene {
             let (key, _) = cache.nodes.remove(&removed).unwrap();
             cache.tree.remove(key).expect("owned retained layout child");
         }
-        let children: Vec<_> = ids
-            .iter()
-            .map(|child| {
-                let mut mapped = style(&self.node(*child).style, Layout::Column, true);
-                if layout == Layout::Overlay && root_options.display != Some(ViewDisplay::Grid) {
-                    mapped.position = t::Position::Absolute;
-                    // Only in-flow layers inherit overlay alignment. Explicitly
-                    // positioned layers keep their anchors in both layout paths.
-                    if self.node(*child).style.absolute {
-                        let padding = self.resolved_padding(id, constraints);
-                        if mapped.inset.left.is_auto() && mapped.inset.right.is_auto() {
-                            mapped.inset.left = t::LengthPercentageAuto::length(padding.left);
-                        }
-                        if mapped.inset.top.is_auto() && mapped.inset.bottom.is_auto() {
-                            mapped.inset.top = t::LengthPercentageAuto::length(padding.top);
-                        }
-                    }
-                }
-                let revision = self.node(*child).measure_revision;
-                if let Some((key, cached_revision)) = cache.nodes.get_mut(child) {
-                    let key = *key;
-                    if cache.tree.style(key).expect("retained style") != &mapped {
-                        cache
-                            .tree
-                            .set_style(key, mapped)
-                            .expect("retained style update");
-                    }
-                    if *cached_revision != revision {
-                        cache
-                            .tree
-                            .mark_dirty(key)
-                            .expect("retained child invalidation");
-                        *cached_revision = revision;
-                    }
-                    key
-                } else {
-                    let key = cache
-                        .tree
-                        .new_leaf_with_context(mapped, *child)
-                        .expect("retained leaf");
-                    cache.nodes.insert(*child, (key, revision));
-                    key
-                }
-            })
-            .collect();
         let root = cache.root;
-        if cache.order != ids {
-            cache
-                .tree
-                .set_children(root, &children)
-                .expect("retained children");
-            cache.order.clone_from(&ids);
-        }
         let mut mapping_style = root_style.clone();
         let mut mapping_options = root_options;
         mapping_options.padding = Default::default();
@@ -557,6 +512,92 @@ impl Scene {
                 mapped.size.height = dim(Length::Px(total + gap * count.saturating_sub(1) as f32 + padding.top + padding.bottom));
             }
         }
+        let overlay_content = (layout == Layout::Overlay
+            && root_options.display != Some(ViewDisplay::Grid))
+        .then(|| {
+            let padding = self.resolved_padding(id, constraints);
+            let width = dimension(
+                mapped
+                    .size
+                    .width
+                    .into_option()
+                    .expect("resolved overlay width"),
+                root_style.min_width,
+                root_style.max_width,
+            );
+            let height = dimension(
+                mapped
+                    .size
+                    .height
+                    .into_option()
+                    .expect("resolved overlay height"),
+                root_style.min_height,
+                root_style.max_height,
+            );
+            (
+                (width - padding.left - padding.right).max(0.),
+                (height - padding.top - padding.bottom).max(0.),
+            )
+        });
+        let children: Vec<_> = ids
+            .iter()
+            .map(|child| {
+                let mut mapped = style(&self.node(*child).style, Layout::Column, true);
+                if let Some((width, height)) = overlay_content {
+                    mapped.position = t::Position::Absolute;
+                    // Only in-flow layers inherit overlay alignment. Explicitly
+                    // positioned layers keep their anchors in both layout paths.
+                    if self.node(*child).style.absolute {
+                        let padding = self.resolved_padding(id, constraints);
+                        if mapped.inset.left.is_auto() && mapped.inset.right.is_auto() {
+                            mapped.inset.left = t::LengthPercentageAuto::length(padding.left);
+                        }
+                        if mapped.inset.top.is_auto() && mapped.inset.bottom.is_auto() {
+                            mapped.inset.top = t::LengthPercentageAuto::length(padding.top);
+                        }
+                    } else {
+                        // Synthetic absolute layers retain in-flow content-box percentages.
+                        // Real absolute children use Taffy's padding-box containing block.
+                        for size in [&mut mapped.size, &mut mapped.min_size, &mut mapped.max_size] {
+                            size.width = content_dimension(size.width, width);
+                            size.height = content_dimension(size.height, height);
+                        }
+                    }
+                }
+                let revision = self.node(*child).measure_revision;
+                if let Some((key, cached_revision)) = cache.nodes.get_mut(child) {
+                    let key = *key;
+                    if cache.tree.style(key).expect("retained style") != &mapped {
+                        cache
+                            .tree
+                            .set_style(key, mapped)
+                            .expect("retained style update");
+                    }
+                    if *cached_revision != revision {
+                        cache
+                            .tree
+                            .mark_dirty(key)
+                            .expect("retained child invalidation");
+                        *cached_revision = revision;
+                    }
+                    key
+                } else {
+                    let key = cache
+                        .tree
+                        .new_leaf_with_context(mapped, *child)
+                        .expect("retained leaf");
+                    cache.nodes.insert(*child, (key, revision));
+                    key
+                }
+            })
+            .collect();
+        if cache.order != ids {
+            cache
+                .tree
+                .set_children(root, &children)
+                .expect("retained children");
+            cache.order.clone_from(&ids);
+        }
         if cache.tree.style(root).expect("retained root style") != &mapped {
             cache
                 .tree
@@ -664,6 +705,92 @@ impl Scene {
 mod tests {
     use super::*;
     use std::{cell::Cell, rc::Rc};
+
+    #[test]
+    fn padded_overlay_percentage_editor_allocation_settles_in_content_box() {
+        let padded = Insets {
+            top: 2.,
+            right: 7.,
+            bottom: 2.,
+            left: 7.,
+        };
+        for (padding, height, expected_height) in [
+            (padded, None, 28.),
+            (padded, Some(40.), 40.),
+            (Insets::all(0.), None, 24.),
+        ] {
+            let mut ui = crate::widgets::Ui::new(400., 300.);
+            let overlay = ui.container(
+                ui.root(),
+                Layout::Overlay,
+                Style {
+                    width: Some(300.),
+                    height,
+                    padding_edges: Some(padding),
+                    ..Default::default()
+                },
+            );
+            let value = ui.signal("Rename".to_owned());
+            let editor = ui.text_input_styled(overlay, "Rename", value.clone(), false);
+            ui.scene.borrow_mut().set_style(
+                editor.node,
+                Style {
+                    width_percent: Some(1.),
+                    height_percent: Some(1.),
+                    padding_edges: Some(Insets::all(0.)),
+                    ..Default::default()
+                },
+            );
+            // Like the host's positioned placeholder, this opts the Overlay
+            // into advanced layout. A real absolute child keeps its padding box.
+            let absolute = ui.scene.borrow_mut().append(
+                overlay,
+                NodeKind::Rect(Color(0, 0, 0, 0)),
+                Style {
+                    absolute: true,
+                    width_percent: Some(1.),
+                    height_percent: Some(1.),
+                    layout_options: Some(Arc::new(crate::layout::LayoutOptions {
+                        inset: crate::layout::EdgeLengths {
+                            left: Some(Length::Px(0.)),
+                            top: Some(Length::Px(0.)),
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    })),
+                    ..Default::default()
+                },
+            );
+            assert!(ui.scene.borrow().uses_advanced_layout(overlay));
+            ui.try_prepare_frame()
+                .expect("percentage editor allocation must settle");
+            assert!(ui.input.focus(&ui.scene, Some(editor.node)));
+            value.set("Retained editor".to_owned());
+            // Editor refresh sizes its retained viewport from its allocation.
+            // Feeding padding back into the percentage height grows every pass.
+            editor.refresh();
+            ui.try_prepare_frame()
+                .expect("retained editor allocation must stay settled");
+            let scene = ui.scene.borrow();
+            assert_eq!(
+                scene.layout_bounds(overlay),
+                Rect::new(0., 0., 300., expected_height)
+            );
+            assert_eq!(
+                scene.layout_bounds(editor.node),
+                Rect::new(
+                    padding.left,
+                    padding.top,
+                    300. - padding.left - padding.right,
+                    expected_height - padding.top - padding.bottom,
+                )
+            );
+            assert_eq!(
+                scene.layout_bounds(absolute),
+                Rect::new(0., 0., 300., expected_height)
+            );
+        }
+    }
 
     fn label(value: &str) -> NodeKind {
         NodeKind::Text {
