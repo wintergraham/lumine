@@ -11,6 +11,12 @@ use std::{
     rc::{Rc, Weak},
     time::{Duration, Instant},
 };
+pub(crate) fn is_item_role(role: Role) -> bool {
+    matches!(
+        role,
+        Role::MenuItem | Role::MenuItemCheckbox | Role::MenuItemRadio
+    )
+}
 pub(crate) struct MenuContext {
     pub open: Signal<bool>,
     pub parent: Option<Rc<MenuContext>>,
@@ -196,7 +202,7 @@ pub(crate) fn mount(
                 .semantics
                 .borrow()
                 .get(cx.target)
-                .is_some_and(|node| node.role == Role::MenuItem)
+                .is_some_and(|node| is_item_role(node.role))
         {
             return;
         }
@@ -236,7 +242,7 @@ pub(crate) fn mount(
             while let Some(node) = pending.pop() {
                 if semantics
                     .get(node)
-                    .is_some_and(|node| node.role == Role::MenuItem)
+                    .is_some_and(|node| is_item_role(node.role))
                     && ui.input.is_enabled(&scene, node)
                 {
                     items.push(node);

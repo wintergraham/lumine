@@ -290,7 +290,7 @@ pub(crate) fn activate(
                             .semantics
                             .borrow()
                             .get(candidate)
-                            .is_some_and(|node| node.role == Role::MenuItem))
+                            .is_some_and(|node| crate::compose_menu::is_item_role(node.role)))
                         && ui
                             .input
                             .options(candidate)

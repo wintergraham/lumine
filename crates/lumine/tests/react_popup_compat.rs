@@ -431,3 +431,48 @@ fn document_keyboard_listener_works_without_a_focused_control() {
     ui.dispatch(key());
     assert_eq!(&*targets.borrow(), &[root_id, button.node()]);
 }
+
+#[test]
+fn menu_radio_and_checkbox_roles_participate_in_keyboard_navigation() {
+    use lumine::semantics::Role;
+    let mut ui = Ui::new(300., 200.);
+    let open = ui.signal(true);
+    let clicks = Rc::new(Cell::new(0));
+    let hit = clicks.clone();
+    let root = ui.mount(
+        menu("Choices", open.clone(), button().size(100., 30.))
+            .child(
+                button()
+                    .id("radio")
+                    .accessibility(|node| node.role = Role::MenuItemRadio),
+            )
+            .child(
+                button()
+                    .id("checkbox")
+                    .accessibility(|node| node.role = Role::MenuItemCheckbox)
+                    .on_click(move || hit.set(hit.get() + 1)),
+            ),
+    );
+    ui.prepare_frame();
+    assert_eq!(ui.input.focused(), root.find("radio"));
+    ui.dispatch(InputEvent::KeyDown {
+        key: Key::ArrowDown,
+        modifiers: Modifiers::default(),
+        repeat: false,
+    });
+    assert_eq!(ui.input.focused(), root.find("checkbox"));
+    ui.dispatch(InputEvent::KeyDown {
+        key: Key::Enter,
+        modifiers: Modifiers::default(),
+        repeat: false,
+    });
+    ui.dispatch(InputEvent::KeyUp {
+        key: Key::Enter,
+        modifiers: Modifiers::default(),
+    });
+    assert_eq!(clicks.get(), 1);
+    assert!(
+        open.get(),
+        "a multi-select option owns its dismissal policy"
+    );
+}
