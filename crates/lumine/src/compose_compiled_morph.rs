@@ -974,19 +974,36 @@ fn interpolate(from: &Styles, to: &Styles, t: f32) -> Styles {
     if let (Some(a), Some(b)) = (from.padding, to.padding) {
         out.padding = Some(insets(a, b, t));
     }
-    if let (Some(a), Some(b)) = (from.margin, to.margin) {
-        out.margin = Some(insets(a, b, t));
+    // Interrupted footprints carry flow/paint offsets absent from authored styles.
+    if from.margin.is_some() || to.margin.is_some() {
+        out.margin = Some(insets(
+            from.margin.unwrap_or_default(),
+            to.margin.unwrap_or_default(),
+            t,
+        ));
     }
-    if let (Some(Some(a)), Some(Some(b))) = (from.clip_insets, to.clip_insets) {
-        out.clip_insets = Some(Some(insets(a, b, t)));
+    if from.clip_insets.flatten().is_some() || to.clip_insets.flatten().is_some() {
+        out.clip_insets = Some(if t == 1. {
+            to.clip_insets.flatten()
+        } else {
+            Some(insets(
+                from.clip_insets.flatten().unwrap_or_default(),
+                to.clip_insets.flatten().unwrap_or_default(),
+                t,
+            ))
+        });
     }
-    if let (Some(a), Some(b)) = (from.transform, to.transform) {
+    if from.transform.is_some() || to.transform.is_some() {
+        let a = from.transform.unwrap_or_default();
+        let b = to.transform.unwrap_or_default();
         out.transform = Some(crate::scene::Transform {
             x: a.x + (b.x - a.x) * t,
             y: a.y + (b.y - a.y) * t,
         });
     }
-    if let (Some(a), Some(b)) = (from.scale, to.scale) {
+    if from.scale.is_some() || to.scale.is_some() {
+        let a = from.scale.unwrap_or([1.; 2]);
+        let b = to.scale.unwrap_or([1.; 2]);
         out.scale = Some(std::array::from_fn(|i| a[i] + (b[i] - a[i]) * t));
     }
     fn color(a: crate::scene::Color, b: crate::scene::Color, t: f32) -> crate::scene::Color {
@@ -1356,6 +1373,143 @@ mod tests {
         root.unmount();
         executor.borrow_mut().tick();
     }
+
+    #[test]
+    fn approval_reversal_preserves_presented_height_without_another_frame() {
+        use crate::{
+            frame::{Frame, FrameClock},
+            task::LocalExecutor,
+        };
+        let mut ui = Ui::new(1440., 900.);
+        let executor = Rc::new(RefCell::new(LocalExecutor::new()));
+        let frames = FrameClock::new();
+        let selected = ui.signal(false);
+        let choice = selected.clone();
+        let root = ui.mount(provide(
+            TaskRunner::from_executor(executor.clone()),
+            provide(
+                frames.clone(),
+                compiled_morph(
+                    move || choice.get(),
+                    |reasoning| {
+                        let mut details = column().id("details").w_full().gap(7.5);
+                        for i in 0..5 {
+                            if !reasoning || i >= 3 {
+                                details = details.child(
+                                    row()
+                                        .id(format!("detail-{i}"))
+                                        .w_full()
+                                        .child(div().id(format!("value-{i}")).size(100., 22.)),
+                                );
+                            }
+                        }
+                        let mut dock = column()
+                            .id("dock")
+                            .w_full()
+                            .gap(15.)
+                            .px(13.5)
+                            .pt(16.5)
+                            .pb(12.)
+                            .child(div().id("header").h(27.))
+                            .child(div().id("title").h(27.));
+                        if reasoning {
+                            dock = dock.child(
+                                column()
+                                    .id("rationale")
+                                    .w_full()
+                                    .child(div().id("rationale-copy").w_full().h(81.)),
+                            );
+                        }
+                        dock = dock.child(details).child(div().id("actions").h(45.));
+                        column()
+                            .id("composer-root")
+                            .absolute()
+                            .left(441.5)
+                            .bottom(318.5)
+                            .w(594.)
+                            .gap(15.)
+                            .child(div().id("overlays").h(0.))
+                            .child(
+                                column()
+                                    .id("composer")
+                                    .w_full()
+                                    .gap(9.)
+                                    .child(
+                                        column()
+                                            .id("body")
+                                            .w_full()
+                                            .child(dock)
+                                            .child(div().id("input").h(64.5)),
+                                    )
+                                    .child(div().id("footer").h(39.)),
+                            )
+                    },
+                    || CompiledMorphTiming {
+                        duration: Duration::from_millis(400),
+                        crossfade: Duration::from_millis(140),
+                        color_duration: Duration::from_millis(200),
+                        curve: std::array::from_fn(|i| i as f32 / 48.),
+                    },
+                )
+                .size(1440., 900.),
+            ),
+        ));
+        ui.prepare_frame();
+        let composer = root.find("composer-root").unwrap();
+        let details = root.find("details").unwrap();
+        let row = root.find("detail-0").unwrap();
+        let initial = ui.scene.borrow().bounds(composer);
+        assert_eq!(initial, crate::scene::Rect::new(441.5, 141.5, 594., 440.));
+        let mut time = std::time::Instant::now();
+        let mut index = 0;
+        let mut advance = |ms: u64| {
+            executor.borrow_mut().tick();
+            index += 1;
+            time += Duration::from_millis(ms);
+            frames.deliver(Frame {
+                index,
+                time,
+                interval: Duration::from_millis(ms),
+            });
+            executor.borrow_mut().tick();
+            ui.prepare_frame();
+        };
+        selected.set(true);
+        ui.prepare_frame();
+        advance(0);
+        advance(50);
+        let before = ui.scene.borrow().bounds(composer);
+        let before_details = ui.scene.borrow().layout_bounds(details);
+        let before_row = ui.scene.borrow().bounds(row);
+        let frame = frames.last().unwrap();
+        assert!(before.height > initial.height && before.height < initial.height + 7.5);
+        selected.set(false);
+        ui.try_prepare_frame().unwrap();
+        assert_eq!(frames.last().unwrap().index, frame.index);
+        assert_eq!(frames.last().unwrap().time, frame.time);
+        assert_eq!(root.find("detail-0"), Some(row));
+        let same_bounds = |actual: crate::scene::Rect, expected: crate::scene::Rect| {
+            for (actual, expected) in [
+                (actual.x, expected.x),
+                (actual.y, expected.y),
+                (actual.width, expected.width),
+                (actual.height, expected.height),
+            ] {
+                assert!((actual - expected).abs() < 0.001, "{actual} != {expected}");
+            }
+        };
+        same_bounds(ui.scene.borrow().bounds(composer), before);
+        same_bounds(ui.scene.borrow().layout_bounds(details), before_details);
+        same_bounds(ui.scene.borrow().bounds(row), before_row);
+        advance(0);
+        same_bounds(ui.scene.borrow().bounds(composer), before);
+        advance(500);
+        same_bounds(ui.scene.borrow().bounds(composer), initial);
+        assert_eq!(ui.scene.borrow().style(details).height, None);
+        root.unmount();
+        executor.borrow_mut().tick();
+    }
+
     #[test]
     fn horizontal_scroll_allocates_fill_children_and_preserves_overflow() {
         let mut ui = Ui::new(240., 100.);
