@@ -841,6 +841,10 @@ mod unwrapped_tests {
 }
 
 impl CpuTextRaster {
+    /// Use the native shaper's registered fonts for shader-mask dimensions.
+    pub fn measure(&mut self, text: &str, size: f32, width: Option<f32>, style: &lumine::text_layout::FontStyle) -> (f32, f32) {
+        ShapedText::with_font(&mut self.fonts, text, size, width, style).size()
+    }
     pub fn register_font(&mut self, font: &FontData) {
         font.install(&mut self.fonts);
     }
