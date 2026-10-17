@@ -1,6 +1,6 @@
 use super::*;
-use std::hash::{Hash, Hasher};
 use lumine::scene::Effects;
+use std::hash::{Hash, Hasher};
 pub(super) const BUDGET: usize = 64 * 1024 * 1024;
 pub(super) struct CachedBlur {
     pub fingerprint: u64,
@@ -96,7 +96,7 @@ pub(super) fn composite_key(
     mask: Option<lumine::scene::FadeMask>,
 ) -> [u32; 10] {
     let mask = mask.map_or(NO_MASK, |(rect, [top, bottom])| {
-        [rect.y, rect.y + rect.height, top, bottom]
+        fade_parameters(rect, [top, bottom])
     });
     [
         bounds.x,
@@ -245,7 +245,7 @@ impl GpuRenderer {
             }
         });
         let mask = mask.map_or(NO_MASK, |(rect, [top, bottom])| {
-            [rect.y, rect.y + rect.height, top, bottom]
+            fade_parameters(rect, [top, bottom])
         });
         let params = [
             bounds.x * self.scale,

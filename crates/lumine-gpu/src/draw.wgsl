@@ -90,13 +90,14 @@ fn shade(v:Out)->vec4<f32> {
  var edge_y=v.point.y;var edge_bounds=v.fade;
  if geometry.metadata.w==2u {edge_y=paint_point(geometry.inverse,v.world).y;edge_bounds=geometry.bounds;}
  if v.options.x>0. {let distance=min(edge_y-edge_bounds.y,edge_bounds.y+edge_bounds.w-edge_y); color.a*=clamp(distance/v.options.x,0.,1.);}
- // A `fade_edges` ancestor: a quadratic ramp over each band, as Zeron fades
- // transcript edges.
- var mask_y=v.point.y;
- if v.options.z>0.5 {mask_y=dot(v.shape.zw,v.point)+v.border.y;}
- if geometry.metadata.w!=0u {mask_y=paint_point(geometry.fade_inverse,v.world).y;}
- if v.mask.z>0. {let t=clamp((mask_y-v.mask.x)/v.mask.z,0.,1.); color.a*=t*t;}
- if v.mask.w>0. {let b=clamp((v.mask.y-mask_y)/v.mask.w,0.,1.); color.a*=b*b;}
+ // Signed bands select vertical quadratic or horizontal linear alpha ramps.
+ let horizontal=v.mask.z<0. || v.mask.w<0.;
+ var mask_point=v.point;
+ if geometry.metadata.w!=0u {mask_point=paint_point(geometry.fade_inverse,v.world);}
+ var position=select(mask_point.y,mask_point.x,horizontal);
+ if !horizontal && v.options.z>0.5 && geometry.metadata.w==0u {position=dot(v.shape.zw,v.point)+v.border.y;}
+ if abs(v.mask.z)>0. {let t=clamp((position-v.mask.x)/abs(v.mask.z),0.,1.);color.a*=select(t*t,t,horizontal);}
+ if abs(v.mask.w)>0. {let t=clamp((v.mask.y-position)/abs(v.mask.w),0.,1.);color.a*=select(t*t,t,horizontal);}
  color.a*=paint_coverage(v.world);
  return vec4(color.rgb*color.a,color.a);
 }

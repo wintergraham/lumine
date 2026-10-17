@@ -2965,8 +2965,8 @@ fn has_outer_shadow(kind: &NodeKind) -> bool {
 }
 fn fade_mask(inherited: Option<FadeMask>, clip: Option<Rect>, style: &Style) -> Option<FadeMask> {
     match clip {
-        Some(clip) if style.fade_edges.iter().any(|band| *band > 0.) => {
-            Some((clip, style.fade_edges.map(|band| band.max(0.))))
+        Some(clip) if style.fade_edges.iter().any(|band| *band != 0.) => {
+            Some((clip, style.fade_edges))
         }
         _ => inherited,
     }
@@ -3191,12 +3191,12 @@ fn transformed_fade(
     matrix: Affine,
     style: &Style,
 ) -> (Option<FadeMask>, Affine) {
-    if style.fade_edges.iter().any(|band| *band > 0.) && !matrix.is_translation() {
+    if style.fade_edges.iter().any(|band| *band != 0.) && !matrix.is_translation() {
         (
-            Some((bounds, style.fade_edges.map(|band| band.max(0.)))),
+            Some((bounds, style.fade_edges)),
             matrix.inverse().unwrap_or(Affine::IDENTITY),
         )
-    } else if style.fade_edges.iter().any(|band| *band > 0.) {
+    } else if style.fade_edges.iter().any(|band| *band != 0.) {
         (fade_mask(inherited, clip, style), Affine::IDENTITY)
     } else {
         (inherited, inverse)
@@ -3495,6 +3495,31 @@ mod tests {
                 (actual.0 - expected.0).abs() < 0.0001 && (actual.1 - expected.1).abs() < 0.0001
             );
         }
+    }
+    #[test]
+    fn horizontal_fades_preserve_signed_bands_through_transformed_children() {
+        let bounds = Rect::new(17., 29., 80., 40.);
+        let style = Style {
+            fade_edges: [-12., -8.],
+            ..Default::default()
+        };
+        assert_eq!(
+            fade_mask(None, Some(bounds), &style),
+            Some((bounds, [-12., -8.]))
+        );
+        let rotation = Affine::rotation(std::f32::consts::FRAC_PI_2);
+        let (mask, inverse) = transformed_fade(
+            None,
+            Affine::IDENTITY,
+            Some(bounds),
+            bounds,
+            rotation,
+            &style,
+        );
+        assert_eq!(mask, Some((bounds, [-12., -8.])));
+        let (x, y) = rotation.point(23., 35.);
+        let local = inverse.point(x, y);
+        assert!((local.0 - 23.).abs() < 0.0001 && (local.1 - 35.).abs() < 0.0001);
     }
     #[test]
     fn transformed_fade_uses_local_y_and_isolated_flip_invalidates_cached_pixels() {

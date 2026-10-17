@@ -2,9 +2,9 @@
 //! The output is premultiplied BGRA8 (read back as RGBA8). Text uses cosmic-text shaping and a bounded
 //! GPU glyph atlas; stable text never reshapes on paint or compositor updates.
 use cosmic_text::{Buffer, CacheKey, FontSystem, Metrics, SwashCache, SwashContent};
+use lumine::scene::{Color, NodeId, NodeKind, Rect, Scene};
 use rustc_hash::FxHashMap;
 use std::{cell::RefCell, fmt, rc::Rc, sync::Arc};
-use lumine::scene::{Color, NodeId, NodeKind, Rect, Scene};
 
 #[cfg(feature = "benchmark")]
 pub mod benchmark;
@@ -151,11 +151,19 @@ struct Quad {
     options: [f32; 4],
     shape: [f32; 4],
     border: [f32; 4],
-    /// A vertical fade mask (top y, bottom y, top band, bottom band) from a
+    /// A fade mask with axis bounds and signed edge bands from a
     /// `fade_edges` ancestor; zero bands leave the quad as is.
     mask: [f32; 4],
 }
 const NO_MASK: [f32; 4] = [0.; 4];
+fn fade_parameters(rect: Rect, bands: [f32; 2]) -> [f32; 4] {
+    let [start, end] = bands;
+    if start < 0. || end < 0. {
+        [rect.x, rect.x + rect.width, start, end]
+    } else {
+        [rect.y, rect.y + rect.height, start, end]
+    }
+}
 /// How a quad is drawn, where drawing is split (see `push_draw`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Shading {
@@ -180,8 +188,8 @@ fn shading(quad: &Quad, _scale: f32) -> Shading {
         && quad.options[2] < 0.5
         && quad.shape[2] <= 0.
         && (quad.shape[3] <= 0.5 || square)
-        && quad.mask[2] <= 0.
-        && quad.mask[3] <= 0.;
+        && quad.mask[2] == 0.
+        && quad.mask[3] == 0.;
     if !plain {
         Shading::Full
     } else if quad.options[1] <= 0.5 && quad.color[3] >= 1. && !square {
@@ -2476,7 +2484,7 @@ impl GpuRenderer {
                     shape: [0.; 4],
                     border: [0.; 4],
                     mask: item.mask.map_or(NO_MASK, |(rect, [top, bottom])| {
-                        [rect.y, rect.y + rect.height, top, bottom]
+                        fade_parameters(rect, [top, bottom])
                     }),
                 });
                 draws.push(Draw {
@@ -2779,10 +2787,10 @@ impl GpuRenderer {
                                 6
                             };
                         self.ensure_image_budget(bytes).map_err(|_| {
-                            GpuError(
-                                format!("visible image and native surface textures exceed {} MiB",
-                                    self.image_budget / (1024 * 1024)),
-                            )
+                            GpuError(format!(
+                                "visible image and native surface textures exceed {} MiB",
+                                self.image_budget / (1024 * 1024)
+                            ))
                         })?;
                         if self.native_surfaces.is_none() {
                             self.native_surfaces = Some(native_surface::SurfaceCache::new(
@@ -3155,7 +3163,7 @@ impl GpuRenderer {
             }
             // Under a `fade_edges` container, fade by its bands in the shader.
             if let Some((rect, [top, bottom])) = item.mask {
-                let mask = [rect.y, rect.y + rect.height, top, bottom];
+                let mask = fade_parameters(rect, [top, bottom]);
                 for quad in &mut quads[start as usize..] {
                     quad.mask = mask;
                 }
@@ -4257,7 +4265,9 @@ impl GpuRenderer {
     }
     // Four full-window RGBA textures allow layered HiDPI UI without unbounded caches.
     fn image_budget_for(width: u32, height: u32) -> usize {
-        (width as usize).saturating_mul(height as usize).saturating_mul(16)
+        (width as usize)
+            .saturating_mul(height as usize)
+            .saturating_mul(16)
             .clamp(64 * 1024 * 1024, 256 * 1024 * 1024)
     }
     /// Reclaim uploads not sampled by this frame under pressure. Raster metadata
@@ -4275,7 +4285,8 @@ impl GpuRenderer {
         }
         if bytes + self.images.values().map(|entry| entry.1).sum::<usize>() > budget {
             return Err(GpuError(format!(
-                "visible image textures exceed the {} MiB budget", budget / (1024 * 1024)
+                "visible image textures exceed the {} MiB budget",
+                budget / (1024 * 1024)
             )));
         }
         Ok(())
@@ -5672,5 +5683,22 @@ mod native_surface_shader_tests {
                 compilation_options: Default::default(),
                 cache: None,
             });
+    }
+}
+
+#[cfg(test)]
+mod fade_tests {
+    use super::*;
+    #[test]
+    fn horizontal_mask_uses_x_bounds_and_requires_full_shading() {
+        let rect = Rect::new(17., 29., 80., 40.);
+        let mask = fade_parameters(rect, [-12., -8.]);
+        assert_eq!(mask, [17., 97., -12., -8.]);
+        let quad = Quad {
+            mask,
+            ..<Quad as bytemuck::Zeroable>::zeroed()
+        };
+        assert!(matches!(shading(&quad, 1.), Shading::Full));
+        assert_eq!(fade_parameters(rect, [12., 8.]), [29., 69., 12., 8.]);
     }
 }
