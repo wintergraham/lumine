@@ -20,6 +20,10 @@ fn custom_submenu_trigger_retains_identity_and_keyboard_handoff() {
                     button()
                         .id("custom-trigger")
                         .h(36.)
+                        .accessibility(|node| {
+                            node.role = lumine::semantics::Role::MenuItem;
+                            node.label = "Move to group".into();
+                        })
                         .child(text("Custom paint").pointer_events(false)),
                 )
                 .p(0.)
