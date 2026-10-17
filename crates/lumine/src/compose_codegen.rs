@@ -25,7 +25,7 @@ fn styles(s: &Styles) -> Result<String, String> {
         min_height=>min_h, max_height=>max_h, gap=>gap, flex_grow=>flex_grow, flex_shrink=>flex_shrink,
         text_wrap=>text_wrap, text_size=>text_size, font_weight=>font_weight, italic=>italic,
         radius=>rounded, border_width=>border, opacity=>opacity, blur=>blur, edge_fade=>edge_fade,
-        isolated=>isolated);
+        isolated=>isolated, z_index=>z_index);
     // absolute() takes no argument; preserve explicit false through layout defaults.
     out = out.replace(".absolute_position(true)", ".absolute()");
     out = out.replace(".absolute_position(false)", ".relative()");

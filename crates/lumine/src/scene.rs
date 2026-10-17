@@ -275,6 +275,9 @@ pub struct Style {
     /// Remove this child from normal flow and position it at its parent content
     /// origin plus margins. It does not contribute to intrinsic parent size.
     pub absolute: bool,
+    /// Sibling subtree paint order, back to front. Ties retain layout order.
+    /// Does not affect layout or escape ancestor clipping/isolation boundaries.
+    pub z_index: i32,
     pub width: Option<f32>,
     pub height: Option<f32>,
     /// Fraction of the definite parent content width (1.0 means 100%).
@@ -750,8 +753,21 @@ impl Scene {
     pub fn parent(&self, id: NodeId) -> Option<NodeId> {
         self.node(id).parent
     }
+    /// Retained layout/tab order, independent of sibling paint order.
     pub fn children(&self, id: NodeId) -> &[NodeId] {
         &self.node(id).children
+    }
+    fn paint_children(&self, id: NodeId) -> std::borrow::Cow<'_, [NodeId]> {
+        let children = self.children(id);
+        if children
+            .windows(2)
+            .all(|pair| self.node(pair[0]).style.z_index <= self.node(pair[1]).style.z_index)
+        {
+            return std::borrow::Cow::Borrowed(children);
+        }
+        let mut ordered = children.to_vec();
+        ordered.sort_by_key(|child| self.node(*child).style.z_index);
+        std::borrow::Cow::Owned(ordered)
     }
     pub fn kind(&self, id: NodeId) -> &NodeKind {
         &self.node(id).kind
@@ -1409,6 +1425,7 @@ impl Scene {
                 style.layout_options = Some(Arc::new(normalized));
             }
         }
+        self.set_z_index(id, style.z_index);
         if self.node(id).style == style {
             return;
         }
@@ -1421,6 +1438,17 @@ impl Scene {
         self.damage_subtree(id);
         self.invalidate(id, PAINT);
         self.invalidate_layout(id);
+    }
+    /// Change sibling paint/hit order without invalidating layout or changing IDs.
+    pub fn set_z_index(&mut self, id: NodeId, z_index: i32) {
+        if self.node(id).style.z_index == z_index {
+            return;
+        }
+        self.damage_subtree(id);
+        self.node_mut(id).style.z_index = z_index;
+        self.tree_revision = self.tree_revision.wrapping_add(1);
+        let parent = self.parent(id).unwrap_or(id);
+        self.invalidate(parent, PAINT);
     }
     pub fn resize(&mut self, width: f32, height: f32) {
         if self.viewport.width == width && self.viewport.height == height {
@@ -2960,7 +2988,7 @@ impl Scene {
                 transformed_fade(mask, fade_transform, clip, node.bounds, matrix, &node.style);
             if !isolated {
                 stack.extend(
-                    node.children
+                    self.paint_children(id)
                         .iter()
                         .rev()
                         .filter(|child| touches(self.ink(**child), matrix))
@@ -3004,6 +3032,8 @@ impl Scene {
         }
         result
     }
+    /// Back-to-front sibling subtrees, ordered by z-index then retained child order.
+    /// Every parent's own paint precedes its children, including negative indices.
     pub fn paint_items(&self) -> impl Iterator<Item = PaintItem<'_>> {
         PaintIter {
             scene: self,
@@ -3113,17 +3143,18 @@ impl<'a> Iterator for PaintIter<'a> {
             matrix,
             &node.style,
         );
-        self.stack.extend(node.children.iter().rev().map(|child| {
-            (
-                *child,
-                matrix,
-                effects.opacity,
-                clip,
-                child_mask,
-                regions.clone(),
-                child_fade_transform,
-            )
-        }));
+        self.stack
+            .extend(self.scene.paint_children(id).iter().rev().map(|child| {
+                (
+                    *child,
+                    matrix,
+                    effects.opacity,
+                    clip,
+                    child_mask,
+                    regions.clone(),
+                    child_fade_transform,
+                )
+            }));
         Some(PaintItem {
             isolated: false,
             id,
@@ -3955,6 +3986,80 @@ mod tests {
         );
         assert_eq!(scene.hit_test(15.0, 10.0), Some(a));
         assert_eq!(scene.hit_test(110.0, 10.0), None);
+    }
+    #[test]
+    fn sibling_z_index_keeps_descendants_inside_their_subtree() {
+        let mut scene = Scene::new(100., 100.);
+        let back = scene.append(
+            scene.root(),
+            NodeKind::Container(Layout::Overlay),
+            Style {
+                width: Some(50.),
+                height: Some(50.),
+                ..Default::default()
+            },
+        );
+        let nested = scene.append(
+            back,
+            NodeKind::Rect(Color(255, 0, 0, 255)),
+            Style {
+                width: Some(50.),
+                height: Some(50.),
+                z_index: i32::MAX,
+                ..Default::default()
+            },
+        );
+        let front = scene.append(
+            scene.root(),
+            NodeKind::Rect(Color(0, 0, 255, 255)),
+            Style {
+                absolute: true,
+                width: Some(50.),
+                height: Some(50.),
+                z_index: 1,
+                ..Default::default()
+            },
+        );
+        scene.set_isolated(back, true);
+        scene.flush();
+        assert_eq!(scene.hit_test(5., 5.), Some(front));
+        assert_eq!(
+            scene
+                .layer_items(None)
+                .iter()
+                .map(|item| item.id)
+                .collect::<Vec<_>>(),
+            vec![scene.root(), back, front]
+        );
+        assert_eq!(
+            scene
+                .layer_items(Some(back))
+                .iter()
+                .map(|item| item.id)
+                .collect::<Vec<_>>(),
+            vec![back, nested]
+        );
+        let layout = [scene.layout_bounds(back), scene.layout_bounds(front)];
+        scene.set_z_index(back, 2);
+        let report = scene.flush();
+        assert_eq!(report.layout_nodes, 0);
+        assert!(!report.damage.is_empty());
+        assert_eq!(scene.children(scene.root()), &[back, front]);
+        assert_eq!(
+            [scene.layout_bounds(back), scene.layout_bounds(front)],
+            layout
+        );
+        assert_eq!(scene.hit_test(5., 5.), Some(nested));
+        assert_eq!(
+            scene
+                .layer_items(None)
+                .iter()
+                .map(|item| item.id)
+                .collect::<Vec<_>>(),
+            vec![scene.root(), front, back]
+        );
+        scene.set_z_index(back, 2);
+        assert!(scene.flush().is_idle());
     }
     #[test]
     fn preparing_input_geometry_preserves_damage_for_renderer() {

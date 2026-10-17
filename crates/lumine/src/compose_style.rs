@@ -283,7 +283,7 @@ pub(crate) fn mount_style_with_intrinsic(
             style.height_percent = resolved.height_percent;
         }
         if let Some(insets) = resolved.clip_insets { style.clip_insets = insets; }
-        field!(absolute,gap,clip,fade_edges,flex_grow,flex_shrink,align,justify,text_wrap,margin);
+        field!(absolute,z_index,gap,clip,fade_edges,flex_grow,flex_shrink,align,justify,text_wrap,margin);
         if matches!(original_kind, NodeKind::Text { .. } | NodeKind::RichText { .. }) { style.text_wrap = current.wrap; style.text_options = current.display; }
         if let Some(padding) = resolved.padding { style.padding_edges = Some(padding); }
         if let Some((width, height)) = intrinsic_size {
@@ -409,6 +409,131 @@ mod tests {
             font: Default::default(),
         })
     }
+    #[test]
+    fn reactive_z_index_changes_paint_and_pointer_order_without_layout() {
+        use crate::{
+            compose::{column, div},
+            style::Styled,
+        };
+        let mut ui = Ui::new(200., 100.);
+        let z_index = ui.signal(0);
+        let read = z_index.clone();
+        let clicked = std::rc::Rc::new(std::cell::Cell::new(0));
+        let (a, b, h) = (clicked.clone(), clicked.clone(), clicked.clone());
+        let view = ui.mount(
+            column()
+                .id("stack")
+                .size(100., 66.)
+                .gap(6.)
+                .overflow_hidden()
+                .isolated(true)
+                .child(
+                    div()
+                        .id("first")
+                        .size(100., 30.)
+                        .z_index(1)
+                        .bg(Color(255, 0, 0, 255))
+                        .on_click(move || a.set(1)),
+                )
+                .child(
+                    div()
+                        .id("second")
+                        .size(100., 30.)
+                        .z_index(1)
+                        .bg(Color(0, 0, 255, 255))
+                        .on_click(move || b.set(2)),
+                )
+                .child(
+                    div()
+                        .id("highlight")
+                        .absolute()
+                        .left(0.)
+                        .top(0.)
+                        .size(130., 30.)
+                        .bg(Color(0, 255, 0, 255))
+                        .z_index(-10)
+                        .reactive_style(move || Styles::new().z_index(read.get()))
+                        .on_click(move || h.set(3)),
+                ),
+        );
+        ui.prepare_frame();
+        ui.scene.borrow_mut().flush();
+        let stack = view.find("stack").unwrap();
+        let first = view.find("first").unwrap();
+        let second = view.find("second").unwrap();
+        let highlight = view.find("highlight").unwrap();
+        let children = [first, second, highlight];
+        let bounds = children.map(|node| ui.scene.borrow().layout_bounds(node));
+        assert_eq!(bounds[0], crate::scene::Rect::new(0., 0., 100., 30.));
+        assert_eq!(bounds[1], crate::scene::Rect::new(0., 36., 100., 30.));
+        assert_eq!(ui.scene.borrow().style(highlight).z_index, 0);
+        assert_eq!(ui.scene.borrow().hit_test(5., 5.), Some(first));
+        for (z, order, target, click) in [
+            (2, [first, second, highlight], highlight, 3),
+            (1, [first, second, highlight], highlight, 3),
+            (-1, [highlight, first, second], first, 1),
+            (0, [highlight, first, second], first, 1),
+        ] {
+            let layer_revision = ui.scene.borrow().layer_revision(stack);
+            let raster_revision = ui.scene.borrow().raster_revision();
+            z_index.set(z);
+            ui.prepare_frame();
+            let report = ui.scene.borrow_mut().flush();
+            assert_eq!(report.layout_nodes, 0, "z-index must leave layout clean");
+            assert!(
+                !report.damage.is_empty(),
+                "reordered overlap needs repainting"
+            );
+            let scene = ui.scene.borrow();
+            assert_eq!(scene.children(stack), &children);
+            assert!(scene.layer_revision(stack) > layer_revision);
+            assert!(scene.raster_revision() > raster_revision);
+            assert!(scene.scroll_moves().is_empty());
+            for ((id, node), bounds) in [
+                ("first", first),
+                ("second", second),
+                ("highlight", highlight),
+            ]
+            .into_iter()
+            .zip(bounds)
+            {
+                assert_eq!(view.find(id), Some(node));
+                assert_eq!(scene.layout_bounds(node), bounds);
+            }
+            let only_children = |items: Vec<crate::scene::PaintItem<'_>>| {
+                items
+                    .into_iter()
+                    .filter(|item| children.contains(&item.id))
+                    .map(|item| item.id)
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(only_children(scene.paint_items().collect()), order);
+            assert_eq!(only_children(scene.layer_items(Some(stack))), order);
+            assert_eq!(
+                only_children(scene.layer_items_within(Some(stack), Some(&[scene.bounds(stack)]))),
+                order
+            );
+            assert_eq!(scene.hit_test(5., 5.), Some(target));
+            assert_ne!(
+                scene.hit_test(110., 5.),
+                Some(highlight),
+                "z-index must respect clipping"
+            );
+            drop(scene);
+            ui.dispatch(InputEvent::PointerDown {
+                x: 5.,
+                y: 5.,
+                button: PointerButton::Primary,
+            });
+            ui.dispatch(InputEvent::PointerUp {
+                x: 5.,
+                y: 5.,
+                button: PointerButton::Primary,
+            });
+            assert_eq!(clicked.get(), click);
+        }
+    }
+
     #[test]
     fn reactive_affine_styles_preserve_sparse_precedence_and_skip_layout() {
         use crate::{compose::div, style::Styled};

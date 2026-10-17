@@ -28,6 +28,7 @@ pub struct Styles {
     pub(crate) object_fit: Option<ObjectFit>,
     pub(crate) layout: Option<Layout>,
     pub(crate) absolute: Option<bool>,
+    pub(crate) z_index: Option<i32>,
     pub(crate) width: Option<f32>,
     pub(crate) height: Option<f32>,
     pub(crate) width_percent: Option<f32>,
@@ -259,6 +260,9 @@ impl Styles {
         }
         if other.absolute.is_some() {
             self.absolute = other.absolute;
+        }
+        if other.z_index.is_some() {
+            self.z_index = other.z_index;
         }
         if other.layout.is_some() {
             self.layout = other.layout;
@@ -716,6 +720,13 @@ pub trait Styled: Sized {
     /// Restore normal row, column, or overlay layout participation.
     fn relative(mut self) -> Self {
         self.styles_mut().absolute = Some(false);
+        self
+    }
+    /// Paint this subtree above siblings with a lower index. Default is zero;
+    /// ties retain child order. Layout, tab order and ancestor clipping stay intact.
+    /// Descendants remain inside their sibling subtree, including isolated layers.
+    fn z_index(mut self, value: i32) -> Self {
+        self.styles_mut().z_index = Some(value);
         self
     }
     /// Apply a reusable transformation while building a view or style patch.
