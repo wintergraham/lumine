@@ -17,7 +17,7 @@ fn custom_submenu_trigger_retains_identity_and_keyboard_handoff() {
                 submenu_with_anchor(
                     "Move to group",
                     inner.clone(),
-                    menu_item("Move to group")
+                    button()
                         .id("custom-trigger")
                         .h(36.)
                         .child(text("Custom paint").pointer_events(false)),
