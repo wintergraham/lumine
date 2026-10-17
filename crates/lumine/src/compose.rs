@@ -296,6 +296,7 @@ pub struct View {
     layout_motion: Option<crate::motion::Transition>,
     layout_id: Option<String>,
     scroll_progress: Option<Signal<f32>>,
+    scroll_fades: Option<(f32, Rc<dyn Fn() -> std::time::Duration>)>,
     morph_effect: Option<CompiledMorphEffect>,
 }
 impl View {
@@ -387,6 +388,7 @@ impl View {
             layout_motion: None,
             layout_id: None,
             scroll_progress: None,
+            scroll_fades: None,
             morph_effect: None,
         }
     }
@@ -519,6 +521,15 @@ impl View {
     /// Enable bounded keyboard row navigation on a virtual list.
     pub fn keyboard_navigation(mut self, enabled: bool) -> Self {
         self.keyboard_navigation = Some(enabled);
+        self
+    }
+    pub fn scroll_fades(self, band: f32) -> Self {
+        self.scroll_fades_with_duration(band, || std::time::Duration::from_millis(180))
+    }
+    /// Animate scroll edge masks using the caller's motion timing policy.
+    pub fn scroll_fades_with_duration(mut self, band: f32, duration: impl Fn() -> std::time::Duration + 'static) -> Self {
+        assert!(matches!(self.kind, Kind::Scroll {..}) && band.is_finite() && band >= 0.);
+        self.scroll_fades=Some((band, Rc::new(duration)));
         self
     }
     /// Configure whether clicking outside a modal or popover panel dismisses it.
@@ -654,6 +665,7 @@ impl View {
     fn refine(self, mut inner: View) -> View {
         inner.visibility.extend(self.visibility);
         inner.bounds.extend(self.bounds);
+        inner.scroll_fades = self.scroll_fades.or(inner.scroll_fades);
         inner.layout_bounds.extend(self.layout_bounds);
         inner.morph_effect = self.morph_effect.or(inner.morph_effect);
         inner.scroll_fit_cross_axis = self.scroll_fit_cross_axis.or(inner.scroll_fit_cross_axis);
@@ -1144,7 +1156,25 @@ pub fn virtual_list<K: Eq + std::hash::Hash + Clone + 'static>(
                 )
             });
             let wheel_offset = offset.clone();
-            let wheel_size = size.clone();
+            let fades=fade_band.map(|(band,duration)| {
+        let mut cx=Context::new(ui.runtime.clone(),environment.clone());
+        let left=crate::motion::MotionValue::new(&mut cx,0.);let right=crate::motion::MotionValue::new(&mut cx,0.);
+        let l=left.clone();let r=right.clone();let read_offset=offset.clone();let read_extent=extent.clone();let read_size=size.clone();
+        let mut previous=(false,false);
+        cx.retain(cx.runtime().effect(move || {
+            let limit = (main_size(read_extent.get())
+                - main_size(read_size.get()))
+            .max(0.);
+            let at=read_offset.get().clamp(0.,limit);let next=(at>1.,limit-at>1.);
+            let transition=crate::motion::Transition::tween(duration(),crate::motion::Easing::cubic_bezier(0.,0.,0.58,1.));
+            if next.0!=previous.0 {l.animate_to(if next.0 {band}else{0.},transition);}
+            if next.1!=previous.1 {r.animate_to(if next.1 {band}else{0.},transition);}
+            previous=next;
+        }));
+        cx.finish(ui,root);
+        (left,right)
+    });
+    let wheel_size = size.clone();
             let wheel_extent = extent.clone();
             ui.on_event(root, false, move |cx| {
                 if cx.phase == EventPhase::Capture || cx.default_prevented() {
@@ -2370,6 +2400,7 @@ fn mount_element(
             horizontal,
             scrollbar,
             view.scroll_progress,
+            view.scroll_fades,
             view.scroll_fit_cross_axis.unwrap_or(false),
             view.horizontal_wheel.unwrap_or(false),
             &environment,
@@ -2458,6 +2489,7 @@ fn mount_scroll(
     horizontal: bool,
     scrollbar: bool,
     progress: Option<Signal<f32>>,
+    fade_band: Option<(f32, Rc<dyn Fn() -> std::time::Duration>)>,
     fit_cross_axis: bool,
     horizontal_wheel: bool,
     environment: &Environment,
@@ -2608,6 +2640,7 @@ fn mount_scroll(
                 width: (!fit_cross_axis || horizontal).then_some(width),
                 height: (!fit_cross_axis || !horizontal).then_some(height),
                 clip: true,
+                fade_edges: fades.as_ref().map_or([0.;2], |(a,b)| {let bands=[a.get(),b.get()]; if horizontal {bands.map(|v|-v)} else {bands}}),
                 ..Default::default()
             },
         );

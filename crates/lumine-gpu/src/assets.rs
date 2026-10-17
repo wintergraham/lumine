@@ -45,6 +45,27 @@ pub fn decode_image(bytes: &[u8]) -> Result<Arc<ImageData>, GpuError> {
 pub fn decode_svg(bytes: &[u8], width: u32, height: u32) -> Result<Arc<ImageData>, GpuError> {
     decode_svg_at(bytes, width, height, [width as f32, height as f32, 0., 0.])
 }
+/// Decode an uploaded SVG at its intrinsic aspect ratio with the same bounds.
+pub fn decode_svg_natural(bytes: &[u8]) -> Result<Arc<ImageData>, GpuError> {
+    if bytes.len() > 4 * 1024 * 1024 {
+        return Err(GpuError("SVG input exceeds bounds".into()));
+    }
+    let mut options = resvg::usvg::Options::default();
+    options.image_href_resolver.resolve_string = Box::new(|_, _| None);
+    let tree =
+        resvg::usvg::Tree::from_data(bytes, &options).map_err(|e| GpuError(e.to_string()))?;
+    let width = (tree.size().width() * 2.).ceil().max(1.) as u32;
+    let height = (tree.size().height() * 2.).ceil().max(1.) as u32;
+    decode_svg(bytes, width, height)
+}
+#[cfg(test)]
+#[test]
+fn uploaded_svg_preserves_aspect_ratio_and_rejects_invalid_input() {
+    let image=decode_svg_natural(br#"<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="20" height="10" fill="red"/></svg>"#).unwrap();
+    assert_eq!(image.width(),image.height()*2);
+    assert_eq!(&image.pixels()[..4],&[255,0,0,255]);
+    assert!(decode_svg_natural(b"not an image").is_err());
+}
 /// Rasterize at the exact device-space size and fractional origin, leaving
 /// transparent padding instead of scaling the rounded allocation back down.
 pub(crate) fn decode_svg_at(

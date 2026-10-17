@@ -74,8 +74,48 @@ pub struct EditorHandle {
     select_all_on_focus: Rc<Cell<bool>>,
     caret_blink_at: Rc<Cell<Instant>>,
     caret_blink_active: Rc<Cell<bool>>,
+    inline_objects: Rc<RefCell<Vec<InlineObject>>>,
+    inline_revision: Rc<Cell<u64>>,
+    pub inline_bounds: Signal<Vec<InlineObjectBounds>>,
+}
+/// One atomic object in an editable document, represented by a BMP private-use character.
+#[derive(Clone, Debug, PartialEq)]
+pub struct InlineObject {
+    pub marker: char,
+    pub width: f32,
+    pub text: String,
+}
+#[derive(Clone, Debug, PartialEq)]
+pub struct InlineObjectBounds {
+    pub marker: char,
+    pub offset: usize,
+    /// Geometry in the editor's local coordinates, including its current scroll offset.
+    pub rect: Rect,
 }
 impl EditorHandle {
+    /// Reactive local geometry for the editor's inline objects.
+    pub fn inline_object_bounds(&self) -> Signal<Vec<InlineObjectBounds>> { self.inline_bounds.clone() }
+    pub fn set_inline_objects(&self, objects: Vec<InlineObject>) -> Result<(), &'static str> {
+        let mut markers = std::collections::HashSet::new();
+        if objects.iter().any(|o| !('\u{e000}'..='\u{f8ff}').contains(&o.marker)
+            || !o.width.is_finite() || o.width <= 0. || !markers.insert(o.marker)) {
+            return Err("inline objects require unique BMP private-use markers and positive finite widths");
+        }
+        if *self.inline_objects.borrow() != objects {
+            *self.inline_objects.borrow_mut() = objects;
+            self.inline_revision.set(self.inline_revision.get().wrapping_add(1));
+            self.refresh();
+        }
+        Ok(())
+    }
+    pub fn measure_text(&self, width: Option<f32>) -> (f32, f32) {
+        let (_, size, font) = self.typography.borrow().clone();
+        let scene = self.scene.borrow();
+        let value = self.value.get();
+        inline_rich_text(&scene, &value, size, &font, Color(255,255,255,255), &self.inline_objects.borrow())
+            .map_or_else(|| scene.shape_text_with_font(&value,size,width,&font).size(),
+                |rich| scene.shape_rich_text(&rich,width).size())
+    }
     pub fn set_select_all_on_focus(&self, select: bool) {
         self.select_all_on_focus.set(select);
     }
@@ -142,7 +182,7 @@ impl EditorHandle {
         }
         let metrics_changed = wrap_changed || previous.1 != next.1 || previous.2 != next.2;
         *self.typography.borrow_mut() = next;
-        if metrics_changed {
+        if metrics_changed || !self.inline_objects.borrow().is_empty() {
             self.preferred_x.set(None);
             self.refresh();
         } else {
@@ -189,7 +229,10 @@ impl EditorHandle {
         (self.refresh)();
     }
     pub fn copy(&self) -> String {
-        self.editor.borrow().selected_text().to_owned()
+        let objects = self.inline_objects.borrow();
+        self.editor.borrow().selected_text().chars().map(|c| {
+            objects.iter().find(|o| o.marker == c).map_or_else(|| c.to_string(), |o| o.text.clone())
+        }).collect()
     }
     /// Copy the selection and delete it when editable. Read-only cut is copy-only.
     pub fn cut(&self) -> String {
@@ -261,7 +304,34 @@ struct EditorLayoutEntry {
     width: Option<u32>,
     font: FontStyle,
     revision: u64,
+    inline_revision: u64,
     layout: Rc<dyn TextLayout>,
+}
+fn inline_rich_text(
+    scene: &Scene, text: &str, size: f32, font: &FontStyle, color: Color, objects: &[InlineObject],
+) -> Option<crate::rich_text::RichText> {
+    if objects.is_empty() || !text.chars().any(|c| objects.iter().any(|o| o.marker == c)) { return None; }
+    let space = scene.shape_text_with_font("\u{2007}",size,None,font).size().0;
+    let mut display = String::with_capacity(text.len());
+    let mut runs = Vec::new();
+    let mut start = 0;
+    for (offset, c) in text.char_indices() {
+        if let Some(object) = objects.iter().find(|o| o.marker == c) {
+            if offset > start {
+                runs.push(crate::rich_text::TextRun { range:start..offset, font:font.clone(),font_size:size,color,..Default::default() });
+            }
+            let mut object_font = font.clone();
+            object_font.letter_spacing = crate::text_layout::LetterSpacing::px(
+                font.letter_spacing.pixels() + object.width - space);
+            display.push('\u{2007}');
+            start = offset + c.len_utf8();
+            runs.push(crate::rich_text::TextRun { range:offset..start,font:object_font,font_size:size,color:Color(0,0,0,0),..Default::default() });
+        } else { display.push(c); }
+    }
+    if start < text.len() {
+        runs.push(crate::rich_text::TextRun { range:start..text.len(),font:font.clone(),font_size:size,color,..Default::default() });
+    }
+    Some(crate::rich_text::RichText::new(display,runs).expect("inline object runs preserve UTF-8 offsets"))
 }
 
 fn editor_layout(
@@ -279,6 +349,8 @@ fn editor_layout(
         .is_some_and(|s| s.input.focused() == Some(node))
         && text.len() <= EDITOR_CACHE_TEXT_LIMIT;
     let revision = scene.text_shaper_revision();
+    let inline = storage.as_ref().and_then(|s| s.editors.borrow().get(&node).cloned());
+    let inline_revision = inline.as_ref().map_or(0, |e| e.inline_revision.get());
     let width_bits = width.map(f32::to_bits);
     if eligible {
         let cache = storage.as_ref().unwrap().editor_layout.borrow();
@@ -288,6 +360,7 @@ fn editor_layout(
             && entry.width == width_bits
             && entry.font == *font
             && entry.revision == revision
+            && entry.inline_revision == inline_revision
             && entry.text == text
         {
             return entry.layout.clone();
@@ -307,7 +380,9 @@ fn editor_layout(
         };
         drop(old);
     }
-    let layout: Rc<dyn TextLayout> = scene.shape_text_with_font(text, size, width, font).into();
+    let rich = inline.as_ref().and_then(|e| inline_rich_text(scene,text,size,font,Color(255,255,255,255),&e.inline_objects.borrow()));
+    let layout: Rc<dyn TextLayout> = rich.map_or_else(
+        || scene.shape_text_with_font(text,size,width,font), |rich| scene.shape_rich_text(&rich,width)).into();
     if eligible {
         let key_weight = std::mem::size_of::<EditorLayoutEntry>()
             .saturating_add(text.len())
@@ -330,6 +405,7 @@ fn editor_layout(
                     width: width_bits,
                     font: font.clone(),
                     revision,
+                    inline_revision,
                     layout: layout.clone(),
                 });
             drop(old);
@@ -1688,6 +1764,11 @@ impl Ui {
         let draw_caret_blink_active = caret_blink_active.clone();
         let draw_selection_style = selection_style.clone();
         let draw_geometry = geometry.clone();
+        let inline_objects = Rc::new(RefCell::new(Vec::<InlineObject>::new()));
+        let inline_revision = Rc::new(Cell::new(0u64));
+        let inline_bounds = self.signal(Vec::<InlineObjectBounds>::new());
+        let draw_inline_objects = inline_objects.clone();
+        let draw_inline_bounds = inline_bounds.clone();
         let draw_storage = Rc::downgrade(&self.storage);
         let read_only = Rc::new(Cell::new(false));
         let draw_read_only = read_only.clone();
@@ -1745,14 +1826,16 @@ impl Ui {
                 NodeKind::Text { text, .. } if text.as_ref() == display.as_ref() => text.clone(),
                 _ => std::sync::Arc::from(display.as_ref()),
             };
-            s.set_kind(
-                text,
+            let rich = inline_rich_text(&s,&display,size,&font,color,&draw_inline_objects.borrow());
+            s.set_kind(text, if let Some(rich) = rich {
+                NodeKind::RichText { text: std::sync::Arc::new(rich) }
+            } else {
                 NodeKind::Text {
                     text: paint_text,
                     color,
                     font_size: size,
-                },
-            );
+                }
+            });
             s.set_font(text, font.clone());
             s.set_kind(caret, NodeKind::Rect(color));
             let wrap_width = draw_wrap.get().then_some(inner_width.max(1.));
@@ -1826,6 +1909,12 @@ impl Ui {
                     y: text_y + cy - scroll.1,
                 },
             );
+            let (scroll_x, scroll_y) = *scroll;
+            let inline: Vec<_> = display.char_indices().filter(|(_,c)| draw_inline_objects.borrow().iter().any(|o| o.marker == *c))
+                .flat_map(|(offset,marker)| layout.selection(offset..offset+marker.len_utf8()).into_iter().map(move |r| InlineObjectBounds {
+                    marker,offset,rect:Rect::new(padding.left+r.x-scroll_x, padding.top+text_y+r.y-scroll_y,r.width,r.height)
+                })).collect();
+            draw_inline_bounds.set(inline);
             let mut effects = s.effects(caret);
             let caret_active = *focus.borrow() && selection.is_empty() && e.preedit().is_none();
             draw_caret_blink_active.set(caret_active);
@@ -1949,6 +2038,9 @@ impl Ui {
             select_all_on_focus: select_all_on_focus.clone(),
             caret_blink_at,
             caret_blink_active,
+            inline_objects,
+            inline_revision,
+            inline_bounds,
         };
         self.storage
             .editors
@@ -3036,6 +3128,51 @@ fn slider_content_bounds(scene: &Scene, root: NodeId) -> (f32, f32) {
         padding.left,
         (bounds.width - padding.left - padding.right).max(0.),
     )
+}
+
+#[cfg(test)]
+mod inline_object_tests {
+    use super::*;
+    #[test]
+    fn inline_objects_share_caret_layout_and_survive_undo_and_ime() {
+        let mut ui = Ui::new(300.,300.);
+        let value = ui.signal("ab".to_string());
+        let editor = ui.text_input(ui.root(),"Editor",value.clone(),150.,true);
+        editor.set_wrap(true);
+        ui.prepare_frame();
+        ui.input.focus(&ui.scene,Some(editor.node));
+        editor.set_inline_objects(vec![InlineObject { marker:'\u{e000}',width:80.,text:"Le Bernardin".into() }]).unwrap();
+        editor.set_selection(1,1);
+        editor.paste("\u{e000}");
+        ui.prepare_frame();
+        let object = editor.inline_bounds.get()[0].clone();
+        assert!((object.rect.width-80.).abs()<0.01);
+        assert_eq!(object.offset,1);
+        let before = editor.measure_text(None).0;
+        editor.set_inline_objects(vec![InlineObject { marker:'\u{e000}',width:40.,text:"Le Bernardin".into() }]).unwrap();
+        ui.prepare_frame();
+        assert!((before-editor.measure_text(None).0-40.).abs()<0.01);
+        editor.set_selection(1,4);
+        assert_eq!(editor.copy(),"Le Bernardin");
+        editor.set_selection(4,4);
+        ui.dispatch(InputEvent::KeyDown { key:Key::Backspace,modifiers:Default::default(),repeat:false });
+        assert_eq!(value.get(),"ab");
+        let mut modifiers = crate::input::Modifiers::default();
+        modifiers.control = true;
+        modifiers.meta = true;
+        ui.dispatch(InputEvent::KeyDown { key:Key::Character("z".into()),modifiers,repeat:false });
+        assert_eq!(value.get(),"a\u{e000}b");
+        editor.set_selection(1,1);
+        ui.dispatch(InputEvent::ImePreedit { text:"é".into(),cursor:Some((2,2)) });
+        ui.prepare_frame();
+        assert_eq!(editor.inline_bounds.get()[0].offset,3);
+        assert_eq!(value.get(),"a\u{e000}b");
+        ui.dispatch(InputEvent::ImeCommit("é".into()));
+        assert_eq!(value.get(),"aé\u{e000}b");
+        editor.set_selection(0,value.get().len());
+        assert_eq!(editor.copy(),"aéLe Bernardinb");
+        assert!(editor.set_inline_objects(vec![InlineObject { marker:'x',width:40.,text:"bad".into() }]).is_err());
+    }
 }
 
 #[cfg(test)]
