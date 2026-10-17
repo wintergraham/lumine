@@ -889,6 +889,19 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                         .copied()
                         .filter(|id| !managed.contains(id))
                         .collect();
+                    // Exiting prefix slots must stay ahead of the first surviving sibling.
+                    for &node in &current {
+                        if !managed.contains(&node) {
+                            continue;
+                        }
+                        if !live
+                            .values()
+                            .any(|entry| entry.node == node && entry.style.exiting.get())
+                        {
+                            break;
+                        }
+                        sorted.push(node);
+                    }
                     // Keep disappearing slots next to their former preceding sibling.
                     for node in wanted {
                         sorted.push(node);
@@ -1457,9 +1470,50 @@ mod tests {
         ui.prepare_frame();
         let composer = root.find("composer-root").unwrap();
         let details = root.find("details").unwrap();
-        let row = root.find("detail-0").unwrap();
         let initial = ui.scene.borrow().bounds(composer);
         assert_eq!(initial, crate::scene::Rect::new(441.5, 141.5, 594., 440.));
+        let parts = [
+            "composer-root",
+            "details",
+            "detail-0",
+            "detail-3",
+            "detail-4",
+            "value-0",
+            "value-3",
+            "value-4",
+        ]
+        .map(|id| (id, root.find(id).unwrap()));
+        let snapshot = || {
+            let scene = ui.scene.borrow();
+            parts
+                .iter()
+                .map(|&(id, node)| (id, node, scene.layout_bounds(node), scene.bounds(node)))
+                .collect::<Vec<_>>()
+        };
+        let same_parts =
+            |phase: &str, expected: &[(&str, NodeId, crate::scene::Rect, crate::scene::Rect)]| {
+                let scene = ui.scene.borrow();
+                for &(id, node, layout, paint) in expected {
+                    assert_eq!(root.find(id), Some(node), "{phase}/{id}/identity");
+                    for (kind, actual, expected) in [
+                        ("layout", scene.layout_bounds(node), layout),
+                        ("paint", scene.bounds(node), paint),
+                    ] {
+                        for (axis, actual, expected) in [
+                            ("x", actual.x, expected.x),
+                            ("y", actual.y, expected.y),
+                            ("width", actual.width, expected.width),
+                            ("height", actual.height, expected.height),
+                        ] {
+                            assert!(
+                                (actual - expected).abs() < 0.001,
+                                "{phase}/{id}/{kind}/{axis}: {actual} != {expected}"
+                            );
+                        }
+                    }
+                }
+            };
+        let initial_parts = snapshot();
         let mut time = std::time::Instant::now();
         let mut index = 0;
         let mut advance = |ms: u64| {
@@ -1476,35 +1530,22 @@ mod tests {
         };
         selected.set(true);
         ui.prepare_frame();
+        same_parts("forward-retarget", &initial_parts);
         advance(0);
         advance(50);
         let before = ui.scene.borrow().bounds(composer);
-        let before_details = ui.scene.borrow().layout_bounds(details);
-        let before_row = ui.scene.borrow().bounds(row);
+        let before_parts = snapshot();
         let frame = frames.last().unwrap();
         assert!(before.height > initial.height && before.height < initial.height + 7.5);
         selected.set(false);
         ui.try_prepare_frame().unwrap();
         assert_eq!(frames.last().unwrap().index, frame.index);
         assert_eq!(frames.last().unwrap().time, frame.time);
-        assert_eq!(root.find("detail-0"), Some(row));
-        let same_bounds = |actual: crate::scene::Rect, expected: crate::scene::Rect| {
-            for (actual, expected) in [
-                (actual.x, expected.x),
-                (actual.y, expected.y),
-                (actual.width, expected.width),
-                (actual.height, expected.height),
-            ] {
-                assert!((actual - expected).abs() < 0.001, "{actual} != {expected}");
-            }
-        };
-        same_bounds(ui.scene.borrow().bounds(composer), before);
-        same_bounds(ui.scene.borrow().layout_bounds(details), before_details);
-        same_bounds(ui.scene.borrow().bounds(row), before_row);
+        same_parts("reverse-retarget", &before_parts);
         advance(0);
-        same_bounds(ui.scene.borrow().bounds(composer), before);
+        same_parts("reverse-same-time-frame", &before_parts);
         advance(500);
-        same_bounds(ui.scene.borrow().bounds(composer), initial);
+        same_parts("reverse-settled", &initial_parts);
         assert_eq!(ui.scene.borrow().style(details).height, None);
         root.unmount();
         executor.borrow_mut().tick();
