@@ -1338,7 +1338,10 @@ impl InputDispatcher {
             InputEvent::PointerLeave => None,
             // Empty or disabled modal contents still need dismissal keys.
             InputEvent::KeyDown { .. } | InputEvent::KeyUp { .. } => {
-                self.focused().or_else(|| self.focus_scope())
+                self.focused().or_else(|| self.focus_scope()).or_else(|| {
+                    let root = scene.borrow().root();
+                    self.has_listeners(root).then_some(root)
+                })
             }
             _ => self.focused(),
         };

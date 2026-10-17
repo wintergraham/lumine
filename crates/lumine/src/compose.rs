@@ -291,6 +291,7 @@ pub struct View {
     selection_style: Option<(crate::scene::Color, f32, crate::scene::Insets)>,
     select_all_on_focus: Option<bool>,
     on_editor: Option<Box<dyn FnOnce(crate::widgets::EditorHandle)>>,
+    mounted: Vec<Box<dyn FnOnce(NodeId)>>,
     click: Option<Box<dyn FnMut()>>,
     events: Vec<EventListener>,
     keymap: crate::actions::Keymap,
@@ -390,6 +391,7 @@ impl View {
             selection_style: None,
             select_all_on_focus: None,
             on_editor: None,
+            mounted: Vec::new(),
             click: None,
             events: Vec::new(),
             keymap: crate::actions::Keymap::new(),
@@ -734,8 +736,14 @@ impl View {
         self.reactive_style = Some(Box::new(style));
         self
     }
+    /// Observe the actual retained root after its identity and input options exist.
+    pub fn on_mount(mut self, callback: impl FnOnce(NodeId) + 'static) -> Self {
+        self.mounted.push(Box::new(callback));
+        self
+    }
     // Wrapper properties refine the component's actual root without an extra layout box.
     fn refine(self, mut inner: View) -> View {
+        inner.mounted.extend(self.mounted);
         inner.visibility.extend(self.visibility);
         inner.bounds.extend(self.bounds);
         inner.scroll_fades = self.scroll_fades.or(inner.scroll_fades);
@@ -2568,7 +2576,11 @@ fn mount_element(
             }
         });
     }
-
+    if ui.scene.borrow().contains(root) {
+        for callback in view.mounted {
+            callback(root);
+        }
+    }
     root
 }
 #[allow(clippy::too_many_arguments)]

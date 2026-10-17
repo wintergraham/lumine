@@ -161,14 +161,19 @@ pub(crate) fn activate(
         .collect::<Vec<_>>();
     let weak = ui.downgrade();
     let visible = portal.visible.clone();
+    // Portals escape visual ancestry, including retained invisible pages.
+    let owner_bounds = ui.observe_layout_bounds(owner);
     ui.bind(owner, move || {
         let blocked = disabled.iter().any(|disabled| disabled.get());
         let requested = open.get();
+        let owner_visible = owner_bounds.get().is_some();
         if blocked && requested {
             open.set(false);
         }
-        let desired =
-            requested && !blocked && parent_visible.as_ref().is_none_or(|parent| parent.get());
+        let desired = requested
+            && !blocked
+            && owner_visible
+            && parent_visible.as_ref().is_none_or(|parent| parent.get());
         let Some(ui) = weak.upgrade() else {
             return;
         };
@@ -177,6 +182,11 @@ pub(crate) fn activate(
         }
         let (alpha, scale, origin) = if let Some(presentation) = &mut presentation {
             let policy = (presentation.policy)();
+            if !owner_visible {
+                // A hidden owner's motion clock may be paused indefinitely.
+                presentation.alpha.set(0.);
+                presentation.open = false;
+            }
             let reactivated = desired
                 && ui
                     .input

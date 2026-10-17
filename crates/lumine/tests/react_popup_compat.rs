@@ -310,3 +310,124 @@ fn external_anchor_places_below_with_right_alignment() {
     assert!((bounds.x - 80.).abs() < 0.01, "{bounds:?}");
     assert!((bounds.y - 86.).abs() < 0.01, "{bounds:?}");
 }
+
+#[test]
+fn mount_callbacks_observe_the_retained_root_after_input_setup() {
+    use std::cell::RefCell;
+    let mut ui = Ui::new(300., 100.);
+    let seen = Rc::new(RefCell::new(Vec::new()));
+    let inner = seen.clone();
+    let outer = seen.clone();
+    let input = ui.input.clone();
+    let root = ui.mount(
+        provide(
+            (),
+            component(move |_| {
+                button().id("mounted").on_mount(move |node| {
+                    assert!(input.options(node).is_some_and(|options| options.focusable));
+                    inner.borrow_mut().push(node);
+                })
+            }),
+        )
+        .on_mount(move |node| outer.borrow_mut().push(node)),
+    );
+    assert_eq!(&*seen.borrow(), &[root.node(), root.node()]);
+    assert_eq!(root.find("mounted"), Some(root.node()));
+    ui.prepare_frame();
+    assert_eq!(
+        seen.borrow().len(),
+        2,
+        "mount callbacks cannot repeat during layout"
+    );
+}
+
+#[test]
+fn invisible_owner_releases_a_paused_portal_and_can_reopen() {
+    use lumine::{
+        compose::{PopupMotion, TaskRunner},
+        frame::FrameClock,
+        motion::{Easing, MotionPolicy, Transition},
+        task::LocalExecutor,
+    };
+    use std::{cell::RefCell, time::Duration};
+    let mut ui = Ui::new(500., 400.);
+    let hidden = ui.signal(false);
+    let visible = hidden.clone();
+    let active = ui.signal(true);
+    let open = ui.signal(true);
+    let root = ui.mount(provide(
+        TaskRunner::from_executor(Rc::new(RefCell::new(LocalExecutor::new()))),
+        provide(
+            FrameClock::new(),
+            provide(
+                MotionPolicy {
+                    active: active.clone(),
+                    reduced: ui.signal(false),
+                },
+                overlay()
+                    .w_full()
+                    .h_full()
+                    .reactive_style(move || {
+                        Styles::new().when(visible.get(), |style| style.invisible())
+                    })
+                    .child(
+                        menu("Retained menu", open.clone(), button().size(100., 30.))
+                            .id("retained-menu")
+                            .popup_motion(|| PopupMotion {
+                                enter: Transition::tween(
+                                    Duration::from_millis(200),
+                                    Easing::Linear,
+                                ),
+                                exit: Transition::tween(Duration::from_millis(100), Easing::Linear),
+                                enter_scale: 0.97,
+                                origin: [0., 0.],
+                            })
+                            .child(menu_item("Item")),
+                    ),
+            ),
+        ),
+    ));
+    ui.prepare_frame();
+    assert!(ui.input.focus_scope().is_some());
+    active.set(false);
+    hidden.set(true);
+    ui.prepare_frame();
+    assert!(ui.input.focus_scope().is_none());
+    assert!(
+        ui.scene
+            .borrow()
+            .visible_bounds(root.find("retained-menu").unwrap())
+            .is_none()
+    );
+    hidden.set(false);
+    active.set(true);
+    open.set(true);
+    ui.prepare_frame();
+    assert!(ui.input.focus_scope().is_some());
+}
+
+#[test]
+fn document_keyboard_listener_works_without_a_focused_control() {
+    use lumine::input::EventPhase;
+    use std::cell::RefCell;
+    let mut ui = Ui::new(300., 100.);
+    let root_id = ui.root();
+    let targets = Rc::new(RefCell::new(Vec::new()));
+    let recorded = targets.clone();
+    let _listener = ui.input.listen(root_id, move |event| {
+        if event.phase != EventPhase::Capture && matches!(event.event, InputEvent::KeyDown { .. }) {
+            recorded.borrow_mut().push(event.target);
+        }
+    });
+    let button = ui.mount(button().size(100., 30.));
+    let key = || InputEvent::KeyDown {
+        key: Key::Character("/".into()),
+        modifiers: Modifiers::default(),
+        repeat: false,
+    };
+    ui.dispatch(key());
+    assert_eq!(&*targets.borrow(), &[root_id]);
+    assert!(ui.input.focus(&ui.scene, Some(button.node())));
+    ui.dispatch(key());
+    assert_eq!(&*targets.borrow(), &[root_id, button.node()]);
+}
