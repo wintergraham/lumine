@@ -444,6 +444,7 @@ impl Scene {
             .or(root_style.height)
             .or_else(|| percentage(root_style.height_percent, constraints.percent_height))
             .map_or(t::Dimension::auto(), |v| dim(Length::Px(v)));
+        let mut synthesized_height = false;
         // Overlay is a lumine stacking container: in-flow children contribute to
         // intrinsic size even though Taffy positions its stacked leaves absolutely.
         if layout == Layout::Overlay
@@ -463,40 +464,62 @@ impl Scene {
                 .or(root_style.max_width).map(|width| (width - padding.left - padding.right).max(0.));
             let available_height = known_height.or_else(|| constraints.height.map(|height| height.min(root_style.max_height.unwrap_or(f32::INFINITY))))
                 .or(root_style.max_height).map(|height| (height - padding.top - padding.bottom).max(0.));
-            let mut natural = (0_f32, 0_f32);
-            for child in &ids {
-                let child_style = self.node(*child).style.clone();
-                if child_style.absolute {
-                    continue;
+            let mut measure_content = |width, percent_width, min_content_width| {
+                let mut natural = (0_f32, 0_f32);
+                for child in &ids {
+                    let child_style = self.node(*child).style.clone();
+                    if child_style.absolute {
+                        continue;
+                    }
+                    let size = self.measure_intrinsic(
+                        *child,
+                        Constraints {
+                            // Wrapped intrinsic height uses this overlay's content box,
+                            // rather than its ancestor's wider available allocation.
+                            width,
+                            height: available_height,
+                            percent_width,
+                            percent_height: inner_height,
+                            min_content_width: min_content_width
+                                && self.child_min_content_width(*child, constraints, percent_width),
+                            ..Default::default()
+                        },
+                    );
+                    natural.0 = natural
+                        .0
+                        .max(size.0 + child_style.margin.left + child_style.margin.right);
+                    natural.1 = natural
+                        .1
+                        .max(size.1 + child_style.margin.top + child_style.margin.bottom);
                 }
-                let size = self.measure_intrinsic(
-                    *child,
-                    Constraints {
-                        // Wrapped intrinsic height uses this overlay's content box,
-                        // rather than its ancestor's wider available allocation.
-                        width: available_width,
-                        height: available_height,
-                        percent_width: inner_width,
-                        percent_height: inner_height,
-                        min_content_width: self.child_min_content_width(*child, constraints, inner_width),
-                        ..Default::default()
-                    },
-                );
-                natural.0 = natural
-                    .0
-                    .max(size.0 + child_style.margin.left + child_style.margin.right);
-                natural.1 = natural
-                    .1
-                    .max(size.1 + child_style.margin.top + child_style.margin.bottom);
-            }
-            if mapped.size.width.is_auto() {
+                natural
+            };
+            let mut natural =
+                measure_content(available_width, inner_width, constraints.min_content_width);
+            let auto_width = mapped.size.width.is_auto();
+            if auto_width {
                 mapped.size.width = dim(Length::Px(natural.0 + padding.left + padding.right));
+            }
+            if auto_width && mapped.size.height.is_auto() {
+                let width = dimension(
+                    mapped
+                        .size
+                        .width
+                        .into_option()
+                        .expect("resolved overlay width"),
+                    root_style.min_width,
+                    root_style.max_width,
+                );
+                let content_width = (width - padding.left - padding.right).max(0.);
+                // Intrinsic width is selected before percentage bounds can resolve.
+                // Reflow height at that width while auto percentage height stays indefinite.
+                natural = measure_content(Some(content_width), Some(content_width), false);
             }
             if mapped.size.height.is_auto() {
                 mapped.size.height = dim(Length::Px(natural.1 + padding.top + padding.bottom));
+                synthesized_height = true;
             }
         }
-        let mut synthesized_height = false;
         // Taffy floors negative intrinsic flex contributions, adding back a gap
         // that a clipped reveal has cancelled with its trailing margin. Its
         // MaxContent flex fraction also scales negative margins by the basis,
@@ -600,7 +623,7 @@ impl Scene {
             .map(|child| {
                 let mut mapped = style(&self.node(*child).style, Layout::Column, true);
                 if synthesized_height && !self.node(*child).style.absolute {
-                    // An intrinsic sum gives Taffy an allocation, not a definite
+                    // An intrinsic height gives Taffy an allocation, not a definite
                     // percentage-height basis. Keep the original auto-height
                     // contract, matching child_percent_height in the callback.
                     let unresolved = |value: &mut t::Dimension, fallback| {
@@ -679,12 +702,14 @@ impl Scene {
         let padding = self.resolved_padding(id, constraints);
         // Match the definite content box used by the overlay intrinsic prepass
         // and final arrangement, including min/max clamps on preferred sizes.
-        let child_percent_width = constraints
-            .force_width
-            .or(root_style.width)
-            .or_else(|| percentage(root_style.width_percent, constraints.percent_width))
-            .map(|width| dimension(width, root_style.min_width, root_style.max_width))
-            .map(|width| (width - padding.left - padding.right).max(0.));
+        let child_percent_width = overlay_content.map(|(width, _)| width).or_else(|| {
+            constraints
+                .force_width
+                .or(root_style.width)
+                .or_else(|| percentage(root_style.width_percent, constraints.percent_width))
+                .map(|width| dimension(width, root_style.min_width, root_style.max_width))
+                .map(|width| (width - padding.left - padding.right).max(0.))
+        });
         let child_percent_height = constraints
             .force_height
             .or(root_style.height)
@@ -1231,6 +1256,180 @@ mod tests {
                 );
                 assert_eq!(scene.measure(outer, Constraints::default()).0, 196.097);
                 assert_eq!(scene.measure(outer, min), expected);
+            }
+        }
+    }
+
+    #[test]
+    fn centered_column_overlay_reflows_wrapping_row_before_synthesizing_height() {
+        use crate::layout::LayoutOptions;
+        use crate::text_layout::{FallbackTextLayout, FontStyle, LineHeight, WordWrap};
+
+        let value = "Describe what to watch, when to act, and what you want your automation to do. Review its plan before turning it on.";
+        let font = FontStyle {
+            word_wrap: WordWrap::Word,
+            line_height: LineHeight::px(18.75),
+            ..Default::default()
+        };
+        for wrap in [true, false] {
+            for authored_height in [None, Some(90.)] {
+                let mut scene = Scene::new(500., 400.);
+                scene.set_font_text_measurer(|text, size, width, font| {
+                    FallbackTextLayout::measure_with_font(text, size, width, font)
+                });
+                let column = scene.append(
+                    scene.root(),
+                    NodeKind::Container(Layout::Column),
+                    Style {
+                        width: Some(385.),
+                        height: Some(300.),
+                        padding_edges: Some(Insets {
+                            left: 80.,
+                            right: 80.,
+                            ..Default::default()
+                        }),
+                        align: Align::Center,
+                        justify: Justify::Center,
+                        gap: 10.,
+                        layout_options: Some(Arc::new(LayoutOptions {
+                            wrap: Some(ViewWrap::NoWrap),
+                            ..Default::default()
+                        })),
+                        ..Default::default()
+                    },
+                );
+                let icon = scene.append(
+                    column,
+                    NodeKind::Rect(Color(0, 0, 0, 0)),
+                    Style {
+                        width: Some(18.),
+                        height: Some(18.),
+                        ..Default::default()
+                    },
+                );
+                let overlay = scene.append(
+                    column,
+                    NodeKind::Container(Layout::Overlay),
+                    Style {
+                        height: authored_height,
+                        flex_shrink: 1.,
+                        align: Align::Stretch,
+                        layout_options: Some(Arc::new(LayoutOptions {
+                            max_width: Some(Length::Percent(1.)),
+                            min_height: Some(Length::Auto),
+                            ..Default::default()
+                        })),
+                        ..Default::default()
+                    },
+                );
+                let row = scene.append(
+                    overlay,
+                    NodeKind::Container(Layout::Row),
+                    Style {
+                        height_percent: Some(1.),
+                        min_width: Some(0.),
+                        align: Align::Baseline,
+                        layout_options: Some(Arc::new(LayoutOptions {
+                            wrap: Some(ViewWrap::Wrap),
+                            min_width: Some(Length::Percent(1.)),
+                            max_width: Some(Length::Percent(1.)),
+                            ..Default::default()
+                        })),
+                        ..Default::default()
+                    },
+                );
+                let wrapper = scene.append(
+                    row,
+                    NodeKind::Container(Layout::Column),
+                    Style {
+                        flex_shrink: 1.,
+                        text_wrap: wrap,
+                        ..Default::default()
+                    },
+                );
+                let text = scene.append(
+                    wrapper,
+                    NodeKind::Text {
+                        text: value.into(),
+                        font_size: 12.5,
+                        color: Color(0, 0, 0, 255),
+                    },
+                    Style {
+                        text_wrap: wrap,
+                        ..Default::default()
+                    },
+                );
+                scene.set_font(text, font.clone());
+                let minimum = scene.measure_intrinsic(
+                    overlay,
+                    Constraints {
+                        width: Some(0.),
+                        min_content_width: true,
+                        ..Default::default()
+                    },
+                );
+                let minimum_width =
+                    FallbackTextLayout::measure_with_font(value, 12.5, wrap.then_some(0.), &font).0;
+                assert!(
+                    (minimum.0 - minimum_width).abs() < 0.001,
+                    "{minimum:?}, expected minimum {minimum_width}"
+                );
+                for width in [385., 435., 385.] {
+                    let content_width = width - 160.;
+                    let expected_text = FallbackTextLayout::measure_with_font(
+                        value,
+                        12.5,
+                        wrap.then_some(content_width),
+                        &font,
+                    );
+                    let expected_height = authored_height.unwrap_or(expected_text.1);
+                    let intrinsic = scene.measure(
+                        overlay,
+                        Constraints {
+                            width: Some(content_width),
+                            percent_width: Some(content_width),
+                            ..Default::default()
+                        },
+                    );
+                    assert!(
+                        (intrinsic.0 - content_width).abs() < 0.001
+                            && (intrinsic.1 - expected_height).abs() < 0.001,
+                        "wrap={wrap}, authored={authored_height:?}: {intrinsic:?}, expected {content_width}x{expected_height}"
+                    );
+                    assert_eq!(
+                        scene
+                            .node(row)
+                            .measurement
+                            .as_ref()
+                            .unwrap()
+                            .constraints
+                            .percent_height,
+                        authored_height
+                    );
+                    let mut style = scene.style(column);
+                    style.width = Some(width);
+                    scene.set_style(column, style);
+                    let size = scene.measure(column, Constraints::default());
+                    assert_eq!(size, (width, 300.));
+                    scene.arrange(column, 0., 0., &mut FrameReport::default(), false);
+                    let bounds = scene.layout_bounds(overlay);
+                    let row_bounds = scene.layout_bounds(row);
+                    assert!(
+                        (bounds.width - content_width).abs() < 0.001
+                            && (bounds.height - expected_height).abs() < 0.001,
+                        "overlay {bounds:?}"
+                    );
+                    assert!(
+                        (row_bounds.height - expected_height).abs() < 0.001,
+                        "row {row_bounds:?}"
+                    );
+                    assert!((scene.layout_bounds(wrapper).height - expected_text.1).abs() < 0.001);
+                    assert!((scene.layout_bounds(text).height - expected_text.1).abs() < 0.001);
+                    let expected_icon_y = (300. - 18. - 10. - expected_height) / 2.;
+                    assert!((scene.layout_bounds(icon).y - expected_icon_y).abs() < 0.001);
+                    assert!((bounds.y - expected_icon_y - 28.).abs() < 0.001);
+                    assert!((bounds.x - 80.).abs() < 0.001);
+                }
             }
         }
     }
