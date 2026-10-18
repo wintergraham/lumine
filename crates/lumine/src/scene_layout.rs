@@ -1439,16 +1439,15 @@ mod tests {
                             && (intrinsic.1 - expected_height).abs() < 0.001,
                         "wrap={wrap}, authored={authored_height:?}: {intrinsic:?}, expected {content_width}x{expected_height}"
                     );
-                    assert_eq!(
-                        scene
-                            .node(row)
-                            .measurement
-                            .as_ref()
-                            .unwrap()
-                            .constraints
-                            .percent_height,
-                        authored_height
-                    );
+                    // A promoted parent snapshot restores its children at
+                    // arrange; their current probes may belong to another width.
+                    let snapshot = scene.node(overlay).measurement.as_ref().unwrap();
+                    let row_index = snapshot.children.iter().position(|(id, _)| *id == row).unwrap();
+                    assert_eq!(snapshot.child_constraints[row_index].unwrap().percent_height, authored_height);
+                    scene.arrange(overlay, 0., 0., &mut FrameReport::default(), false);
+                    assert_eq!(scene.node(row).measurement.as_ref().unwrap().constraints.percent_height, authored_height);
+                    assert!((scene.layout_bounds(row).height - expected_height).abs() < 0.001);
+                    assert!((scene.layout_bounds(text).height - expected_text.1).abs() < 0.001);
                     let mut style = scene.style(column);
                     style.width = Some(width);
                     scene.set_style(column, style);
@@ -2434,27 +2433,43 @@ mod tests {
                 ..Default::default()
             });
             for _ in 0..224 {
-                scene.append(grid, NodeKind::Rect(Color(255, 255, 255, 255)), Style {
+                // Imported cells retain styling/content wrappers, even when
+                // the visible decoration itself is only a small rectangle.
+                let mut parent = grid;
+                for _ in 0..3 {
+                    parent = scene.append(parent, NodeKind::Container(Layout::Column), Style {
+                        width: Some(8.), height: Some(8.), ..Default::default()
+                    });
+                }
+                scene.append(parent, NodeKind::Rect(Color(255, 255, 255, 255)), Style {
                     width: Some(8.), height: Some(8.), ..Default::default()
                 });
             }
             (scene, grid)
         }
         let (mut scene, root) = grid();
+        scene.measure(root, Constraints::default());
+        scene.arrange(root, 0., 0., &mut FrameReport::default(), false);
+        let initial_bounds: Vec<_> = scene.slots.iter().map(|slot| slot.node.as_ref().unwrap().bounds).collect();
+        let query = Constraints { force_width: Some(560.), ..Default::default() };
         let profiler = scene.profiler();
         profiler.set_enabled(true);
-        let size = scene.measure_intrinsic(root, Constraints::default());
-        let queries = || profiler.nodes().iter().map(|(_, stats)| stats.layout_queries).sum::<u64>();
-        let intrinsic_queries = queries();
-        assert!(scene.children(root).iter().all(|child| scene.layout_bounds(*child) == Rect::default()));
-        profiler.reset();
-        assert_eq!(scene.measure(root, Constraints::default()), size);
-        let complete_queries = queries();
+        let size = scene.measure_intrinsic(root, query);
+        let intrinsic_queries = profiler.nodes().iter().map(|(_, stats)| stats.layout_queries).sum::<u64>();
+        for (actual, expected) in scene.slots.iter().zip(&initial_bounds) {
+            assert_eq!(actual.node.as_ref().unwrap().bounds, *expected);
+        }
+        let (mut cold, cold_root) = grid();
+        cold.measure(cold_root, Constraints::default());
+        cold.arrange(cold_root, 0., 0., &mut FrameReport::default(), false);
+        let cold_profiler = cold.profiler();
+        cold_profiler.set_enabled(true);
+        assert_eq!(cold.measure(cold_root, query), size);
+        let complete_queries = cold_profiler.nodes().iter().map(|(_, stats)| stats.layout_queries).sum::<u64>();
         assert!(intrinsic_queries * 4 < complete_queries,
             "size-only grid used {intrinsic_queries} queries, complete layout used {complete_queries}");
+        assert_eq!(scene.measure(root, query), size);
         scene.arrange(root, 0., 0., &mut FrameReport::default(), false);
-        let (mut cold, cold_root) = grid();
-        assert_eq!(cold.measure(cold_root, Constraints::default()), size);
         cold.arrange(cold_root, 0., 0., &mut FrameReport::default(), false);
         for (actual, expected) in scene.slots.iter().zip(&cold.slots) {
             assert_eq!(actual.node.as_ref().unwrap().bounds, expected.node.as_ref().unwrap().bounds);
