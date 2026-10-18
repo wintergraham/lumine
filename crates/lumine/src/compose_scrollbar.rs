@@ -76,8 +76,22 @@ pub(crate) fn mount(
             pointer_focus = false;
             write_focus.set(true);
         }
-        let length = main(event_size.get()) as f64;
-        let total = event_extent.get() as f64;
+        if matches!(cx.event,
+            InputEvent::PointerUp { button: PointerButton::Primary, .. }
+                | InputEvent::PointerCancel | InputEvent::Blur
+        ) {
+            grab = None;
+            write_drag.set(false);
+            cx.release_pointer();
+            return;
+        }
+        let size = event_size.get();
+        let extent = event_extent.get();
+        if ![size.0, size.1, extent].into_iter().all(f32::is_finite) {
+            return;
+        }
+        let length = main(size) as f64;
+        let total = extent as f64;
         let limit = (total - length).max(0.);
         let available = (length - 4.).max(0.);
         let thumb_length = (available * length / total.max(1.)).max(32.).min(available);
@@ -130,17 +144,6 @@ pub(crate) fn mount(
             } else {
                 0.
             }),
-            InputEvent::PointerUp {
-                button: PointerButton::Primary,
-                ..
-            }
-            | InputEvent::PointerCancel
-            | InputEvent::Blur => {
-                grab = None;
-                write_drag.set(false);
-                cx.release_pointer();
-                None
-            }
             InputEvent::KeyDown { key, .. } => match key {
                 Key::Home => Some(0.),
                 Key::End => Some(limit),
@@ -227,8 +230,11 @@ pub(crate) fn mount(
             return;
         };
         let (width, height) = size.get();
-        let length = main((width, height));
         let total = extent.get();
+        if ![width, height, total].into_iter().all(f32::is_finite) {
+            return;
+        }
+        let length = main((width, height));
         let limit = (total - length).max(0.);
         let visible = limit > 0. && length > 0. && width > 0. && height > 0.;
         if ui
@@ -300,7 +306,12 @@ pub(crate) fn mount(
                 ..Default::default()
             }),
         );
-        let value = offset.get().clamp(0., limit);
+        let requested = offset.get();
+        let value = if requested.is_nan() {
+            0.
+        } else {
+            requested.clamp(0., limit)
+        };
         let position = if limit > 0. {
             (value as f64 / limit as f64 * (length - 4. - thumb_length).max(0.) as f64) as f32
         } else {

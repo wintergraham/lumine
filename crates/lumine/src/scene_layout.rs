@@ -229,7 +229,8 @@ fn available(value: Option<f32>) -> t::AvailableSpace {
 fn bound(value: t::AvailableSpace) -> Option<f32> {
     match value {
         t::AvailableSpace::Definite(v) => Some(v),
-        _ => None,
+        t::AvailableSpace::MinContent => Some(0.),
+        t::AvailableSpace::MaxContent => None,
     }
 }
 fn content_dimension(value: t::Dimension, basis: f32) -> t::Dimension {
@@ -705,6 +706,145 @@ impl Scene {
 mod tests {
     use super::*;
     use std::{cell::Cell, rc::Rc};
+
+    #[test]
+    fn min_content_keeps_word_boundaries_and_explicit_nowrap_for_plain_and_rich_text() {
+        use crate::text_layout::{FallbackTextLayout, FontStyle, WordWrap};
+        use std::cell::RefCell;
+
+        let font = FontStyle {
+            word_wrap: WordWrap::Word,
+            ..Default::default()
+        };
+        let value = "short longestword";
+        let rich = crate::rich_text::RichText::new(
+            value,
+            vec![crate::rich_text::TextRun {
+                range: 0..value.len(),
+                font: font.clone(),
+                font_size: 16.,
+                ..Default::default()
+            }],
+        )
+        .unwrap();
+        let mut scene = Scene::new(400., 200.);
+        let limits = Rc::new(RefCell::new(Vec::new()));
+        let plain_limits = limits.clone();
+        scene.set_font_text_measurer(move |text, size, width, font| {
+            plain_limits.borrow_mut().push(width);
+            FallbackTextLayout::measure_with_font(text, size, width, font)
+        });
+        let rich_limits = limits.clone();
+        scene.set_rich_text_measurer(move |rich, width| {
+            rich_limits.borrow_mut().push(width);
+            crate::rich_text::fallback_measure(rich, width)
+        });
+        assert_eq!(bound(t::AvailableSpace::MinContent), Some(0.));
+        assert_eq!(bound(t::AvailableSpace::MaxContent), None);
+        assert_eq!(bound(t::AvailableSpace::Definite(40.)), Some(40.));
+        for kind in [
+            label(value),
+            NodeKind::RichText {
+                text: Arc::new(rich),
+            },
+        ] {
+            for wrap in [true, false] {
+                let node = scene.append(
+                    scene.root(),
+                    kind.clone(),
+                    Style {
+                        text_wrap: wrap,
+                        ..Default::default()
+                    },
+                );
+                scene.set_font(node, font.clone());
+                let mut sizes = Vec::new();
+                for (space, expected) in [
+                    (
+                        t::AvailableSpace::MinContent,
+                        if wrap { Some(0.) } else { None },
+                    ),
+                    (t::AvailableSpace::MaxContent, wrap.then_some(f32::INFINITY)),
+                    (t::AvailableSpace::Definite(40.), wrap.then_some(40.)),
+                ] {
+                    limits.borrow_mut().clear();
+                    sizes.push(scene.measure_intrinsic(
+                        node,
+                        Constraints {
+                            width: bound(space),
+                            ..Default::default()
+                        },
+                    ));
+                    if wrap || sizes.len() == 1 {
+                        assert_eq!(limits.borrow().as_slice(), &[expected]);
+                    } else {
+                        // Cached explicit-nowrap probes need no second callback.
+                        assert!(limits.borrow().is_empty());
+                    }
+                }
+                if wrap {
+                    let longest =
+                        FallbackTextLayout::measure_with_font("longestword", 16., None, &font);
+                    assert_eq!(sizes[0].0, longest.0);
+                    assert!(sizes[0].0 < sizes[1].0);
+                    assert!(sizes[0].1 > sizes[1].1);
+                    assert_eq!(sizes[0], sizes[2]);
+                } else {
+                    assert_eq!(sizes[0], sizes[1]);
+                    assert_eq!(sizes[0], sizes[2]);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn automatic_flex_minimum_probes_the_longest_word_instead_of_max_content() {
+        use crate::text_layout::{FallbackTextLayout, FontStyle, WordWrap};
+        let mut scene = Scene::new(400., 200.);
+        let font = FontStyle {
+            word_wrap: WordWrap::Word,
+            ..Default::default()
+        };
+        let row = scene.append(
+            scene.root(),
+            NodeKind::Container(Layout::Row),
+            Style {
+                width: Some(150.),
+                ..Default::default()
+            },
+        );
+        let text = scene.append(
+            row,
+            label("short longestword"),
+            Style {
+                text_wrap: true,
+                flex_shrink: 1.,
+                layout_options: Some(Arc::new(crate::layout::LayoutOptions {
+                    min_width: Some(Length::Auto),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        );
+        scene.set_font(text, font.clone());
+        scene.append(
+            row,
+            NodeKind::Rect(Color(0, 0, 0, 0)),
+            Style {
+                width: Some(60.),
+                height: Some(20.),
+                ..Default::default()
+            },
+        );
+        scene.flush();
+        let longest = FallbackTextLayout::measure_with_font("longestword", 16., None, &font);
+        let bounds = scene.layout_bounds(text);
+        assert!(
+            (bounds.width - longest.0).abs() < 0.0001,
+            "{bounds:?}, longest={longest:?}"
+        );
+        assert!(bounds.height > longest.1, "the paragraph must still wrap");
+    }
 
     #[test]
     fn padded_overlay_percentage_editor_allocation_settles_in_content_box() {

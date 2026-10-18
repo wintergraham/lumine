@@ -2607,14 +2607,24 @@ fn mount_scroll(
             Transform { x: 0., y: -offset }
         }
     };
-    let size = ui.observe_content_size(root);
-    let extent = ui.observe_content_size(content);
+    // Compiled morphs mount flattened parents before their children. Preparing
+    // layout here would publish a partial candidate as its intrinsic size.
+    let size = ui.observe_content_size_deferred(root);
+    let extent = ui.observe_content_size_deferred(content);
+    let ready = |size: (f32, f32), extent: (f32, f32)| {
+        [size.0, size.1, extent.0, extent.1].into_iter().all(f32::is_finite)
+    };
     if scrollbar {
-        let main_extent = ui.signal(main_size(extent.get()));
+        let main_extent = ui.signal(f32::NAN);
+        let read_size = size.clone();
         let read_extent = extent.clone();
         let write_extent = main_extent.clone();
         ui.bind(root, move || {
-            write_extent.set(main_size(read_extent.get()));
+            let size = read_size.get();
+            let extent = read_extent.get();
+            if ready(size, extent) {
+                write_extent.set(main_size(extent));
+            }
         });
         mount_scrollbar(
             ui,
@@ -2637,7 +2647,12 @@ fn mount_scroll(
         let read_size = size.clone();
         let mut previous = (false, false);
         cx.retain(cx.runtime().effect(move || {
-            let limit = (main_size(read_extent.get()) - main_size(read_size.get())).max(0.);
+            let size = read_size.get();
+            let extent = read_extent.get();
+            if !ready(size, extent) {
+                return;
+            }
+            let limit = (main_size(extent) - main_size(size)).max(0.);
             let position = read_offset.get().clamp(0., limit);
             let next = (position > 1., limit - position > 1.);
             let transition = crate::motion::Transition::tween(
@@ -2672,6 +2687,11 @@ fn mount_scroll(
             ui.prepare_frame();
             // A target handler may redirect focus before this event bubbles.
             if ui.input.focused() != Some(cx.target) {
+                return;
+            }
+            let size = wheel_size.get();
+            let extent = wheel_extent.get();
+            if !ready(size, extent) {
                 return;
             }
             let movement = {
@@ -2714,8 +2734,7 @@ fn mount_scroll(
                     0.
                 }
             };
-            let limit =
-                (main_size(wheel_extent.get()) as f64 - main_size(wheel_size.get()) as f64).max(0.);
+            let limit = (main_size(extent) as f64 - main_size(size) as f64).max(0.);
             let position = (wheel_offset.get() as f64 + movement).clamp(0., limit) as f32;
             wheel_offset.set(position);
             // A surrounding reactive batch can defer the geometry binding.
@@ -2738,9 +2757,13 @@ fn mount_scroll(
             if !delta.is_finite() {
                 return;
             }
+            let size = wheel_size.get();
+            let extent = wheel_extent.get();
+            if !ready(size, extent) {
+                return;
+            }
             let before = wheel_offset.get();
-            let limit =
-                (main_size(wheel_extent.get()) as f64 - main_size(wheel_size.get()) as f64).max(0.);
+            let limit = (main_size(extent) as f64 - main_size(size) as f64).max(0.);
             let after = (before as f64 + delta as f64).clamp(0., limit) as f32;
             if before != after || horizontal && horizontal_wheel && limit > 0. {
                 wheel_offset.set(after);
@@ -2752,7 +2775,11 @@ fn mount_scroll(
     let scene = ui.scene.clone();
     ui.bind(root, move || {
         let (width, height) = size.get();
-        let limit = (main_size(extent.get()) - main_size((width, height))).max(0.);
+        let extent = extent.get();
+        if !ready((width, height), extent) {
+            return;
+        }
+        let limit = (main_size(extent) - main_size((width, height))).max(0.);
         let requested = offset.get();
         let position = if requested.is_nan() {
             0.
@@ -3338,6 +3365,105 @@ pub mod prelude {
     pub use crate::style::{ObjectFit, Styled, Styles, rgb, rgba};
     pub use crate::svg::SvgData;
     pub use crate::text_layout::{FontFamily, FontFeatures, TextAlign, TextOptions, TextOverflow};
+}
+
+#[cfg(test)]
+mod scroll_mount_tests {
+    use super::*;
+
+    #[test]
+    fn scroll_mount_waits_for_complete_geometry_without_clamping_or_publishing_nan() {
+        for horizontal in [false, true] {
+            let mut ui = Ui::new(600., 400.);
+            let offset = ui.signal(37.);
+            let progress = ui.signal(0.25);
+            let view = if horizontal {
+                scroll_x(offset.clone())
+            } else {
+                scroll(offset.clone())
+            };
+            let view = ui.mount(
+                view.size(200., 100.)
+                    .scroll_progress(progress.clone())
+                    .scroll_fades_with_duration(8., || std::time::Duration::ZERO)
+                    .child(div().size(500., 500.)),
+            );
+            let root = view.node();
+            let (viewport, content, overlay, track, thumb) = {
+                let scene = ui.scene.borrow();
+                let viewport = scene.children(root)[0];
+                let overlay = scene.children(root)[1];
+                let track = scene.children(overlay)[0];
+                (
+                    viewport,
+                    scene.children(viewport)[0],
+                    overlay,
+                    track,
+                    scene.children(track)[0],
+                )
+            };
+            let size = ui.observe_content_size_deferred(root);
+            let extent = ui.observe_content_size_deferred(content);
+            assert_eq!(
+                ui.scene.borrow().layout_revision(),
+                0,
+                "mount must not prepare an incomplete tree"
+            );
+            assert_eq!((offset.get(), progress.get()), (37., 0.25));
+            for (size_value, extent_value) in [
+                ((200., f32::NAN), (500., 500.)),
+                ((f32::NAN, 100.), (500., 500.)),
+                ((200., 100.), (f32::NAN, 500.)),
+                ((200., 100.), (500., f32::NAN)),
+            ] {
+                ui.runtime.batch(|| {
+                    size.set(size_value);
+                    extent.set(extent_value);
+                });
+                // Bypass Ui's usual frame preparation to exercise pre-layout consumers.
+                ui.input.dispatch_to(
+                    &ui.scene,
+                    root,
+                    InputEvent::Scroll {
+                        x: 10.,
+                        y: 10.,
+                        delta_x: 40.,
+                        delta_y: 40.,
+                    },
+                );
+                ui.input
+                    .dispatch_to(&ui.scene, track, InputEvent::Increment);
+                assert_eq!((offset.get(), progress.get()), (37., 0.25));
+                assert!(ui.semantics.borrow().get(track).is_none());
+                let scene = ui.scene.borrow();
+                assert_eq!(scene.layout_revision(), 0);
+                for node in [viewport, content, overlay, track, thumb] {
+                    let style = scene.style(node);
+                    assert!(
+                        [style.width, style.height, style.min_width, style.min_height]
+                            .into_iter()
+                            .flatten()
+                            .all(f32::is_finite)
+                    );
+                    assert!(style.fade_edges.into_iter().all(f32::is_finite));
+                    let transform = scene.transform(node);
+                    assert!(transform.x.is_finite() && transform.y.is_finite());
+                }
+            }
+            ui.prepare_frame();
+            let limit = if horizontal { 300. } else { 400. };
+            assert_eq!(offset.get(), 37.);
+            assert_eq!(progress.get(), 37. / limit);
+            assert_eq!(
+                ui.semantics.borrow().get(track).unwrap().max,
+                Some(limit as f64)
+            );
+            offset.set(10000.);
+            ui.prepare_frame();
+            assert_eq!(offset.get(), limit);
+            assert_eq!(progress.get(), 1.);
+        }
+    }
 }
 
 #[cfg(test)]
