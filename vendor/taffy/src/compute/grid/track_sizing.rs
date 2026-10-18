@@ -1391,15 +1391,25 @@ fn distribute_space_up_to_limits(
             .iter()
             .filter(|track| track_affected_property(track) + track.item_incurred_increase < track_limit(track))
             .filter(|track| track_is_affected(track))
-            .map(|track| (track_limit(track) - track_affected_property(track)) / track_distribution_proportion(track))
+            .map(|track| {
+                (track_limit(track) - (track_affected_property(track) + track.item_incurred_increase))
+                    / track_distribution_proportion(track)
+            })
             .min_by(|a, b| a.total_cmp(b))
             .unwrap(); // We will never pass an empty track list to this function
         let iteration_item_incurred_increase =
             f32_min(min_increase_limit, space_to_distribute / track_distribution_proportion_sum);
 
-        for track in tracks.iter_mut().filter(|track| track_is_affected(track)) {
+        for track in tracks
+            .iter_mut()
+            .filter(|track| track_is_affected(track))
+            .filter(|track| track_affected_property(track) + track.item_incurred_increase < track_limit(track))
+        {
             let increase = iteration_item_incurred_increase * track_distribution_proportion(track);
-            if increase > 0.0 && track_affected_property(track) + increase <= track_limit(track) + THRESHOLD {
+            if increase > 0.0
+                && track_affected_property(track) + track.item_incurred_increase + increase
+                    <= track_limit(track) + THRESHOLD
+            {
                 track.item_incurred_increase += increase;
                 space_to_distribute -= increase;
             }
@@ -1407,4 +1417,90 @@ fn distribute_space_up_to_limits(
     }
 
     space_to_distribute
+}
+
+#[cfg(test)]
+mod distribution_tests {
+    use super::*;
+    use crate::style::{MaxTrackSizingFunction, MinTrackSizingFunction};
+
+    fn track(base: f32, limit: f32) -> GridTrack {
+        let mut track = GridTrack::new(
+            MinTrackSizingFunction::length(0.),
+            MaxTrackSizingFunction::length(limit),
+        );
+        track.base_size = base;
+        track.growth_limit = limit;
+        track
+    }
+
+    #[test]
+    fn cumulative_growth_freezes_tracks_and_conserves_the_distribution_budget() {
+        for initial in [0., 1.] {
+            let mut tracks = [track(10., 11.), track(10., 13.), track(10., 16.)];
+            for track in &mut tracks {
+                track.item_incurred_increase = initial;
+            }
+            let budget = 10. - 3. * initial;
+            let remaining = distribute_space_up_to_limits(
+                budget,
+                &mut tracks,
+                |_| true,
+                |_| 1.,
+                |t| t.base_size,
+                |t| t.growth_limit,
+            );
+            assert_eq!(remaining, 0.);
+            assert_eq!(tracks.map(|t| t.item_incurred_increase), [1., 3., 6.]);
+        }
+    }
+
+    #[test]
+    fn maximise_tracks_preserves_distinct_card_limits_at_their_natural_total() {
+        let mut tracks = [
+            track(300., 343.2),
+            track(12., 12.),
+            track(300., 596.),
+            track(12., 12.),
+            track(300., 430.),
+        ];
+        let natural = 343.2 + 12. + 596. + 12. + 430.;
+        maximise_tracks(&mut tracks, Some(natural), AvailableSpace::Definite(natural));
+        for (track, expected) in tracks.iter().zip([343.2, 12., 596., 12., 430.]) {
+            assert!((track.base_size - expected).abs() < 0.001, "{track:?}");
+            assert!(track.base_size <= track.growth_limit + 0.001);
+        }
+        let used: f32 = tracks.iter().map(|track| track.base_size).sum();
+        assert!((used - natural).abs() < 0.001);
+    }
+
+    #[test]
+    fn weighted_growth_uses_remaining_capacity_and_excludes_unaffected_tracks() {
+        let mut tracks = [track(0., 2.), track(0., 6.), track(0., 20.), track(0., 100.)];
+        for (track, weight) in tracks.iter_mut().zip([1., 2., 1., 0.]) {
+            track.max_track_sizing_function = MaxTrackSizingFunction::fr(weight);
+        }
+        let remaining = distribute_space_up_to_limits(
+            16.,
+            &mut tracks,
+            |t| t.flex_factor() > 0.,
+            |t| t.flex_factor(),
+            |t| t.base_size,
+            |t| t.growth_limit,
+        );
+        assert_eq!(remaining, 0.);
+        assert_eq!(tracks.map(|t| t.item_incurred_increase), [2., 6., 8., 0.]);
+
+        let mut tracks = [track(10., 10.), track(10., 12.), track(10., 100.)];
+        let remaining = distribute_space_up_to_limits(
+            5.,
+            &mut tracks,
+            |t| t.growth_limit <= 12.,
+            |_| 1.,
+            |t| t.base_size,
+            |t| t.growth_limit,
+        );
+        assert_eq!(remaining, 3.);
+        assert_eq!(tracks.map(|t| t.item_incurred_increase), [0., 2., 0.]);
+    }
 }
