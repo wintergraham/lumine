@@ -14,8 +14,19 @@ pub struct CompiledMorphTiming {
     pub crossfade: Duration,
     pub color_duration: Duration,
     pub curve: [f32; 49],
+    /// CSS pixels to logical pixels for imported source flow. `Some(1.)` is unzoomed.
+    /// Applies destination gaps immediately and rounds footprint measurements like offsetWidth/Height.
+    /// `None` preserves native fractional measurements and animated gaps.
+    pub source_layout_scale: Option<f32>,
 }
 impl CompiledMorphTiming {
+    fn layout_scale(&self) -> f32 {
+        self.source_layout_scale.unwrap_or(1.)
+    }
+    fn measure(&self, logical: f32) -> f32 {
+        self.source_layout_scale
+            .map_or(logical, |scale| (logical / scale).round() * scale)
+    }
     fn animate(&self, motion: &MotionValue) {
         motion.set(0.);
         motion.animate_keyframes(
@@ -110,7 +121,7 @@ struct StyleTrack {
     reveal_opacity: MotionValue,
     decoration: Signal<Option<(Styles, Styles)>>,
     decoration_progress: MotionValue,
-    row_reveal: Signal<bool>,
+    row_reveal: Signal<Option<f32>>,
 }
 impl StyleTrack {
     fn new(cx: &mut Context, styles: Styles) -> Self {
@@ -125,7 +136,7 @@ impl StyleTrack {
             reveal_opacity: MotionValue::new(cx, 1.),
             decoration: cx.state(None),
             decoration_progress: MotionValue::new(cx, 1.),
-            row_reveal: cx.state(false),
+            row_reveal: cx.state(None),
         }
     }
     fn update(&self, target: Styles, timing: &CompiledMorphTiming, first: bool) {
@@ -151,10 +162,19 @@ impl StyleTrack {
             *self.presented.borrow_mut() = target;
             return;
         }
-        let from = self.presented.borrow().clone();
+        let mut from = self.presented.borrow().clone();
         self.footprint.set(None);
         if from == target {
             return;
+        }
+        if timing.source_layout_scale.is_some() {
+            // Source installs the destination shell before reconciling child footprints.
+            from.gap = target.gap;
+            if let (Some(from), Some(to)) = (&mut from.layout_options, &target.layout_options) {
+                let from = std::sync::Arc::make_mut(from);
+                from.gap_x = to.gap_x;
+                from.gap_y = to.gap_y;
+            }
         }
         self.endpoints.set((from, target));
         timing.animate(&self.progress);
@@ -176,10 +196,10 @@ impl StyleTrack {
             } else {
                 let mut sampled = interpolate(&reveal.from, &reveal.to, p);
                 sampled.opacity = Some(self.reveal_opacity.get().clamp(0., 1.));
-                if self.row_reveal.get() {
+                if let Some(offset) = self.row_reveal.get() {
                     sampled.transform = Some(crate::scene::Transform {
                         x: 0.,
-                        y: 3. * (1. - self.reveal_opacity.get()),
+                        y: offset * (1. - self.reveal_opacity.get()),
                     });
                     sampled.scale = Some([1.; 2]);
                 }
@@ -223,7 +243,7 @@ fn footprint(
     if timing.duration.is_zero() {
         return;
     }
-    track.row_reveal.set(false);
+    track.row_reveal.set(None);
     let horizontal = layout == Layout::Row;
     let vertical = layout == Layout::Column;
     let mut open = original.clone();
@@ -231,22 +251,32 @@ fn footprint(
     open.margin = Some(margin);
     open.margin_sides = 15;
     let leading = if horizontal { margin.left } else { margin.top };
-    let size = if horizontal {
+    let size = timing.measure(if horizontal {
         bounds.width
     } else {
         bounds.height
-    };
+    });
     // Keep the complete content allocation. Only its contribution to flow changes.
     if horizontal {
-        open.width = Some(bounds.width);
+        open.width = Some(if original.flex_grow.unwrap_or(0.) > 0. {
+            timing.measure(bounds.width)
+        } else {
+            bounds.width
+        });
     } else if vertical {
-        open.height = Some(bounds.height);
+        open.height = Some(if original.flex_grow.unwrap_or(0.) > 0. {
+            timing.measure(bounds.height)
+        } else {
+            bounds.height
+        });
     }
     if horizontal || vertical {
         open.flex_grow = Some(0.);
         open.flex_shrink = Some(0.);
     }
-    open.clip_insets = Some(Some(crate::scene::Insets::all(-20.)));
+    open.clip_insets = Some(Some(crate::scene::Insets::all(
+        -20. * timing.layout_scale(),
+    )));
     open.opacity = Some(1.);
     let mut shut = open.clone();
     if horizontal {
@@ -258,12 +288,12 @@ fn footprint(
     shut.margin_sides = 15;
     shut.clip_insets = Some(Some(if horizontal {
         crate::scene::Insets {
-            right: bounds.width,
+            right: open.width.unwrap_or(bounds.width),
             ..Default::default()
         }
     } else if vertical {
         crate::scene::Insets {
-            bottom: bounds.height,
+            bottom: open.height.unwrap_or(bounds.height),
             ..Default::default()
         }
     } else {
@@ -271,7 +301,11 @@ fn footprint(
     }));
     shut.transform = Some(crate::scene::Transform {
         x: 0.,
-        y: if horizontal { 0. } else { 6. },
+        y: if horizontal {
+            0.
+        } else {
+            6. * timing.layout_scale()
+        },
     });
     shut.scale = Some(
         [if horizontal {
@@ -285,7 +319,7 @@ fn footprint(
     open.transform = Some(crate::scene::Transform::default());
     open.scale = Some([1.; 2]);
     if horizontal {
-        open.height = Some(bounds.height);
+        open.height = Some(timing.measure(bounds.height));
         shut.height = Some(0.);
         shut.min_height = Some(0.);
         open.layout_options_mut().align_self = Some(crate::scene::Align::Center);
@@ -544,6 +578,11 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                 return;
             }
             let options = timing();
+            assert!(
+                options
+                    .source_layout_scale
+                    .is_none_or(|scale| scale.is_finite() && scale > 0.)
+            );
             let first = previous.is_none();
             runtime.untracked(|| {
                 let mut live = mounted.borrow_mut();
@@ -652,6 +691,14 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                         && effect.as_ref().is_none_or(|e| e.enter.is_none())
                         && spec.parent.as_ref().is_none_or(|id| existing.contains(id))
                     {
+                        let parent_target = options.source_layout_scale.and_then(|_| {
+                            spec.parent.as_ref().map(|id| {
+                                live[id]
+                                    .style
+                                    .endpoints
+                                    .with_untracked(|(_, to)| to.clone())
+                            })
+                        });
                         let bounds = ui.observe_layout_bounds(node);
                         let entering = style.clone();
                         let mut timing = options.clone();
@@ -706,7 +753,11 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                                 }
                                 _ => Layout::Overlay,
                             };
-                            let gap = scene.style(parent).gap;
+                            let (layout, gap) = parent_target
+                                .as_ref()
+                                .map_or((layout, scene.style(parent).gap), |style| {
+                                    source_flow(style, layout)
+                                });
                             let neighbour = scene
                                 .children(parent)
                                 .iter()
@@ -733,7 +784,7 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                                         value.from.scale = Some([1.; 2]);
                                     }
                                 });
-                                entering.row_reveal.set(true);
+                                entering.row_reveal.set(Some(3. * timing.layout_scale()));
                                 entering.reveal_opacity.set(0.);
                                 entering.reveal_opacity.animate_to(
                                     1.,
@@ -815,7 +866,19 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                         NodeKind::Container(layout) | NodeKind::Panel { layout, .. } => *layout,
                         _ => Layout::Overlay,
                     };
-                    let gap = scene.style(parent).gap;
+                    let (layout, gap) = if options.source_layout_scale.is_some() {
+                        old.parent.as_ref().and_then(|id| live.get(id)).map_or(
+                            (layout, scene.style(parent).gap),
+                            |parent| {
+                                parent
+                                    .style
+                                    .endpoints
+                                    .with_untracked(|(_, to)| source_flow(to, layout))
+                            },
+                        )
+                    } else {
+                        (layout, scene.style(parent).gap)
+                    };
                     let neighbour = scene
                         .children(parent)
                         .iter()
@@ -841,8 +904,21 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                         }
                         authored(&old.style, animation, false);
                     } else {
+                        // offsetWidth/Height exclude the current paint scale and translation.
+                        let flow_bounds = if options.source_layout_scale.is_some() {
+                            ui.scene.borrow().layout_bounds(old.node)
+                        } else {
+                            bounds
+                        };
                         footprint(
-                            &old.style, from, bounds, layout, gap, neighbour, false, &options,
+                            &old.style,
+                            from,
+                            flow_bounds,
+                            layout,
+                            gap,
+                            neighbour,
+                            false,
+                            &options,
                         );
                     }
                     let weak = ui.downgrade();
@@ -943,6 +1019,22 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
             previous = Some(key);
         });
     })))
+}
+
+fn source_flow(style: &Styles, fallback: Layout) -> (Layout, f32) {
+    let layout = style.layout.unwrap_or(fallback);
+    let axis_gap = style.layout_options.as_ref().and_then(|options| {
+        if layout == Layout::Row {
+            options.gap_x
+        } else {
+            options.gap_y
+        }
+    });
+    let gap = match axis_gap {
+        Some(crate::layout::Length::Px(value)) => value,
+        _ => style.gap.unwrap_or(0.),
+    };
+    (layout, gap)
 }
 
 fn interpolate(from: &Styles, to: &Styles, t: f32) -> Styles {
@@ -1121,6 +1213,7 @@ mod tests {
                             view
                         },
                         || CompiledMorphTiming {
+                            source_layout_scale: None,
                             duration: Duration::from_millis(120),
                             crossfade: Duration::from_millis(40),
                             color_duration: Duration::from_millis(40),
@@ -1239,6 +1332,7 @@ mod tests {
                             .child(div().id("label").size(80., 20.))
                     },
                     || CompiledMorphTiming {
+                        source_layout_scale: None,
                         duration: Duration::from_millis(400),
                         crossfade: Duration::from_millis(140),
                         color_duration: Duration::from_millis(200),
@@ -1331,6 +1425,7 @@ mod tests {
                         }
                     },
                     || CompiledMorphTiming {
+                        source_layout_scale: None,
                         duration: Duration::from_millis(400),
                         crossfade: Duration::from_millis(140),
                         color_duration: Duration::from_millis(200),
@@ -1420,7 +1515,7 @@ mod tests {
                         let mut view = column()
                             .id("root")
                             .w(220.)
-                            .gap(8.)
+                            .gap(if expanded { 21. } else { 12. })
                             .child(
                                 div()
                                     .id("decoration")
@@ -1442,6 +1537,7 @@ mod tests {
                         view.child(div().id("after").h(20.))
                     },
                     || CompiledMorphTiming {
+                        source_layout_scale: Some(1.),
                         duration: Duration::from_millis(400),
                         crossfade: Duration::from_millis(100),
                         color_duration: Duration::from_millis(100),
@@ -1460,20 +1556,23 @@ mod tests {
             .height;
         selected.set(true);
         ui.prepare_frame();
+        assert_eq!(ui.scene.borrow().style(root.find("root").unwrap()).gap, 21.);
         let entry = root.find("entry").unwrap();
+        assert_eq!(ui.scene.borrow().style(entry).margin.bottom, -69.);
         let copy = root.find("copy").unwrap();
         let full_copy = ui.scene.borrow().layout_bounds(copy);
         assert_eq!(ui.scene.borrow().layout_bounds(entry).height, 48.);
-        assert!((ui.scene.borrow().layout_bounds(after).y - initial_y).abs() < 0.01);
+        assert!((ui.scene.borrow().layout_bounds(after).y - initial_y - 9.).abs() < 0.01);
         assert!(
             (ui.scene
                 .borrow()
                 .layout_bounds(root.find("root").unwrap())
                 .height
-                - initial_height)
+                - initial_height
+                - 9.)
                 .abs()
                 < 0.01,
-            "the auto-height parent must not regain the cancelled gap"
+            "only the surviving gap changes immediately, the entering gap stays cancelled"
         );
         let mut time = std::time::Instant::now();
         let mut index = 0;
@@ -1492,7 +1591,7 @@ mod tests {
         advance(&mut ui, 200);
         let middle = ui.scene.borrow().layout_bounds(after).y;
         assert!(
-            middle > initial_y && middle < initial_y + 56.,
+            middle > initial_y + 9. && middle < initial_y + 78.,
             "reveal must animate its flow slot: {middle}"
         );
         assert_eq!(ui.scene.borrow().layout_bounds(entry).height, 48.);
@@ -1502,15 +1601,28 @@ mod tests {
             (full_copy.width, full_copy.height)
         );
         assert!(ui.scene.borrow().style(entry).clip_insets.unwrap().bottom > 0.);
+        let before_exit = ui.scene.borrow().style(entry).clone();
         selected.set(false);
         ui.prepare_frame();
+        assert_eq!(ui.scene.borrow().style(root.find("root").unwrap()).gap, 12.);
         advance(&mut ui, 80);
+        let leaving = ui.scene.borrow().style(entry).clone();
+        let clip_before = before_exit.clip_insets.unwrap().bottom;
+        let exit_progress =
+            (leaving.clip_insets.unwrap().bottom - clip_before) / (48. - clip_before);
+        assert!(exit_progress > 0. && exit_progress < 1.);
+        let margin_before = before_exit.margin.bottom;
+        let expected_margin = margin_before + (-48. - 12. - margin_before) * exit_progress;
+        assert!(
+            (leaving.margin.bottom - expected_margin).abs() < 0.01,
+            "exit collapse must use the destination gap before its scene binding runs"
+        );
         selected.set(true);
         ui.prepare_frame();
         assert_eq!(root.find("entry"), Some(entry));
         advance(&mut ui, 500);
         assert_eq!(ui.scene.borrow().layout_bounds(entry).height, 48.);
-        assert!((ui.scene.borrow().layout_bounds(after).y - initial_y - 56.).abs() < 0.01);
+        assert!((ui.scene.borrow().layout_bounds(after).y - initial_y - 78.).abs() < 0.01);
         assert_eq!(ui.scene.borrow().style(entry).clip_insets, None);
         root.unmount();
         executor.borrow_mut().tick();
@@ -1587,6 +1699,7 @@ mod tests {
                             )
                     },
                     || CompiledMorphTiming {
+                        source_layout_scale: None,
                         duration: Duration::from_millis(400),
                         crossfade: Duration::from_millis(140),
                         color_duration: Duration::from_millis(200),
@@ -1750,6 +1863,7 @@ mod tests {
                         }
                     },
                     || CompiledMorphTiming {
+                        source_layout_scale: None,
                         duration: Duration::ZERO,
                         crossfade: Duration::ZERO,
                         color_duration: Duration::ZERO,
@@ -1823,6 +1937,7 @@ mod tests {
                         .size(10., 10.)
                     },
                     || CompiledMorphTiming {
+                        source_layout_scale: None,
                         duration: Duration::ZERO,
                         crossfade: Duration::ZERO,
                         color_duration: Duration::ZERO,
@@ -1854,6 +1969,99 @@ mod tests {
         assert_eq!(read(&mut ui), 60);
     }
     #[test]
+    fn source_flow_footprints_measure_css_pixels_at_import_scale() {
+        use crate::{frame::FrameClock, task::LocalExecutor};
+        for source_layout_scale in [None, Some(1.), Some(1.5), Some(2.)] {
+            let scale = source_layout_scale.unwrap_or(1.);
+            let mut ui = Ui::new(300., 300.);
+            let output = Rc::new(RefCell::new(None));
+            let capture = output.clone();
+            let _root = ui.mount(provide(
+                TaskRunner::from_executor(Rc::new(RefCell::new(LocalExecutor::new()))),
+                provide(
+                    FrameClock::new(),
+                    component(move |cx| {
+                        *capture.borrow_mut() = Some(StyleTrack::new(cx, Styles::new()));
+                        div()
+                    }),
+                ),
+            ));
+            let track = output.borrow().clone().unwrap();
+            let timing = CompiledMorphTiming {
+                source_layout_scale,
+                duration: Duration::from_millis(400),
+                crossfade: Duration::from_millis(140),
+                color_duration: Duration::from_millis(200),
+                curve: std::array::from_fn(|i| i as f32 / 48.),
+            };
+            let bounds = crate::scene::Rect::new(0., 0., 20.4 * scale, 35.6 * scale);
+            let original = Styles::new()
+                .w(bounds.width)
+                .h(bounds.height)
+                .m(2.5 * scale);
+            for layout in [Layout::Column, Layout::Row] {
+                footprint(
+                    &track,
+                    original.clone(),
+                    bounds,
+                    layout,
+                    14. * scale,
+                    true,
+                    true,
+                    &timing,
+                );
+                let reveal = track.footprint.get().unwrap();
+                let horizontal = layout == Layout::Row;
+                let css_size: f32 = if horizontal { 20.4 } else { 35.6 };
+                let measured = if source_layout_scale.is_some() {
+                    css_size.round()
+                } else {
+                    css_size
+                };
+                let trail = reveal.from.margin.unwrap();
+                assert!(
+                    ((if horizontal {
+                        trail.right
+                    } else {
+                        trail.bottom
+                    }) + (measured + 2.5 + 14.) * scale)
+                        .abs()
+                        < 0.0001
+                );
+                assert_eq!(
+                    reveal.from.transform.unwrap().y,
+                    if horizontal { 0. } else { 6. * scale }
+                );
+                assert_eq!(reveal.to.clip_insets.flatten().unwrap().top, -20. * scale);
+                if horizontal {
+                    let height = if source_layout_scale.is_some() {
+                        36.
+                    } else {
+                        35.6
+                    } * scale;
+                    assert!((reveal.to.height.unwrap() - height).abs() < 0.0001);
+                } else {
+                    assert_eq!(reveal.to.height, original.height);
+                }
+                assert_eq!(reveal.restore, Some(original.clone()));
+                footprint(
+                    &track,
+                    original.clone(),
+                    bounds,
+                    layout,
+                    14. * scale,
+                    true,
+                    false,
+                    &timing,
+                );
+                let exit = track.footprint.get().unwrap();
+                assert_eq!(exit.to.margin, reveal.from.margin);
+                assert_eq!(exit.restore, None);
+            }
+        }
+    }
+
+    #[test]
     fn unchanged_destination_does_not_restart_motion_on_content_refresh() {
         use crate::{frame::FrameClock, task::LocalExecutor};
         let mut ui = Ui::new(600., 400.);
@@ -1873,6 +2081,7 @@ mod tests {
         ));
         let track = output.borrow().clone().unwrap();
         let timing = CompiledMorphTiming {
+            source_layout_scale: None,
             duration: Duration::from_millis(400),
             crossfade: Duration::from_millis(140),
             color_duration: Duration::from_millis(200),
@@ -1935,6 +2144,7 @@ mod tests {
                         view
                     },
                     || CompiledMorphTiming {
+                        source_layout_scale: None,
                         duration: Duration::from_millis(120),
                         crossfade: Duration::from_millis(40),
                         color_duration: Duration::from_millis(40),
