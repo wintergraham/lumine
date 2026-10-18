@@ -1,6 +1,6 @@
 [workspace]
 members = ["crates/lumine", "crates/lumine-desktop", "crates/lumine-gpu", "comparisons/workload"]
-exclude = ["comparisons/gpui", "comparisons/quickgui"]
+exclude = ["comparisons/gpui", "comparisons/quickgui", "vendor/taffy"]
 resolver = "2"
 
 [workspace.package]

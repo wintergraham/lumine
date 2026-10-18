@@ -8,7 +8,7 @@ codegen = []
 
 [dependencies]
 unicode-segmentation = "1.12"
-taffy = { version = "=0.9.0", default-features = false, features = ["std", "taffy_tree", "flexbox", "grid", "content_size"] }
+taffy = { path = "../../vendor/taffy", version = "=0.9.0", default-features = false, features = ["std", "taffy_tree", "flexbox", "grid", "content_size"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2-core-foundation = "0.3.2"
