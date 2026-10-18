@@ -369,11 +369,11 @@ fn footprint(
     );
 }
 struct TextTrack {
-    value: Signal<String>,
-    previous: Signal<String>,
-    enter: MotionValue,
-    leave: MotionValue,
+    source: Rc<RefCell<TextSource>>,
+    revision: Signal<u64>,
+    timing: Rc<RefCell<CompiledMorphTiming>>,
 }
+type TextSource = Box<dyn FnMut() -> DisplayText>;
 enum ContentTrack {
     None,
     Text(TextTrack),
@@ -420,7 +420,7 @@ fn flatten(mut view: View, parent: Option<String>, out: &mut Vec<Spec>, ids: &mu
 fn tag(kind: &Kind) -> u8 {
     match kind {
         Kind::Container(_) => 0,
-        Kind::Text(_) => 1,
+        Kind::Text(_) | Kind::RichText(_) => 1,
         Kind::BoundText(_) => 2,
         Kind::Image { .. } => 3,
         Kind::Svg { .. } => 4,
@@ -442,25 +442,71 @@ fn target_style(view: &View) -> Styles {
     }
     style
 }
-fn content(cx: &mut Context, view: &mut View) -> ContentTrack {
-    match &mut view.kind {
+fn text_source(kind: &mut Kind) -> TextSource {
+    match kind {
         Kind::Text(text) => {
-            let value = cx.state(text.clone());
-            let previous = cx.state(String::new());
+            let text = text.clone();
+            Box::new(move || DisplayText::Plain(text.clone()))
+        }
+        Kind::RichText(read) => {
+            let mut read = std::mem::replace(read, Box::new(Vec::new));
+            Box::new(move || DisplayText::Rich(read()))
+        }
+        _ => unreachable!("compiled text source"),
+    }
+}
+fn content(cx: &mut Context, view: &mut View, timing: &CompiledMorphTiming) -> ContentTrack {
+    match &mut view.kind {
+        kind @ (Kind::Text(_) | Kind::RichText(_)) => {
+            let source = Rc::new(RefCell::new(text_source(kind)));
+            let revision = cx.state(0u64);
+            let timing = Rc::new(RefCell::new(timing.clone()));
+            let previous = cx.state(DisplayText::Plain(String::new()));
             let enter = MotionValue::new(cx, 1.);
             let leave = MotionValue::new(cx, 1.);
-            let read = value.clone();
+            let read = source.clone();
+            let changed = revision.clone();
+            let options = timing.clone();
+            let old_write = previous.clone();
+            let enter_write = enter.clone();
+            let leave_write = leave.clone();
+            let mut current = None;
+            let paragraph = View::new(Kind::DisplayText(Box::new(move || {
+                let _ = changed.get();
+                let next = (read.borrow_mut())();
+                if let Some(old) = current.replace(next.clone())
+                    && old != next
+                {
+                    old_write.set(old);
+                    let timing = options.borrow();
+                    leave_write.set(0.);
+                    enter_write.set(0.);
+                    leave_write.animate_to(
+                        1.,
+                        crate::motion::Transition::tween(
+                            timing.crossfade,
+                            crate::motion::Easing::EaseOut,
+                        ),
+                    );
+                    enter_write.animate_to(
+                        1.,
+                        crate::motion::Transition::tween(
+                            timing.crossfade.mul_f32(1.3),
+                            crate::motion::Easing::EaseOut,
+                        )
+                        .delay(timing.crossfade.mul_f32(0.2)),
+                    );
+                }
+                next
+            })));
             let old = previous.clone();
             let opacity = enter.clone();
             let old_opacity = leave.clone();
             view.kind = Kind::Component(Box::new(move |_| {
                 overlay()
+                    .child(paragraph.reactive_style(move || Styles::new().opacity(opacity.get())))
                     .child(
-                        text_signal(move || read.get())
-                            .reactive_style(move || Styles::new().opacity(opacity.get())),
-                    )
-                    .child(
-                        text_signal(move || old.get())
+                        View::new(Kind::DisplayText(Box::new(move || old.get())))
                             .absolute()
                             .left(0.)
                             .top(0.)
@@ -473,10 +519,9 @@ fn content(cx: &mut Context, view: &mut View) -> ContentTrack {
                     )
             }));
             ContentTrack::Text(TextTrack {
-                value,
-                previous,
-                enter,
-                leave,
+                source,
+                revision,
+                timing,
             })
         }
         Kind::Image { source, .. } => {
@@ -507,28 +552,12 @@ fn content(cx: &mut Context, view: &mut View) -> ContentTrack {
 }
 fn update_content(track: &ContentTrack, view: &mut View, timing: &CompiledMorphTiming) {
     match (track, &mut view.kind) {
-        (ContentTrack::Text(track), Kind::Text(text)) => {
-            if track.value.get() != *text {
-                track.previous.set(track.value.get());
-                track.value.set(text.clone());
-                track.leave.set(0.);
-                track.enter.set(0.);
-                track.leave.animate_to(
-                    1.,
-                    crate::motion::Transition::tween(
-                        timing.crossfade,
-                        crate::motion::Easing::EaseOut,
-                    ),
-                );
-                track.enter.animate_to(
-                    1.,
-                    crate::motion::Transition::tween(
-                        timing.crossfade.mul_f32(1.3),
-                        crate::motion::Easing::EaseOut,
-                    )
-                    .delay(timing.crossfade.mul_f32(0.2)),
-                );
-            }
+        (ContentTrack::Text(track), kind @ (Kind::Text(_) | Kind::RichText(_))) => {
+            *track.source.borrow_mut() = text_source(kind);
+            *track.timing.borrow_mut() = timing.clone();
+            track
+                .revision
+                .update(|revision| *revision = revision.wrapping_add(1));
         }
         (
             ContentTrack::Image {
@@ -647,7 +676,7 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                     }
                     let mut cx = Context::new(runtime.clone(), environment.clone());
                     let style = StyleTrack::new(&mut cx, target.clone());
-                    let content = content(&mut cx, &mut spec.view);
+                    let content = content(&mut cx, &mut spec.view, &options);
                     let draw = style.clone();
                     let mut own = spec.view.reactive_style.take();
                     spec.view.styles = Styles::default();
@@ -1165,6 +1194,145 @@ fn interpolate(from: &Styles, to: &Styles, t: f32) -> Styles {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn compiled_text_retains_paragraphs_across_plain_rich_decorations_and_reactive_runs() {
+        use crate::{rich_text::Decoration, scene::Color, text_layout::WordWrap};
+        let mut ui = Ui::new(400., 200.);
+        let phase = ui.signal(0);
+        let selected = phase.clone();
+        let word = ui.signal("beta".to_owned());
+        let read_word = word.clone();
+        let root = ui.mount(compiled_morph(
+            move || selected.get(),
+            move |phase| {
+                let view = match phase {
+                    0 | 5 => text("Alpha beta"),
+                    1..=3 => {
+                        let (offset, thickness, color) = match phase {
+                            1 => (4., 2., Color(255, 0, 0, 255)),
+                            2 => (-2., 1., Color(0, 0, 255, 255)),
+                            _ => (3., 0., Color(0, 255, 0, 255)),
+                        };
+                        rich_text()
+                            .child(
+                                text_span("Alpha beta").underline(
+                                    Decoration::default()
+                                        .with_baseline_offset(offset)
+                                        .with_thickness(thickness)
+                                        .color(color),
+                                ),
+                            )
+                            .into()
+                    }
+                    _ => {
+                        let read_word = read_word.clone();
+                        rich_text_signal(move || {
+                            vec![
+                                text_span("Alpha "),
+                                text_span(read_word.get())
+                                    .font_weight(700)
+                                    .text_size(20.)
+                                    .line_height(30.)
+                                    .background(Color(20, 30, 40, 255))
+                                    .strikethrough(Decoration::new(2.)),
+                            ]
+                        })
+                    }
+                };
+                view.id("copy")
+                    .w(160.)
+                    .text_size(10.)
+                    .line_height(20.)
+                    .text_wrap(true)
+                    .word_wrap(WordWrap::Word)
+            },
+            || CompiledMorphTiming {
+                source_layout_scale: None,
+                duration: Duration::ZERO,
+                crossfade: Duration::ZERO,
+                color_duration: Duration::ZERO,
+                curve: std::array::from_fn(|i| i as f32 / 48.),
+            },
+        ));
+        ui.prepare_frame();
+        ui.scene.borrow_mut().flush();
+        let owner = root.find("copy").unwrap();
+        let (paragraph, outgoing) = {
+            let scene = ui.scene.borrow();
+            let children = scene.children(owner);
+            (
+                scene.children(children[0])[0],
+                scene.children(children[1])[0],
+            )
+        };
+        let initial = ui.scene.borrow().layout_bounds(paragraph);
+        assert!(matches!(
+            ui.scene.borrow().kind(paragraph),
+            NodeKind::Text { .. }
+        ));
+        for next in 1..=5 {
+            phase.set(next);
+            ui.prepare_frame();
+            let frame = ui.scene.borrow_mut().flush();
+            assert!(!frame.damage.is_empty());
+            if next == 3 {
+                assert_eq!(
+                    frame.layout_nodes, 0,
+                    "decoration-only updates preserve layout"
+                );
+            }
+            assert_eq!(root.find("copy"), Some(owner));
+            let scene = ui.scene.borrow();
+            let children = scene.children(owner);
+            assert_eq!(scene.children(children[0])[0], paragraph);
+            assert_eq!(scene.children(children[1])[0], outgoing);
+            let bounds = scene.layout_bounds(owner);
+            assert_eq!(bounds.width, 160.);
+            assert_eq!(bounds.height, if next == 4 { 30. } else { 20. });
+            match scene.kind(paragraph) {
+                NodeKind::Text { text, .. } => {
+                    assert_eq!(next, 5);
+                    assert_eq!(text.as_ref(), "Alpha beta");
+                    assert_eq!(scene.layout_bounds(paragraph), initial);
+                }
+                NodeKind::RichText { text } => {
+                    assert_eq!(text.text(), "Alpha beta");
+                    if next < 4 {
+                        assert_eq!(text.runs().len(), 1);
+                        let decoration = text.runs()[0].underline.unwrap();
+                        assert_eq!(
+                            decoration.baseline_offset(),
+                            Some([4., -2., 3.][next as usize - 1])
+                        );
+                        assert_eq!(decoration.thickness(), [2., 1., 0.][next as usize - 1]);
+                        assert_eq!(scene.layout_bounds(paragraph), initial);
+                    } else {
+                        assert_eq!(text.runs().len(), 2);
+                        assert_eq!(text.runs()[1].font_size, 20.);
+                        assert_eq!(text.runs()[1].font.weight, 700);
+                        assert!(text.runs()[1].strikethrough.is_some());
+                    }
+                }
+                _ => panic!("retained native text paragraph"),
+            }
+            drop(scene);
+            if next == 4 {
+                word.set("zeta".to_owned());
+                ui.prepare_frame();
+                let scene = ui.scene.borrow();
+                let NodeKind::RichText { text } = scene.kind(paragraph) else {
+                    panic!("rich paragraph")
+                };
+                assert_eq!(text.text(), "Alpha zeta");
+                assert_eq!(text.runs()[1].font.weight, 700);
+                assert_eq!(scene.layout_bounds(owner).height, 30.);
+            }
+        }
+        root.unmount();
+        word.set("disposed".to_owned());
+        assert!(!ui.scene.borrow().contains(paragraph));
+    }
 
     #[test]
     fn frame_clock_exit_completion_removes_zero_height_slots_and_their_gaps() {

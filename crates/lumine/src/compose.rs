@@ -193,11 +193,17 @@ impl From<Slot> for View {
 type Builder = Box<dyn FnOnce(&mut Context) -> View>;
 type RegionBuilder = Box<dyn FnOnce(&mut Ui, NodeId, Environment)>;
 type VirtualBuilder = Box<dyn FnOnce(&mut Ui, NodeId, Environment, bool, bool)>;
+#[derive(Clone, PartialEq)]
+enum DisplayText {
+    Plain(String),
+    Rich(Vec<TextSpan>),
+}
 enum Kind {
     Container(Layout),
     Text(String),
     BoundText(Box<dyn FnMut() -> String>),
     RichText(Box<dyn FnMut() -> Vec<crate::compose_rich::TextSpan>>),
+    DisplayText(Box<dyn FnMut() -> DisplayText>),
     Button,
     MenuItem(String),
     Submenu {
@@ -1806,6 +1812,10 @@ fn mount_element(
     mut view: View,
     mut environment: Environment,
 ) -> NodeId {
+    let kind = match kind {
+        Kind::RichText(mut read) => Kind::DisplayText(Box::new(move || DisplayText::Rich(read()))),
+        kind => kind,
+    };
     assert!(
         view.trigger_id.is_none(),
         "trigger_id is only supported on submenu views"
@@ -1953,7 +1963,7 @@ fn mount_element(
             image_intrinsic = Some(intrinsic);
             root
         }
-        Kind::RichText(binding) => {
+        Kind::DisplayText(binding) => {
             assert!(
                 view.children.is_empty(),
                 "rich text uses inline TextSpan children"
@@ -2273,9 +2283,15 @@ fn mount_element(
         crate::compose_rich::mount_links(ui, root, paragraph, content_state.clone());
         let weak = ui.downgrade();
         let typography = environment.typography.clone();
+        let mut previous_plain = false;
         ui.bind(root, move || {
             let base = typography.get();
-            let spans = compute();
+            let value = compute();
+            let plain = matches!(&value, DisplayText::Plain(_));
+            let spans = match value {
+                DisplayText::Plain(text) => vec![text_span(text)],
+                DisplayText::Rich(spans) => spans,
+            };
             let mut content = String::new();
             let mut runs = Vec::new();
             let mut links = Vec::new();
@@ -2328,8 +2344,9 @@ fn mount_element(
                 .with_options(base.display);
             // Recomputed but unchanged (its inputs animate for a sibling):
             // nothing to lay out, paint, describe or relabel.
-            if content_state
-                .with_untracked(|current| *current.rich == rich && current.links == links)
+            if plain == previous_plain
+                && content_state
+                    .with_untracked(|current| *current.rich == rich && current.links == links)
             {
                 return;
             }
@@ -2344,9 +2361,27 @@ fn mount_element(
                 let mut scene = ui.scene.borrow_mut();
                 let mut style = scene.style(paragraph);
                 style.text_wrap = base.wrap;
+                style.text_options = if plain {
+                    base.display
+                } else {
+                    Default::default()
+                };
                 scene.set_style(paragraph, style);
-                scene.set_kind(paragraph, NodeKind::RichText { text: rich.clone() });
+                scene.set_font(paragraph, base.font.clone());
+                scene.set_kind(
+                    paragraph,
+                    if plain {
+                        NodeKind::Text {
+                            text: rich.text_arc(),
+                            font_size: base.size,
+                            color: base.color,
+                        }
+                    } else {
+                        NodeKind::RichText { text: rich.clone() }
+                    },
+                );
             }
+            previous_plain = plain;
             content_state.set(crate::compose_rich::Content { rich, links });
             ui.semantics.borrow_mut().update(paragraph, |node| {
                 node.label = content.clone();
