@@ -99,6 +99,15 @@ pub enum TextAlign {
     Center,
     Right,
 }
+/// Soft wrapping policy when text has an available width. Explicit nowrap takes priority.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum WordWrap {
+    /// Break an oversized word between graphemes, preserving the native default.
+    #[default]
+    WordOrGlyph,
+    /// Break only at word boundaries; an oversized word stays on one line.
+    Word,
+}
 /// Display-only overflow policy. Editor documents are never truncated.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub enum TextOverflow {
@@ -146,6 +155,8 @@ pub struct FontStyle {
     pub letter_spacing: LetterSpacing,
     pub features: FontFeatures,
     pub align: TextAlign,
+    /// Rich paragraphs use the first run's policy for all their lines.
+    pub word_wrap: WordWrap,
     /// Explicit ordered families tried before platform fallback for missing glyphs.
     pub fallbacks: std::sync::Arc<[FontFamily]>,
 }
@@ -159,6 +170,7 @@ impl Default for FontStyle {
             letter_spacing: LetterSpacing::ZERO,
             features: FontFeatures::default(),
             align: TextAlign::Start,
+            word_wrap: WordWrap::default(),
             fallbacks: {
                 static EMPTY: std::sync::OnceLock<std::sync::Arc<[FontFamily]>> =
                     std::sync::OnceLock::new();
@@ -281,6 +293,28 @@ impl<F: Fn(&str, f32, Option<f32>) -> Box<dyn TextLayout>> TextShaper for F {
         self(text, font_size, max_width)
     }
 }
+/// Headless word widths use Unicode word bounds; native hosts use full line-break shaping.
+fn fallback_word_width<'a>(
+    words: &mut std::iter::Peekable<impl Iterator<Item = (usize, &'a str)>>,
+    index: usize,
+    mut advance: impl FnMut(usize) -> f32,
+) -> Option<f32> {
+    while words
+        .peek()
+        .is_some_and(|(start, word)| start + word.len() <= index)
+    {
+        words.next();
+    }
+    let &(start, word) = words.peek()?;
+    if start != index || word.chars().all(char::is_whitespace) {
+        return None;
+    }
+    Some(
+        word.grapheme_indices(true)
+            .map(|(offset, _)| advance(start + offset))
+            .sum(),
+    )
+}
 /// Approximate grapheme cells for headless/core use. Native hosts install a real shaper.
 pub struct FallbackTextLayout {
     cells: Vec<(Range<usize>, Rect)>,
@@ -294,6 +328,16 @@ impl FallbackTextLayout {
         let (mut x, mut y, mut max_x, mut pitch) = (0_f32, 0_f32, 0_f32, 0_f32);
         let mut row_start = 0;
         let mut run_index = 0;
+        let mut words = rich.text().split_word_bound_indices().peekable();
+        let policy = rich
+            .runs()
+            .first()
+            .map_or(WordWrap::default(), |run| run.font.word_wrap);
+        let single_line_ellipsis = rich.options().overflow == TextOverflow::Ellipsis
+            && rich
+                .options()
+                .line_clamp
+                .is_none_or(|limit| limit.get() == 1);
         for (index, grapheme) in rich.text().grapheme_indices(true) {
             while rich.runs()[run_index].range.end <= index {
                 run_index += 1;
@@ -302,7 +346,22 @@ impl FallbackTextLayout {
             let line = run.font.line_height.resolve(run.font_size);
             let newline = grapheme.contains(['\r', '\n']);
             let advance = (run.font_size * 0.6 + run.font.letter_spacing.pixels()).max(0.);
-            if newline || width.is_some_and(|w| x > 0. && x + advance > w.max(0.)) {
+            let wrapping_advance = if policy == WordWrap::Word && !single_line_ellipsis {
+                let mut word_run = run_index;
+                fallback_word_width(&mut words, index, |byte| {
+                    while rich.runs()[word_run].range.end <= byte {
+                        word_run += 1;
+                    }
+                    let run = &rich.runs()[word_run];
+                    (run.font_size * 0.6 + run.font.letter_spacing.pixels()).max(0.)
+                })
+            } else {
+                Some(advance)
+            };
+            if newline
+                || width
+                    .is_some_and(|w| x > 0. && wrapping_advance.is_some_and(|a| x + a > w.max(0.)))
+            {
                 if newline {
                     pitch = pitch.max(line);
                 }
@@ -498,6 +557,7 @@ impl FallbackTextLayout {
         let mut x = 0.;
         let mut y = 0.;
         let mut width = 0_f32;
+        let mut words = text.split_word_bound_indices().peekable();
         for (index, grapheme) in text.grapheme_indices(true) {
             if grapheme.contains(['\n', '\r']) {
                 cell(index..index + grapheme.len(), Rect::new(x, y, 0., height));
@@ -506,7 +566,16 @@ impl FallbackTextLayout {
                 y = (y + height).min(f32::MAX);
                 continue;
             }
-            if max_width.is_some_and(|w| w > 0. && x > 0. && x + advance > w) {
+            let wrapping_advance = if font.word_wrap == WordWrap::Word {
+                fallback_word_width(&mut words, index, |_| advance)
+            } else {
+                Some(advance)
+            };
+            if max_width.is_some_and(|w| {
+                (w > 0. || font.word_wrap == WordWrap::Word)
+                    && x > 0.
+                    && wrapping_advance.is_some_and(|a| x + a > w.max(0.))
+            }) {
                 width = width.max(x);
                 x = 0.;
                 y = (y + height).min(f32::MAX)
@@ -646,6 +715,63 @@ mod tests {
         let layout = FallbackTextLayout::with_line_height("a\nb", 12.5, None, natural);
         assert_eq!(layout.size().1, 32.);
         assert_eq!(layout.caret(2).y, 16.);
+    }
+    #[test]
+    fn word_only_fallback_keeps_long_words_and_matches_rich_measurement() {
+        use crate::rich_text::{RichText, TextRun};
+        let font = FontStyle {
+            word_wrap: WordWrap::Word,
+            ..Default::default()
+        };
+        let value = "Active Paused";
+        let layout = FallbackTextLayout::with_font(value, 10., Some(35.99), &font);
+        assert_eq!(layout.size(), (42., 28.));
+        assert_eq!(layout.caret(5).y, 0.);
+        assert_eq!(layout.caret(7).y, 14.);
+        assert_eq!(
+            layout.size(),
+            FallbackTextLayout::measure_with_font(value, 10., Some(35.99), &font)
+        );
+        let rich = RichText::new(
+            value,
+            vec![
+                TextRun {
+                    range: 0..3,
+                    font: font.clone(),
+                    font_size: 10.,
+                    ..Default::default()
+                },
+                TextRun {
+                    range: 3..value.len(),
+                    font: FontStyle::default(),
+                    font_size: 10.,
+                    ..Default::default()
+                },
+            ],
+        )
+        .unwrap();
+        assert_eq!(
+            FallbackTextLayout::with_rich(&rich, Some(35.99)).size(),
+            layout.size()
+        );
+        assert_eq!(
+            crate::rich_text::fallback_measure(&rich, Some(35.99)),
+            layout.size()
+        );
+        assert_eq!(
+            FallbackTextLayout::with_font("Active", 10., Some(35.99), &font).size(),
+            (36., 14.)
+        );
+        assert_eq!(
+            FallbackTextLayout::new("Active", 10., Some(35.99)).size().1,
+            28.
+        );
+        assert_eq!(
+            FallbackTextLayout::with_font(value, 10., None, &font)
+                .size()
+                .1,
+            14.
+        );
     }
     #[test]
     fn explicit_pitch_keeps_wrapped_unicode_hit_selection_and_caret_aligned() {

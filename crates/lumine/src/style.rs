@@ -48,6 +48,7 @@ pub struct Styles {
     pub(crate) align: Option<Align>,
     pub(crate) justify: Option<Justify>,
     pub(crate) text_wrap: Option<bool>,
+    pub(crate) word_wrap: Option<crate::text_layout::WordWrap>,
     pub(crate) background: Option<Color>,
     pub(crate) cursor: Option<crate::cursor::Cursor>,
     pub(crate) pointer_events: Option<bool>,
@@ -310,6 +311,9 @@ impl Styles {
         }
         if other.text_wrap.is_some() {
             self.text_wrap = other.text_wrap;
+        }
+        if other.word_wrap.is_some() {
+            self.word_wrap = other.word_wrap;
         }
         if other.paint_background.is_some() {
             self.paint_background = other.paint_background.clone();
@@ -996,6 +1000,11 @@ pub trait Styled: Sized {
     }
     fn isolated(mut self, value: bool) -> Self {
         self.styles_mut().isolated = Some(value);
+        self
+    }
+    /// Choose word boundaries without changing whether wrapping is enabled.
+    fn word_wrap(mut self, value: crate::text_layout::WordWrap) -> Self {
+        self.styles_mut().word_wrap = Some(value);
         self
     }
     fn text_wrap(mut self, value: bool) -> Self {

@@ -184,6 +184,17 @@ pub(crate) fn shaping(unwrapped: bool) -> Shaping {
     }
 }
 
+pub(crate) fn wrap(policy: lumine::text_layout::WordWrap, unwrapped: bool) -> cosmic_text::Wrap {
+    if unwrapped {
+        cosmic_text::Wrap::None
+    } else {
+        match policy {
+            lumine::text_layout::WordWrap::WordOrGlyph => cosmic_text::Wrap::WordOrGlyph,
+            lumine::text_layout::WordWrap::Word => cosmic_text::Wrap::Word,
+        }
+    }
+}
+
 pub(crate) fn set_buffer_text_shaping(
     fonts: &mut FontSystem,
     buffer: &mut Buffer,
@@ -235,6 +246,9 @@ impl ShapedText {
         let size = font_size.max(1.);
         let line_height = font.line_height.resolve(size);
         let mut buffer = Buffer::new(fonts, Metrics::new(size, line_height));
+        if width.is_some() {
+            buffer.set_wrap(wrap(font.word_wrap, false));
+        }
         buffer.set_size(width, None);
         set_buffer_text(fonts, &mut buffer, &text, font, size);
         // Editors need a visual row for the caret after a final line ending;
@@ -639,6 +653,13 @@ pub(crate) fn kerning_test_fonts() -> FontSystem {
     db.load_font_data(
         include_bytes!("../../../vendor/cosmic-text/tests/fonts/Geist-kerning.ttf").to_vec(),
     );
+    FontSystem::new_with_locale_and_db("en-US".into(), db)
+}
+
+#[cfg(test)]
+pub(crate) fn word_wrap_test_fonts() -> FontSystem {
+    let mut db = cosmic_text::fontdb::Database::new();
+    db.load_font_data(include_bytes!("../tests/fixtures/Geist.ttf").to_vec());
     FontSystem::new_with_locale_and_db("en-US".into(), db)
 }
 
@@ -1475,9 +1496,7 @@ pub(crate) fn plain_buffer_unshaped(
 ) -> Buffer {
     let size = font_size.max(1.);
     let mut buffer = Buffer::new(fonts, Metrics::new(size, font.line_height.resolve(size)));
-    if unwrapped {
-        buffer.set_wrap(cosmic_text::Wrap::None);
-    }
+    buffer.set_wrap(wrap(font.word_wrap, unwrapped));
     set_buffer_text_shaping(fonts, &mut buffer, text, font, size, shaping(unwrapped));
     buffer
 }
@@ -1491,9 +1510,12 @@ pub(crate) fn rich_buffer_unshaped(
     let size = base.map_or(1., |run| run.font_size.max(1.));
     let line_height = base.map_or(1., |run| run.font.line_height.resolve(size));
     let mut buffer = Buffer::new(fonts, Metrics::new(size, line_height));
-    if unwrapped {
-        buffer.set_wrap(cosmic_text::Wrap::None);
-    }
+    buffer.set_wrap(wrap(
+        base.map_or(lumine::text_layout::WordWrap::default(), |run| {
+            run.font.word_wrap
+        }),
+        unwrapped,
+    ));
     let default_font = lumine::text_layout::FontStyle::default();
     let default_attrs = attrs(base.map_or(&default_font, |run| &run.font), size);
     let mut spans = Vec::new();
@@ -1565,6 +1587,100 @@ mod rich_tests {
             db.push_face_info(alias);
         }
         FontSystem::new_with_locale_and_db("en-US".into(), db)
+    }
+    #[test]
+    fn word_only_geist_labels_keep_glyphs_and_paragraphs_keep_word_boundaries() {
+        use lumine::text_layout::{FontFamily, LineHeight, WordWrap};
+        let mut fonts = word_wrap_test_fonts();
+        let mut font = FontStyle {
+            family: FontFamily::Named("Geist".into()),
+            line_height: LineHeight::px(16.9),
+            ..Default::default()
+        };
+        for value in ["Active", "Paused"] {
+            font.word_wrap = WordWrap::WordOrGlyph;
+            let natural = ShapedText::with_font(&mut fonts, value, 13., Some(f32::INFINITY), &font);
+            let width = natural.size().0 - 0.01;
+            let legacy = ShapedText::with_font(&mut fonts, value, 13., Some(width), &font);
+            assert_eq!(legacy.buffer.layout_runs().count(), 2);
+            font.word_wrap = WordWrap::Word;
+            let words = ShapedText::with_font(&mut fonts, value, 13., Some(width), &font);
+            assert_eq!(words.buffer.layout_runs().count(), 1);
+            assert_eq!(
+                words
+                    .buffer
+                    .layout_runs()
+                    .next()
+                    .unwrap()
+                    .glyphs
+                    .last()
+                    .unwrap()
+                    .end,
+                value.len()
+            );
+            let positions = |buffer: &Buffer| {
+                crate::glyphs_of(buffer.layout_runs(), &line_starts(buffer), None, &font, 1.)
+                    .into_iter()
+                    .map(|g| (g.key, g.x, g.y))
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(positions(&words.buffer), positions(&natural.buffer));
+            let rich = RichText::new(
+                value,
+                vec![
+                    TextRun {
+                        range: 0..2,
+                        font: font.clone(),
+                        font_size: 13.,
+                        ..Default::default()
+                    },
+                    TextRun {
+                        range: 2..value.len(),
+                        font: FontStyle {
+                            word_wrap: WordWrap::WordOrGlyph,
+                            ..font.clone()
+                        },
+                        font_size: 13.,
+                        ..Default::default()
+                    },
+                ],
+            )
+            .unwrap();
+            assert_eq!(
+                ShapedText::with_runs(&mut fonts, &rich, Some(width)).size(),
+                words.size()
+            );
+            let ellipsis = display_buffer(
+                &mut fonts,
+                value,
+                &font,
+                13.,
+                Some(width * 0.5),
+                None,
+                lumine::text_layout::TextOptions {
+                    overflow: lumine::text_layout::TextOverflow::Ellipsis,
+                    line_clamp: None,
+                },
+            );
+            assert!(ellipsis.lines[0].text().ends_with('…'));
+        }
+        let width = ShapedText::with_font(&mut fonts, "Paused", 13., Some(f32::INFINITY), &font)
+            .size()
+            .0
+            + 1.;
+        let paragraph = ShapedText::with_font(&mut fonts, "Active Paused", 13., Some(width), &font);
+        let rows: Vec<_> = paragraph.buffer.layout_runs().collect();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].glyphs.first().unwrap().start, 0);
+        assert_eq!(rows[1].glyphs.first().unwrap().start, 7);
+        assert_eq!(rows[1].glyphs.last().unwrap().end, 13);
+        assert_eq!(
+            ShapedText::with_font(&mut fonts, "Active Paused", 13., None, &font)
+                .buffer
+                .layout_runs()
+                .count(),
+            1
+        );
     }
     #[test]
     fn single_line_ellipsis_preserves_intrinsic_shaping_at_its_measured_width() {

@@ -19,8 +19,10 @@
 //! Sizes are memoised per width, and layout and the renderer break lines from
 //! the same data. A text that grows (streaming) reuses every line it shares
 //! with a recently prepared text.
-use cosmic_text::{
-    Align, BufferLine, Ellipsize, FontSystem, Hinting, LayoutRunIter, Metrics, Wrap,
+use cosmic_text::{Align, BufferLine, Ellipsize, FontSystem, Hinting, LayoutRunIter, Metrics};
+use lumine::{
+    rich_text::RichText,
+    text_layout::{FontStyle, WordWrap},
 };
 use rustc_hash::{FxHashMap, FxHasher};
 use std::{
@@ -29,7 +31,6 @@ use std::{
     ops::Range,
     sync::Arc,
 };
-use lumine::{rich_text::RichText, text_layout::FontStyle};
 
 /// Shaped lines are kept at most this many bytes (estimated), and compact
 /// measurements at most `COMPACT_BUDGET`. Past either, the least recently used
@@ -62,6 +63,11 @@ struct Key {
     unwrapped: bool,
 }
 impl Key {
+    fn word_wrap(&self) -> WordWrap {
+        self.spans
+            .first()
+            .map_or(WordWrap::default(), |span| span.1.word_wrap)
+    }
     fn of(rich: &RichText, caret_row: bool, unwrapped: bool) -> Self {
         let mut spans: Vec<(Range<usize>, FontStyle, f32)> = Vec::new();
         for run in rich.runs() {
@@ -185,10 +191,10 @@ impl Compact {
             .map_or(self.glyphs.len(), |next| next.glyphs as usize);
         &self.glyphs[self.words[word].glyphs as usize..end]
     }
-    /// The size cosmic-text's word-or-glyph wrapping gives these lines at
+    /// The size cosmic-text's selected word wrapping gives these lines at
     /// `width`: the widest line, and the sum of line heights. This follows
     /// its congruent-direction branch step by step.
-    fn size(&self, width: Option<f32>, line_height: f32) -> (f32, f32) {
+    fn size(&self, width: Option<f32>, line_height: f32, word_wrap: WordWrap) -> (f32, f32) {
         let limit = width.unwrap_or(f32::INFINITY);
         let (mut widest, mut height) = (0_f32, 0_f32);
         for (spans, empty) in &self.lines {
@@ -217,7 +223,7 @@ impl Compact {
                             before_last_blank = range_width;
                         }
                         range_width += word.width;
-                    } else if word.width > limit {
+                    } else if word_wrap == WordWrap::WordOrGlyph && word.width > limit {
                         // Too wide for any line: finish the line, then break
                         // the word between glyphs.
                         if range_width > 0. {
@@ -332,11 +338,7 @@ impl Entry {
                 fonts,
                 self.metrics.font_size,
                 width,
-                if self.key.unwrapped {
-                    Wrap::None
-                } else {
-                    Wrap::WordOrGlyph
-                },
+                crate::text::wrap(self.key.word_wrap(), self.key.unwrapped),
                 Ellipsize::None,
                 None,
                 TAB_WIDTH,
@@ -350,7 +352,7 @@ impl Entry {
             return *size;
         }
         let size = match &self.compact {
-            Some(compact) => compact.size(width, self.metrics.line_height),
+            Some(compact) => compact.size(width, self.metrics.line_height, self.key.word_wrap()),
             None => {
                 self.lay_out(fonts, width);
                 let lines = self.lines.as_deref().expect("laid out");
@@ -679,6 +681,10 @@ impl TextCache {
         caret_row: bool,
         unwrapped: bool,
     ) -> (Vec<BufferLine>, Metrics) {
+        let word_wrap = rich
+            .runs()
+            .first()
+            .map_or(WordWrap::default(), |run| run.font.word_wrap);
         // `ShapedText::with_runs` adds an unshaped row for an editor's caret
         // after a final line break, which its size leaves out: so is it here.
         // `ShapedText::with_font` shapes it, so plain text keeps it.
@@ -715,7 +721,11 @@ impl TextCache {
             .recent
             .iter()
             .filter_map(|recent| Some((*recent, self.entries.get(recent)?)))
-            .filter(|(_, entry)| entry.metrics == metrics && entry.key.unwrapped == unwrapped)
+            .filter(|(_, entry)| {
+                entry.metrics == metrics
+                    && entry.key.unwrapped == unwrapped
+                    && entry.key.word_wrap() == word_wrap
+            })
             .filter_map(|(hash, entry)| {
                 let shared = entry
                     .lines
@@ -752,6 +762,7 @@ impl TextCache {
                 self.entries.get(recent).is_some_and(|entry| {
                     entry.metrics == metrics
                         && entry.key.unwrapped == unwrapped
+                        && entry.key.word_wrap() == word_wrap
                         && entry.key.text.len() >= SUPERSEDED
                         && entry.key.text.len() < text.len()
                         && text.starts_with(&*entry.key.text)
@@ -821,6 +832,46 @@ mod tests {
     use crate::text::ShapedText;
     use lumine::{rich_text::TextRun, text_layout::LineHeight};
 
+    #[test]
+    fn word_policies_keep_distinct_prepared_measurements_and_layouts() {
+        use lumine::text_layout::{FontFamily, LineHeight};
+        let mut fonts = crate::text::word_wrap_test_fonts();
+        let value: Arc<str> = "Active".into();
+        let mut font = FontStyle {
+            family: FontFamily::Named("Geist".into()),
+            line_height: LineHeight::px(16.9),
+            ..Default::default()
+        };
+        let width =
+            ShapedText::with_font(&mut fonts, value.clone(), 13., Some(f32::INFINITY), &font)
+                .size()
+                .0
+                - 0.01;
+        let mut cache = TextCache::default();
+        for _ in 0..3 {
+            for (policy, lines) in [(WordWrap::WordOrGlyph, 2), (WordWrap::Word, 1)] {
+                font.word_wrap = policy;
+                let direct =
+                    ShapedText::with_font(&mut fonts, value.clone(), 13., Some(width), &font);
+                assert_eq!(
+                    cache.measure_plain(&mut fonts, &value, 13., &font, Some(width)),
+                    direct.size()
+                );
+                assert_eq!(
+                    cache
+                        .layout_plain(&mut fonts, &value, 13., &font, Some(width))
+                        .runs(None)
+                        .count(),
+                    lines
+                );
+            }
+        }
+        assert_eq!(
+            cache.shaped, 2,
+            "switching policy retains both cache entries"
+        );
+        assert_eq!(cache.entries.len(), 2);
+    }
     #[test]
     fn wrapped_and_unwrapped_cache_entries_keep_kerning_and_alignment_separate() {
         use lumine::text_layout::{FontFamily, TextAlign};

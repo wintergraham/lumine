@@ -1165,6 +1165,7 @@ impl Scene {
             shaper.shape(text, size, width, font)
         } else if font.line_height != crate::text_layout::LineHeight::NORMAL
             || font.letter_spacing != crate::text_layout::LetterSpacing::ZERO
+            || font.word_wrap != crate::text_layout::WordWrap::default()
         {
             // Legacy callbacks cannot receive font metrics. Use the same
             // grapheme-cell fallback for measuring and editing explicit metrics.
@@ -1186,6 +1187,7 @@ impl Scene {
             shaper.shape(text, size, width, font).size()
         } else if font.line_height != crate::text_layout::LineHeight::NORMAL
             || font.letter_spacing != crate::text_layout::LetterSpacing::ZERO
+            || font.word_wrap != crate::text_layout::WordWrap::default()
         {
             crate::text_layout::FallbackTextLayout::measure_with_font(text, size, width, font)
         } else {

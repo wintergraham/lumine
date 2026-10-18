@@ -198,12 +198,17 @@ impl RichText {
     }
 }
 
-/// Approximate, allocation-free headless metrics. Native hosts replace this with
-/// full paragraph shaping; grapheme widths here follow the fallback text model.
+/// Approximate headless metrics. Default wrapping measures without allocation;
+/// opt-in word wrapping shares fallback layout. Native hosts install full shaping.
 pub fn fallback_measure(rich: &RichText, width: Option<f32>) -> (f32, f32) {
     use unicode_segmentation::UnicodeSegmentation;
     if rich.text.is_empty() {
         return (0., 0.);
+    }
+    if rich.runs[0].font.word_wrap == crate::text_layout::WordWrap::Word {
+        return crate::text_layout::TextLayout::size(
+            &crate::text_layout::FallbackTextLayout::with_rich(rich, width),
+        );
     }
     let mut run_index = 0;
     let limit = rich
