@@ -1198,50 +1198,58 @@ mod tests {
     #[test]
     fn compiled_text_applies_wrapping_only_changes_without_replacing_paragraphs() {
         for limit_only in [false, true] {
-        let mut ui = Ui::new(400., 200.);
-        let wrap = ui.signal(false);
-        let selected = wrap.clone();
-        let root = ui.mount(compiled_morph(
-            move || selected.get(),
-            move |wrap| {
-                let view = text("Alpha beta gamma delta")
-                    .id("copy")
-                    .text_size(10.)
-                    .line_height(20.)
-                    .text_wrap(wrap);
-                if limit_only { view.max_w(60.) } else { view.w(60.) }
-            },
-            || CompiledMorphTiming {
-                source_layout_scale: None,
-                duration: Duration::ZERO,
-                crossfade: Duration::ZERO,
-                color_duration: Duration::ZERO,
-                curve: std::array::from_fn(|i| i as f32 / 48.),
-            },
-        ));
-        ui.prepare_frame();
-        let owner = root.find("copy").unwrap();
-        let paragraph = {
-            let scene = ui.scene.borrow();
-            scene.children(scene.children(owner)[0])[0]
-        };
-        assert!(!ui.scene.borrow().style(paragraph).text_wrap);
-        assert_eq!(ui.scene.borrow().layout_bounds(owner).height, 20.);
-        for value in [true, false, true] {
-            wrap.set(value);
+            let mut ui = Ui::new(400., 200.);
+            let wrap = ui.signal(false);
+            let selected = wrap.clone();
+            let root = ui.mount(compiled_morph(
+                move || selected.get(),
+                move |wrap| {
+                    let view = text("Alpha beta gamma delta")
+                        .id("copy")
+                        .text_size(10.)
+                        .line_height(20.)
+                        .text_wrap(wrap);
+                    if limit_only {
+                        view.max_w(60.)
+                    } else {
+                        view.w(60.)
+                    }
+                },
+                || CompiledMorphTiming {
+                    source_layout_scale: None,
+                    duration: Duration::ZERO,
+                    crossfade: Duration::ZERO,
+                    color_duration: Duration::ZERO,
+                    curve: std::array::from_fn(|i| i as f32 / 48.),
+                },
+            ));
             ui.prepare_frame();
-            let scene = ui.scene.borrow();
-            assert_eq!(root.find("copy"), Some(owner));
-            assert_eq!(scene.children(scene.children(owner)[0])[0], paragraph);
-            assert_eq!(scene.style(paragraph).text_wrap, value);
-            let height = scene.layout_bounds(owner).height;
-            if value {
-                assert!(height > 20., "owner={:?}, paragraph={:?}",
-                    scene.layout_bounds(owner), scene.layout_bounds(paragraph));
-            } else {
-                assert_eq!(height, 20.);
+            let owner = root.find("copy").unwrap();
+            let paragraph = {
+                let scene = ui.scene.borrow();
+                scene.children(scene.children(owner)[0])[0]
+            };
+            assert!(!ui.scene.borrow().style(paragraph).text_wrap);
+            assert_eq!(ui.scene.borrow().layout_bounds(owner).height, 20.);
+            for value in [true, false, true] {
+                wrap.set(value);
+                ui.prepare_frame();
+                let scene = ui.scene.borrow();
+                assert_eq!(root.find("copy"), Some(owner));
+                assert_eq!(scene.children(scene.children(owner)[0])[0], paragraph);
+                assert_eq!(scene.style(paragraph).text_wrap, value);
+                let height = scene.layout_bounds(owner).height;
+                if value {
+                    assert!(
+                        height > 20.,
+                        "owner={:?}, paragraph={:?}",
+                        scene.layout_bounds(owner),
+                        scene.layout_bounds(paragraph)
+                    );
+                } else {
+                    assert_eq!(height, 20.);
+                }
             }
-        }
         }
     }
 
