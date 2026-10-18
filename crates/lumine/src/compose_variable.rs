@@ -343,7 +343,7 @@ fn variable_list<K: Eq + std::hash::Hash + Clone + 'static>(
                     }
                 }
             });
-            if scrollbar {
+            if scrollbar != ScrollbarStyle::Hidden {
                 super::mount_scrollbar(
                     ui,
                     &environment,
@@ -352,6 +352,7 @@ fn variable_list<K: Eq + std::hash::Hash + Clone + 'static>(
                     size.clone(),
                     extent.clone(),
                     false,
+                    scrollbar,
                 );
             }
             let weak = ui.downgrade();
