@@ -1377,7 +1377,9 @@ pub fn rich_buffer(
             buffer.shape_until_scroll(fonts, false);
             return buffer;
         }
-        let truncated = lumine::rich_text::RichText::new(content, runs).unwrap();
+        let truncated = lumine::rich_text::RichText::new(content, runs)
+            .unwrap()
+            .with_options(options);
         rich_buffer_raw(fonts, &truncated, width, None, ellipsis)
     };
     if options.overflow == TextOverflow::Clip {
@@ -1451,7 +1453,12 @@ fn rich_buffer_raw(
     height: Option<f32>,
     ellipsis: bool,
 ) -> Buffer {
-    let mut buffer = rich_buffer_unshaped(fonts, rich, ellipsis, width.is_none());
+    // Single-line ellipsis keeps the continuous shaping used by intrinsic measurement.
+    let options = rich.options();
+    let unwrapped = width.is_none()
+        || (options.overflow == lumine::text_layout::TextOverflow::Ellipsis
+            && options.line_clamp.is_none_or(|limit| limit.get() == 1));
+    let mut buffer = rich_buffer_unshaped(fonts, rich, ellipsis, unwrapped);
     buffer.set_size(width, height);
     buffer.shape_until_scroll(fonts, false);
     buffer
@@ -1558,6 +1565,77 @@ mod rich_tests {
             db.push_face_info(alias);
         }
         FontSystem::new_with_locale_and_db("en-US".into(), db)
+    }
+    #[test]
+    fn single_line_ellipsis_preserves_intrinsic_shaping_at_its_measured_width() {
+        use lumine::text_layout::{FontFamily, LineHeight, TextOptions, TextOverflow};
+        let mut db = cosmic_text::fontdb::Database::new();
+        db.load_font_data(include_bytes!("../tests/fixtures/Geist.ttf").to_vec());
+        let mut fonts = FontSystem::new_with_locale_and_db("en-US".into(), db);
+        for (text, size) in [
+            ("Release notes to Slack", 13.),
+            ("Post GitHub releases to #ship", 11.5),
+            ("add/send.", 13.),
+        ] {
+            let font = FontStyle {
+                family: FontFamily::Named("Geist".into()),
+                line_height: LineHeight::px(size * 1.3),
+                ..Default::default()
+            };
+            let reference = ShapedText::with_font(&mut fonts, text, size, None, &font);
+            let natural = reference.size();
+            let expected = crate::glyphs_of(
+                reference.buffer.layout_runs(),
+                &line_starts(&reference.buffer),
+                None,
+                &font,
+                1.,
+            );
+            assert!(expected.iter().all(|glyph| glyph.key.glyph_id != 0));
+            for line_clamp in [None, std::num::NonZeroU32::new(1)] {
+                let options = TextOptions {
+                    overflow: TextOverflow::Ellipsis,
+                    line_clamp,
+                };
+                for width in [natural.0, natural.0 + 1.] {
+                    let buffer =
+                        display_buffer(&mut fonts, text, &font, size, Some(width), None, options);
+                    assert_eq!(buffer.lines[0].text(), text, "{text} at {width}");
+                    assert_eq!(buffer.layout_runs().count(), 1);
+                    let actual = crate::glyphs_of(
+                        buffer.layout_runs(),
+                        &line_starts(&buffer),
+                        None,
+                        &font,
+                        1.,
+                    );
+                    let positions = |glyphs: &[crate::Glyph]| {
+                        glyphs.iter().map(|g| (g.key, g.x, g.y)).collect::<Vec<_>>()
+                    };
+                    assert_eq!(
+                        positions(&actual),
+                        positions(&expected),
+                        "{text} at {width}"
+                    );
+                }
+                let width = natural.0 * 0.6;
+                let truncated =
+                    display_buffer(&mut fonts, text, &font, size, Some(width), None, options);
+                assert!(truncated.lines[0].text().ends_with('…'));
+                assert_eq!(truncated.layout_runs().count(), 1);
+                assert!(
+                    truncated
+                        .layout_runs()
+                        .all(|row| row.line_w <= width + 0.001)
+                );
+                assert!(
+                    truncated
+                        .layout_runs()
+                        .flat_map(|row| row.glyphs)
+                        .any(|glyph| glyph.metadata == usize::MAX)
+                );
+            }
+        }
     }
     #[test]
     fn display_line_clamp_shapes_ellipsis_and_excludes_hidden_link_geometry() {
