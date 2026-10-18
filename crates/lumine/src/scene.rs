@@ -2251,7 +2251,12 @@ impl Scene {
                                     percent_height,
                                     force_width: horizontal.then_some(allocated),
                                     force_height: (!horizontal).then_some(allocated),
-                                    min_content_width: false,
+                                    min_content_width: !horizontal
+                                        && self.child_min_content_width(
+                                            *child,
+                                            constraints,
+                                            percent_width,
+                                        ),
                                     hidden: false,
                                 },
                             );
@@ -2283,7 +2288,12 @@ impl Scene {
                                     percent_height,
                                     force_width: horizontal.then_some(sizes[i].0),
                                     force_height: (!horizontal).then_some(sizes[i].1),
-                                    min_content_width: false,
+                                    min_content_width: !horizontal
+                                        && self.child_min_content_width(
+                                            *child,
+                                            constraints,
+                                            percent_width,
+                                        ),
                                     hidden: false,
                                 },
                             );

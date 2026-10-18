@@ -651,15 +651,19 @@ impl Scene {
                 .expect("retained root style update");
         }
         let padding = self.resolved_padding(id, constraints);
+        // Match the definite content box used by the overlay intrinsic prepass
+        // and final arrangement, including min/max clamps on preferred sizes.
         let child_percent_width = constraints
             .force_width
             .or(root_style.width)
             .or_else(|| percentage(root_style.width_percent, constraints.percent_width))
+            .map(|width| dimension(width, root_style.min_width, root_style.max_width))
             .map(|width| (width - padding.left - padding.right).max(0.));
         let child_percent_height = constraints
             .force_height
             .or(root_style.height)
             .or_else(|| percentage(root_style.height_percent, constraints.percent_height))
+            .map(|height| dimension(height, root_style.min_height, root_style.max_height))
             .map(|height| (height - padding.top - padding.bottom).max(0.));
         let measure_context = (
             child_percent_width,
@@ -1068,6 +1072,168 @@ mod tests {
                     "cached {layout:?}, fixed={fixed}"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn height_only_flex_allocations_keep_the_min_content_width_probe() {
+        use crate::text_layout::{FallbackTextLayout, FontStyle, LineHeight, WordWrap};
+        let font = FontStyle {
+            word_wrap: WordWrap::Word,
+            line_height: LineHeight::px(10.),
+            ..Default::default()
+        };
+        let longest = FallbackTextLayout::measure_with_font("longestword", 16., None, &font).0;
+        let min = Constraints {
+            width: Some(0.),
+            min_content_width: true,
+            ..Default::default()
+        };
+        // 20 needs only the definite main-allocation pass; 60 also grows the
+        // child in the redistribution loop. Neither allocates a definite width.
+        for height in [20., 60.] {
+            for preferred in [None, Some(120.)] {
+                let mut scene = Scene::new(400., 200.);
+                let outer = scene.append(
+                    scene.root(),
+                    NodeKind::Container(Layout::Column),
+                    Style {
+                        width: Some(196.097),
+                        height: Some(height),
+                        ..Default::default()
+                    },
+                );
+                let inner = scene.append(
+                    outer,
+                    NodeKind::Container(Layout::Column),
+                    Style {
+                        width: preferred,
+                        flex_grow: 1.,
+                        align: Align::Stretch,
+                        ..Default::default()
+                    },
+                );
+                let text = scene.append(
+                    inner,
+                    label("short longestword"),
+                    Style {
+                        text_wrap: true,
+                        layout_options: Some(Arc::new(crate::layout::LayoutOptions {
+                            min_width: Some(Length::Auto),
+                            ..Default::default()
+                        })),
+                        ..Default::default()
+                    },
+                );
+                scene.set_font(text, font.clone());
+                assert!(!scene.uses_advanced_layout(outer));
+                assert!(scene.uses_advanced_layout(inner));
+                let expected = (preferred.unwrap_or(longest), height);
+                assert_eq!(
+                    scene.measure(outer, min),
+                    expected,
+                    "height={height}, preferred={preferred:?}"
+                );
+                let allocation = scene.node(inner).measurement.as_ref().unwrap().constraints;
+                assert_eq!(allocation.force_height, Some(height));
+                assert_eq!(allocation.force_width, None);
+                assert_eq!(allocation.min_content_width, preferred.is_none());
+                assert_eq!(
+                    scene
+                        .measure(
+                            outer,
+                            Constraints {
+                                force_width: Some(0.),
+                                ..min
+                            }
+                        )
+                        .0,
+                    0.
+                );
+                assert_eq!(scene.measure(outer, Constraints::default()).0, 196.097);
+                assert_eq!(scene.measure(outer, min), expected);
+            }
+        }
+    }
+
+    #[test]
+    fn clamped_overlay_percent_padding_matches_intrinsic_and_final_text_height() {
+        use crate::{
+            layout::EdgeLengths,
+            text_layout::{FallbackTextLayout, FontStyle, LineHeight},
+        };
+        use std::cell::RefCell;
+        let mut scene = Scene::new(400., 200.);
+        let limits = Rc::new(RefCell::new(Vec::new()));
+        let measured = limits.clone();
+        scene.set_font_text_measurer(move |text, size, width, font| {
+            measured.borrow_mut().push(width);
+            FallbackTextLayout::measure_with_font(text, size, width, font)
+        });
+        let overlay = scene.append(
+            scene.root(),
+            NodeKind::Container(Layout::Overlay),
+            Style {
+                width: Some(120.),
+                max_width: Some(60.),
+                ..Default::default()
+            },
+        );
+        let text = scene.append(
+            overlay,
+            NodeKind::Text {
+                text: "abcdefg".into(),
+                font_size: 10.,
+                color: Color(255, 255, 255, 255),
+            },
+            Style {
+                text_wrap: true,
+                layout_options: Some(Arc::new(crate::layout::LayoutOptions {
+                    padding: EdgeLengths {
+                        left: Some(Length::Percent(0.1)),
+                        right: Some(Length::Percent(0.1)),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        );
+        scene.set_font(
+            text,
+            FontStyle {
+                line_height: LineHeight::px(20.),
+                ..Default::default()
+            },
+        );
+        // Changing only the owner's clamp must also change the retained
+        // callback percentage context, even though its preferred width stays 120.
+        for cap in [60., 80., 60.] {
+            let mut style = scene.style(overlay);
+            style.max_width = Some(cap);
+            scene.set_style(overlay, style);
+            limits.borrow_mut().clear();
+            scene.flush();
+            assert_eq!(scene.layout_bounds(overlay), Rect::new(0., 0., cap, 20.));
+            let padding = scene.padding(text);
+            assert_eq!((padding.left, padding.right), (cap * 0.1, cap * 0.1));
+            assert_eq!(scene.layout_bounds(text).height, 20.);
+            assert_eq!(
+                scene.layout_bounds(text).width,
+                42. + padding.left + padding.right
+            );
+            assert!(
+                !limits.borrow().contains(&Some(36.)),
+                "unclamped preferred width reached text: {:?}",
+                limits.borrow()
+            );
+            let calls = limits.borrow().len();
+            scene.flush();
+            assert_eq!(
+                limits.borrow().len(),
+                calls,
+                "unchanged layout must reuse its measurements"
+            );
         }
     }
 
