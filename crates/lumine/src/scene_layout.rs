@@ -2197,7 +2197,9 @@ mod tests {
         use crate::text_layout::{FallbackTextLayout, FontStyle, LineHeight, WordWrap};
 
         let mut scene = Scene::new(937., 5000.);
-        scene.set_font_text_measurer(FallbackTextLayout::measure_with_font);
+        scene.set_font_text_measurer(|text, size, width, font| {
+            FallbackTextLayout::measure_with_font(text, size, width, font)
+        });
         let board = scene.append(
             scene.root(),
             NodeKind::Container(Layout::Row),
