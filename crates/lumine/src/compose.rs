@@ -1970,7 +1970,15 @@ fn mount_element(
             );
             rich_compute = Some(binding);
             let root = ui.container(parent, Layout::Overlay, Default::default());
-            let paragraph = ui.label(root, "", Default::default());
+            let paragraph = ui.label(
+                root,
+                "",
+                crate::scene::Style {
+                    width_percent: Some(1.),
+                    height_percent: Some(1.),
+                    ..Default::default()
+                },
+            );
             rich_paragraph = Some(paragraph);
             ui.scene.borrow_mut().set_kind(
                 paragraph,
