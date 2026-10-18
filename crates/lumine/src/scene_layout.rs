@@ -2192,6 +2192,185 @@ mod tests {
     }
 
     #[test]
+    fn wrapped_figures_use_caption_height_at_their_allocated_width() {
+        use crate::layout::LayoutOptions;
+        use crate::text_layout::{FallbackTextLayout, FontStyle, LineHeight, WordWrap};
+
+        let mut scene = Scene::new(937., 5000.);
+        scene.set_font_text_measurer(FallbackTextLayout::measure_with_font);
+        let board = scene.append(
+            scene.root(),
+            NodeKind::Container(Layout::Row),
+            Style {
+                width: Some(937.),
+                gap: 56.,
+                align: Align::Start,
+                layout_options: Some(Arc::new(LayoutOptions {
+                    wrap: Some(ViewWrap::Wrap),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        );
+        let descriptions = [
+            "The Assistant lives at the top with its latest message and quick replies. Chats follow the desktop sidebar's structure, with search and new chat in thumb reach.",
+            "Search and new chat stay in thumb reach.",
+            "A longer caption wraps beneath the fixed-size device without changing the space between this row and the previous row of figures.",
+        ];
+        let font = FontStyle {
+            word_wrap: WordWrap::Word,
+            line_height: LineHeight::px(21.),
+            ..Default::default()
+        };
+        // Match the runtime's anonymous child regions, including the allocated
+        // width bounds and percentage height that is indefinite during sizing.
+        let region_style = |gap| Style {
+            height_percent: Some(1.),
+            min_width: Some(0.),
+            align: Align::Stretch,
+            layout_options: Some(Arc::new(LayoutOptions {
+                display: Some(ViewDisplay::Flex),
+                wrap: Some(ViewWrap::NoWrap),
+                gap_x: Some(Length::Px(gap)),
+                gap_y: Some(Length::Px(gap)),
+                min_width: Some(Length::Percent(1.)),
+                max_width: Some(Length::Percent(1.)),
+                ..Default::default()
+            })),
+            ..Default::default()
+        };
+        let mut figures = Vec::new();
+        for description in descriptions {
+            let figure = scene.append(
+                board,
+                NodeKind::Container(Layout::Column),
+                Style {
+                    width: Some(417.),
+                    flex_shrink: 1.,
+                    align: Align::Stretch,
+                    layout_options: Some(Arc::new(LayoutOptions {
+                        min_width: Some(Length::Auto),
+                        ..Default::default()
+                    })),
+                    ..Default::default()
+                },
+            );
+            let region = scene.append(
+                figure,
+                NodeKind::Container(Layout::Column),
+                region_style(28.),
+            );
+            let device = scene.append(
+                region,
+                NodeKind::Container(Layout::Column),
+                Style {
+                    width: Some(417.),
+                    height: Some(876.),
+                    layout_options: Some(Arc::new(LayoutOptions {
+                        min_height: Some(Length::Auto),
+                        ..Default::default()
+                    })),
+                    ..Default::default()
+                },
+            );
+            let caption = scene.append(
+                region,
+                NodeKind::Container(Layout::Column),
+                Style {
+                    flex_shrink: 1.,
+                    align: Align::Stretch,
+                    padding_edges: Some(Insets {
+                        left: 8.,
+                        right: 8.,
+                        ..Default::default()
+                    }),
+                    layout_options: Some(Arc::new(LayoutOptions {
+                        min_height: Some(Length::Auto),
+                        ..Default::default()
+                    })),
+                    ..Default::default()
+                },
+            );
+            let caption_region = scene.append(
+                caption,
+                NodeKind::Container(Layout::Column),
+                region_style(8.),
+            );
+            scene.append(
+                caption_region,
+                NodeKind::Rect(Color(0, 0, 0, 0)),
+                Style {
+                    width: Some(190.),
+                    height: Some(22.1),
+                    ..Default::default()
+                },
+            );
+            let text = scene.append(
+                caption_region,
+                NodeKind::Text {
+                    text: description.into(),
+                    color: Color(0, 0, 0, 255),
+                    font_size: 14.,
+                },
+                Style {
+                    text_wrap: true,
+                    ..Default::default()
+                },
+            );
+            scene.set_font(text, font.clone());
+            let caption_height = 22.1
+                + 8.
+                + FallbackTextLayout::measure_with_font(description, 14., Some(401.), &font).1;
+            figures.push((figure, device, caption, caption_height));
+        }
+        // MinContent requests are part of the enclosing wrapped flex sizing.
+        // Repeating them also exercises restoration of alternate measurements.
+        for _ in 0..2 {
+            for &(figure, _, _, _) in &figures {
+                let minimum = scene.measure_intrinsic(
+                    figure,
+                    Constraints {
+                        width: Some(0.),
+                        min_content_width: true,
+                        ..Default::default()
+                    },
+                );
+                assert!((minimum.0 - 417.).abs() < 0.001, "{minimum:?}");
+            }
+            let size = scene.measure(
+                board,
+                Constraints {
+                    width: Some(937.),
+                    force_width: Some(937.),
+                    ..Default::default()
+                },
+            );
+            scene.arrange(board, 0., 0., &mut FrameReport::default(), false);
+            for &(figure, device, caption, caption_height) in &figures {
+                let bounds = scene.layout_bounds(figure);
+                let caption_bounds = scene.layout_bounds(caption);
+                assert!((scene.layout_bounds(device).height - 876.).abs() < 0.001);
+                assert!((caption_bounds.width - 417.).abs() < 0.001);
+                assert!(
+                    (caption_bounds.height - caption_height).abs() < 0.001,
+                    "caption {caption_bounds:?}, expected {caption_height}"
+                );
+                assert!(
+                    (bounds.height - 876. - 28. - caption_height).abs() < 0.001,
+                    "figure {bounds:?}, caption {caption_bounds:?}"
+                );
+            }
+            let row_height = 876. + 28. + figures[0].3.max(figures[1].3);
+            assert!((scene.layout_bounds(figures[2].0).y - row_height - 56.).abs() < 0.001);
+            let expected_height = row_height + 56. + 876. + 28. + figures[2].3;
+            assert!(
+                (size.1 - expected_height).abs() < 0.001,
+                "board {size:?}, expected {expected_height}"
+            );
+        }
+    }
+
+    #[test]
     fn auto_grid_rows_keep_individual_card_content_heights_at_the_natural_allocation() {
         use crate::layout::{LayoutOptions, Length};
         let mut scene = Scene::new(937., 2000.);
