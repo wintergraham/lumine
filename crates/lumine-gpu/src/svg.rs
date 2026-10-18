@@ -4,7 +4,7 @@
 //! node: every copy of an icon shares one raster (and one atlas cell), and a
 //! row a virtual list mounts again finds its icons already rasterized.
 use crate::GpuError;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, hash::{Hash, Hasher}, sync::Arc};
 use lumine::{
     image::ImageData,
     scene::{NodeId, NodeKind, Rect, Scene},
@@ -16,7 +16,7 @@ const MAX_ENTRIES: usize = 1024;
 const UNUSED_BUDGET: usize = 1024 * 1024;
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 struct Key {
-    source_id: u64,
+    source_hash: u64,
     tint: Option<[u8; 4]>,
     width: u32,
     height: u32,
@@ -29,6 +29,7 @@ struct Entry {
     users: u32,
 }
 struct Shown {
+    source_id: u64,
     key: Key,
     transformed: Arc<ImageData>,
 }
@@ -158,8 +159,18 @@ impl SvgCache {
             return Err(GpuError("SVG raster exceeds 32 MiB".into()));
         }
         self.clock = self.clock.wrapping_add(1);
+        // Reconstructed controls can own new SVG sources with identical bytes.
+        // Hash once per node/source, without retaining source storage in the cache.
+        let source_hash = self.nodes.get(&node)
+            .filter(|shown| shown.source_id == source.source_id())
+            .map(|shown| shown.key.source_hash)
+            .unwrap_or_else(|| {
+                let mut hash = rustc_hash::FxHasher::default();
+                source.bytes().hash(&mut hash);
+                hash.finish()
+            });
         let key = Key {
-            source_id: source.source_id(),
+            source_hash,
             tint: source.tint().map(|c| [c.0, c.1, c.2, c.3]),
             width,
             height,
@@ -169,6 +180,7 @@ impl SvgCache {
             && shown.key == key
             && let Some(entry) = self.entries.get_mut(&key)
         {
+            shown.source_id = source.source_id();
             entry.used = self.clock;
             if shown.transformed.transform() != source.transform() {
                 shown.transformed = Arc::new(entry.image.transformed(source.transform()));
@@ -206,6 +218,7 @@ impl SvgCache {
         let previous = self.nodes.insert(
             node,
             Shown {
+                source_id: source.source_id(),
                 key,
                 transformed: transformed.clone(),
             },
