@@ -1634,11 +1634,15 @@ impl Scene {
             node.queued = true;
             self.dirty.push(id);
         }
+        if flags & LAYOUT != 0 {
+            self.trace_layout(id, "invalidate.layout", None, None);
+        }
     }
     /// Mark `id` and the ancestors whose geometry can depend on it. The walk
     /// stops at a layout boundary: its size cannot depend on its content, so
     /// its parent keeps its layout and only the boundary's subtree is redone.
     fn invalidate_layout(&mut self, id: NodeId) {
+        self.trace_layout(id, "invalidate.start", None, None);
         self.invalidate(id, LAYOUT);
         let mut child = id;
         while let Some(parent) = self.node(child).parent {
@@ -1976,6 +1980,69 @@ impl Scene {
             self.add_damage(bounds);
         }
     }
+    // Temporary retained-layout diagnostics. Select native node indices with
+    // LUMINE_TRACE_LAYOUT_NODES=1991,1992,308,3270,3271,3272,3458.
+    fn trace_layout(
+        &self,
+        id: NodeId,
+        event: &str,
+        query: Option<Constraints>,
+        result: Option<(f32, f32)>,
+    ) {
+        static NODES: std::sync::OnceLock<Vec<u32>> = std::sync::OnceLock::new();
+        let nodes = NODES.get_or_init(|| {
+            std::env::var("LUMINE_TRACE_LAYOUT_NODES")
+                .ok()
+                .into_iter()
+                .flat_map(|value| {
+                    value
+                        .split(',')
+                        .filter_map(|index| index.trim().parse().ok())
+                        .collect::<Vec<_>>()
+                })
+                .collect()
+        });
+        if !nodes.contains(&id.index) {
+            return;
+        }
+        let node = self.node(id);
+        let current = node
+            .measurement
+            .as_ref()
+            .map(|m| (m.constraints, m.size, m.revision));
+        let layout = match node.kind {
+            NodeKind::Container(layout) | NodeKind::Panel { layout, .. } => Some(layout),
+            _ => None,
+        };
+        let children: Vec<_> = node
+            .measurement
+            .as_ref()
+            .into_iter()
+            .flat_map(|m| m.children.iter().zip(&m.child_constraints))
+            .map(|((child, rect), saved)| {
+                // A pending invalidation can still hold a removed child's snapshot.
+                let child_node = self.contains(*child).then(|| self.node(*child));
+                (
+                    *child,
+                    *rect,
+                    *saved,
+                    child_node.map(|n| n.measure_revision),
+                    child_node
+                        .and_then(|n| n.measurement.as_ref())
+                        .map(|m| (m.constraints, m.size, m.revision)),
+                )
+            })
+            .collect();
+        eprintln!(
+            "LUMINE_LAYOUT event={event} node={id:?} parent={:?} revision={} shaper={} dirty={} query={query:?} result={result:?} current={current:?} bounds={:?} layout={layout:?} style={:?} children={children:?}",
+            node.parent,
+            node.measure_revision,
+            self.text_shaper_revision,
+            node.dirty,
+            node.bounds,
+            node.style
+        );
+    }
     /// Intrinsic probes consume only a size. Keep them separate from the few
     /// complete measurements that must restore descendant geometry for arrange.
     fn measure_intrinsic(&mut self, id: NodeId, constraints: Constraints) -> (f32, f32) {
@@ -1990,6 +2057,7 @@ impl Scene {
             let hit = sizes.remove(index);
             let size = hit.2;
             sizes.insert(0, hit);
+            self.trace_layout(id, "intrinsic.hit", Some(constraints), Some(size));
             return size;
         }
         let size = self.measure(id, constraints);
@@ -2013,7 +2081,9 @@ impl Scene {
         if let Some(current) = &node.measurement
             && usable(current)
         {
-            return current.size;
+            let size = current.size;
+            self.trace_layout(id, "measure.current", Some(constraints), Some(size));
+            return size;
         }
         if let Some(index) = node.alternates.iter().position(usable) {
             // Promote it: `arrange` places children from the current result.
@@ -2024,6 +2094,7 @@ impl Scene {
                 node.alternates.insert(0, previous);
             }
             node.arrange_dirty = true;
+            self.trace_layout(id, "measure.alternate", Some(constraints), Some(size));
             return size;
         }
         if constraints.hidden {
@@ -2491,10 +2562,12 @@ impl Scene {
             child_constraints,
             revision,
         });
+        self.trace_layout(id, "measure.store", Some(constraints), Some(size));
     }
     /// `covered`: an ancestor moved and already damaged this whole subtree at
     /// its old and new positions.
     fn arrange(&mut self, id: NodeId, x: f32, y: f32, report: &mut FrameReport, covered: bool) {
+        self.trace_layout(id, "arrange.enter", None, None);
         let cache = self.node(id).measurement.as_ref().unwrap();
         let bounds = Rect::new(x, y, cache.size.0, cache.size.1);
         if !self.node(id).arrange_dirty && self.node(id).bounds == bounds {
@@ -2516,9 +2589,21 @@ impl Scene {
         }
         for ((child, rect), constraints) in children.into_iter().zip(child_constraints) {
             // Cached: promotes the matching result; evicted: re-measures.
+            self.trace_layout(
+                child,
+                "arrange.restore.before",
+                constraints,
+                Some((rect.width, rect.height)),
+            );
             if let Some(constraints) = constraints {
                 self.measure(child, constraints);
             }
+            self.trace_layout(
+                child,
+                "arrange.restore.after",
+                constraints,
+                Some((rect.width, rect.height)),
+            );
             self.arrange(child, x + rect.x, y + rect.y, report, covered || changed);
         }
         if damage {
