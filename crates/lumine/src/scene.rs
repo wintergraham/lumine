@@ -952,7 +952,7 @@ impl Scene {
     /// Front-to-back hit targets, including containers; call after flushing layout.
     pub fn hit_test_all(&self, x: f32, y: f32) -> Vec<NodeId> {
         let mut hits = Vec::new();
-        for item in self.paint_items() {
+        for item in self.paint_iter(Some((x, y))) {
             if item.effects.opacity <= 0.
                 || item.clip.is_some_and(|clip| !contains_point(clip, x, y))
                 || item.clip_regions.iter().any(|clip| !clip.contains(x, y))
@@ -3252,8 +3252,12 @@ impl Scene {
     /// Back-to-front sibling subtrees, ordered by z-index then retained child order.
     /// Every parent's own paint precedes its children, including negative indices.
     pub fn paint_items(&self) -> impl Iterator<Item = PaintItem<'_>> {
+        self.paint_iter(None)
+    }
+    fn paint_iter(&self, hit_point: Option<(f32, f32)>) -> PaintIter<'_> {
         PaintIter {
             scene: self,
+            hit_point,
             stack: vec![(
                 self.root,
                 Affine::IDENTITY,
@@ -3333,13 +3337,29 @@ type PaintState = (
 );
 struct PaintIter<'a> {
     scene: &'a Scene,
+    hit_point: Option<(f32, f32)>,
     stack: Vec<PaintState>,
 }
 impl<'a> Iterator for PaintIter<'a> {
     type Item = PaintItem<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        let (id, parent_transform, parent_opacity, parent_clip, mask, regions, fade_transform) =
-            self.stack.pop()?;
+        let (id, parent_transform, parent_opacity, parent_clip, mask, regions, fade_transform) = loop {
+            let state = self.stack.pop()?;
+            if let Some((x, y)) = self.hit_point {
+                let node = self.scene.node(state.0);
+                // These are inherited constraints: no descendant can escape them.
+                // Do not cull against the node's own bounds; overflow and shadow
+                // targets retain their existing paint and hit semantics.
+                if !own_visible(&node.style)
+                    || node.effects.opacity * state.2 <= 0.
+                    || !contains_point(state.3, x, y)
+                    || state.5.iter().any(|clip| !clip.contains(x, y))
+                {
+                    continue;
+                }
+            }
+            break state;
+        };
         let node = self.scene.node(id);
         let matrix = self.scene.node_matrix(id).then(parent_transform);
         let (bounds, transform) = primitive_coordinates(node.bounds, matrix);
@@ -4554,6 +4574,96 @@ mod tests {
         assert_eq!(scene.bounds(a), Rect::new(0.0, 0.0, 100.0, 23.0));
         assert_eq!(scene.bounds(b), Rect::new(0.0, 77.0, 100.0, 23.0));
     }
+    #[test]
+    fn hit_testing_prunes_retained_hidden_and_clipped_subtrees() {
+        let mut scene = Scene::new(200., 200.);
+        scene.set_kind(scene.root(), NodeKind::Container(Layout::Overlay));
+        let visible = scene.append(scene.root(), text("visible"), Style::default());
+        let hidden = scene.append(scene.root(), NodeKind::Container(Layout::Overlay), Style {
+            width: Some(20.), height: Some(20.),
+            layout_options: Some(Arc::new(crate::layout::LayoutOptions {
+                display: Some(crate::layout::Display::None), ..Default::default()
+            })), ..Default::default()
+        });
+        let transparent = scene.append(scene.root(), NodeKind::Container(Layout::Overlay), Style::default());
+        scene.set_effects(transparent, Effects { opacity: 0., ..Default::default() });
+        let clipped = scene.append(scene.root(), NodeKind::Container(Layout::Overlay), Style {
+            width: Some(20.), height: Some(20.), clip: true, ..Default::default()
+        });
+        scene.set_transform(clipped, Transform { x: 100., y: 100. });
+        for parent in [hidden, transparent, clipped] {
+            for _ in 0..128 { scene.append(parent, text("retained"), Style::default()); }
+        }
+        scene.flush();
+        assert_eq!(scene.hit_test(5., 5.), Some(visible));
+        // The public paint iterator retains its full traversal contract.
+        assert_eq!(scene.paint_items().count(), 389);
+        assert_eq!(scene.paint_iter(Some((5., 5.))).count(), 3);
+        let mut style = scene.style(hidden);
+        style.layout_options = None;
+        scene.set_style(hidden, style);
+        scene.flush();
+        assert!(scene.hit_test_all(5., 5.).iter().any(|id| scene.parent(*id) == Some(hidden)));
+    }
+
+    #[test]
+    fn hit_testing_pruning_preserves_overflow_transforms_shadows_and_hit_order() {
+        let mut scene = Scene::new(200., 200.);
+        scene.set_kind(scene.root(), NodeKind::Container(Layout::Overlay));
+        let parent = scene.append(scene.root(), NodeKind::Panel {
+            layout: Layout::Overlay,
+            quad: QuadStyle {
+                radius: 15., shadow: Some(BoxShadow {
+                    color: Color(0, 0, 0, 128), offset: Transform { x: -20., y: 0. },
+                    blur_radius: 3., spread: 0.,
+                }), ..Default::default()
+            },
+        }, Style { width: Some(60.), height: Some(60.), clip: true, ..Default::default() });
+        let child = scene.append(parent, text("overflow target"), Style {
+            width: Some(140.), height: Some(100.), flex_shrink: 0., ..Default::default()
+        });
+        scene.set_transform(parent, Transform { x: 70., y: 50. });
+        scene.set_transform(child, Transform { x: -40., y: 0. });
+        scene.append(scene.root(), text("front"), Style { z_index: 1, ..Default::default() });
+        scene.flush();
+        for axes in [[true, true], [true, false], [false, false]] {
+            let mut style = scene.style(parent);
+            style.layout_options = Some(Arc::new(crate::layout::LayoutOptions {
+                clip_x: Some(axes[0]), clip_y: Some(axes[1]), ..Default::default()
+            }));
+            scene.set_style(parent, style);
+            for angle in [0., std::f32::consts::FRAC_PI_4] {
+                scene.set_paint_transform(parent, Affine::rotation(angle));
+                for opacity in [0., 0.5, 1.] {
+                    scene.set_effects(parent, Effects { opacity, ..Default::default() });
+                    scene.flush();
+                    for x in (0..200).step_by(17) {
+                        for y in (0..200).step_by(23) {
+                            let (x, y) = (x as f32, y as f32);
+                            // The full paint traversal is the pre-pruning hit-test oracle.
+                            let mut expected = Vec::new();
+                            for item in scene.paint_items() {
+                                if item.effects.opacity <= 0.
+                                    || item.clip.is_some_and(|clip| !contains_point(clip, x, y))
+                                    || item.clip_regions.iter().any(|clip| !clip.contains(x, y)) { continue; }
+                                let primitive = match item.kind {
+                                    NodeKind::Image(image) => image.paint_transform(item.bounds),
+                                    NodeKind::Svg(svg) => svg.paint_transform(item.bounds),
+                                    _ => Affine::IDENTITY,
+                                }.then(item.transform);
+                                if primitive.inverse().is_some_and(|inverse| {
+                                    let (x, y) = inverse.point(x, y); contains_point(item.bounds, x, y)
+                                }) { expected.push(item.id); }
+                            }
+                            expected.reverse();
+                            assert_eq!(scene.hit_test_all(x, y), expected, "axes={axes:?} angle={angle} opacity={opacity} point={x},{y}");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     #[test]
     fn hit_testing_respects_stacking_clip_transform_and_opacity() {
         let mut scene = Scene::new(100.0, 100.0);
