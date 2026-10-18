@@ -255,7 +255,12 @@ impl EventContext {
         self.capture.is_some()
     }
     pub fn capture_pointer(&mut self) {
-        self.capture = Some(Some(self.current_target));
+        self.capture_pointer_for(self.current_target);
+    }
+    /// Capture on a retained owner, including an ancestor of the hit control.
+    /// The owner can survive replacement of the original pointer target.
+    pub fn capture_pointer_for(&mut self, node: NodeId) {
+        self.capture = Some(Some(node));
     }
     pub fn release_pointer(&mut self) {
         self.capture = Some(None);
