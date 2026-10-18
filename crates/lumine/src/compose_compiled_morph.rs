@@ -2662,10 +2662,23 @@ mod tests {
                     .find(|node| *node != owner)
                     .unwrap()
             };
+            // animate_to starts at max(last frame, wall time). A future synthetic frame
+            // gives both labels the same start instead of two different Instant::now values.
+            let start = Instant::now() + Duration::from_secs(60);
+            frames.deliver(Frame {
+                index: 0,
+                time: start,
+                interval: Duration::from_millis(16),
+            });
+            let initial_owner = ui.scene.borrow().effects(owner);
+            let initial_paragraph = ui.scene.borrow().effects(paragraph);
             selected.set(true);
             ui.prepare_frame();
             let first_ghost = ghost(&ui, parent, owner);
-            let mut time = Instant::now();
+            let captured_base = ui.scene.borrow().effects(first_ghost).opacity;
+            let initial_reference_ghost = ghost(&ui, reference_parent, reference);
+            let reference_base = ui.scene.borrow().effects(initial_reference_ghost).opacity;
+            let mut time = start;
             let mut index = 0;
             let mut advance = |ui: &Ui| {
                 executor.borrow_mut().tick();
@@ -2684,9 +2697,26 @@ mod tests {
                 let scene = ui.scene.borrow();
                 let reference_ghost = ghost(&ui, reference_parent, reference);
                 let fade = scene.effects(reference_ghost).opacity;
-                assert!(fade > 0. && fade < 1.);
                 let actual = scene.effects(first_ghost);
-                assert!((actual.opacity - base_opacity * fade).abs() < 0.000001);
+                let frame = frames.last().unwrap();
+                let diagnostics = format!(
+                    "first fade: frame={} elapsed={:?} base={base_opacity:?} visible={visible} displayed={displayed} blur={blur:?} initialOwner={initial_owner:?} capturedBase={captured_base:?} initialParagraph={initial_paragraph:?} owner={:?} paragraph={:?} referenceBase={reference_base:?} referenceOwner={:?} referenceFade={fade:?} referenceGhost={:?} actualGhost={actual:?} expectedOpacity={:?}",
+                    frame.index,
+                    frame.time.duration_since(start),
+                    scene.effects(owner),
+                    scene.effects(paragraph),
+                    scene.effects(reference),
+                    scene.effects(reference_ghost),
+                    base_opacity * fade,
+                );
+                eprintln!("{diagnostics}");
+                assert!(fade > 0. && fade < 1., "{diagnostics}");
+                assert_eq!(captured_base, base_opacity, "{diagnostics}");
+                assert_eq!(reference_base, 1., "{diagnostics}");
+                assert!(
+                    (actual.opacity - base_opacity * fade).abs() < 0.000001,
+                    "{diagnostics}"
+                );
                 assert_eq!(actual.blur_radius, blur);
                 let ghost_glyph = scene.children(first_ghost)[0];
                 assert_eq!(scene.effects(ghost_glyph), leaf_effects);
@@ -2706,23 +2736,46 @@ mod tests {
                     assert!(scene.visible_bounds(ghost_glyph).is_some());
                 }
                 let entering = scene.effects(paragraph).opacity;
-                assert!(entering > 0. && entering < 1.);
+                assert!(entering > 0. && entering < 1., "{diagnostics}");
                 entering
             };
+            let retarget_owner = ui.scene.borrow().effects(owner);
             selected.set(false);
             ui.prepare_frame();
             assert!(!ui.scene.borrow().contains(first_ghost));
             let next_ghost = ghost(&ui, parent, owner);
             let next_glyph = ui.scene.borrow().children(next_ghost)[0];
+            let retarget_base = ui.scene.borrow().effects(next_ghost).opacity;
             {
                 let scene = ui.scene.borrow();
+                let frame = frames.last().unwrap();
+                let reference_ghost = ghost(&ui, reference_parent, reference);
+                let diagnostics = format!(
+                    "retarget start: frame={} elapsed={:?} base={base_opacity:?} visible={visible} displayed={displayed} blur={blur:?} capturedOwner={retarget_owner:?} capturedBase={retarget_base:?} capturedParagraphOpacity={entering_opacity:?} owner={:?} paragraph={:?} referenceGhost={:?} actualGhost={:?} actualLeaf={:?} expectedLeafOpacity={:?}",
+                    frame.index,
+                    frame.time.duration_since(start),
+                    scene.effects(owner),
+                    scene.effects(paragraph),
+                    scene.effects(reference_ghost),
+                    scene.effects(next_ghost),
+                    scene.effects(next_glyph),
+                    leaf_effects.opacity * entering_opacity,
+                );
+                eprintln!("{diagnostics}");
                 assert_eq!(root.find("label"), Some(owner));
                 assert_eq!(scene.children(owner)[0], paragraph);
                 assert_eq!(scene.children(paragraph)[0], glyph);
-                assert_eq!(scene.effects(next_ghost).opacity, base_opacity);
+                assert_eq!(
+                    scene.effects(next_ghost).opacity,
+                    base_opacity,
+                    "{diagnostics}"
+                );
                 assert_eq!(scene.effects(next_ghost).blur_radius, blur);
                 let leaf = scene.effects(next_glyph);
-                assert!((leaf.opacity - leaf_effects.opacity * entering_opacity).abs() < 0.000001);
+                assert!(
+                    (leaf.opacity - leaf_effects.opacity * entering_opacity).abs() < 0.000001,
+                    "{diagnostics}"
+                );
                 assert_eq!(leaf.blur_radius, leaf_effects.blur_radius);
                 assert_eq!(leaf.edge_fade, leaf_effects.edge_fade);
             }
@@ -2731,11 +2784,29 @@ mod tests {
                 let scene = ui.scene.borrow();
                 let reference_ghost = ghost(&ui, reference_parent, reference);
                 let fade = scene.effects(reference_ghost).opacity;
-                assert!((scene.effects(next_ghost).opacity - base_opacity * fade).abs() < 0.000001);
+                let frame = frames.last().unwrap();
+                let diagnostics = format!(
+                    "retarget fade: frame={} elapsed={:?} base={base_opacity:?} visible={visible} displayed={displayed} blur={blur:?} capturedOwner={retarget_owner:?} capturedBase={retarget_base:?} capturedParagraphOpacity={entering_opacity:?} owner={:?} paragraph={:?} referenceFade={fade:?} referenceGhost={:?} actualGhost={:?} actualLeaf={:?} expectedOpacity={:?} expectedLeafOpacity={:?}",
+                    frame.index,
+                    frame.time.duration_since(start),
+                    scene.effects(owner),
+                    scene.effects(paragraph),
+                    scene.effects(reference_ghost),
+                    scene.effects(next_ghost),
+                    scene.effects(next_glyph),
+                    base_opacity * fade,
+                    leaf_effects.opacity * entering_opacity,
+                );
+                eprintln!("{diagnostics}");
+                assert!(
+                    (scene.effects(next_ghost).opacity - base_opacity * fade).abs() < 0.000001,
+                    "{diagnostics}"
+                );
                 assert_eq!(scene.effects(next_ghost).blur_radius, blur);
                 assert!(
                     (scene.effects(next_glyph).opacity - leaf_effects.opacity * entering_opacity).abs()
-                        < 0.000001
+                        < 0.000001,
+                    "{diagnostics}"
                 );
                 if base_opacity == 0. || !visible || !displayed {
                     assert!(scene.visible_bounds(next_glyph).is_none());
