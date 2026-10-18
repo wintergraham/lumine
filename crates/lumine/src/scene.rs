@@ -2240,6 +2240,45 @@ impl Scene {
                 };
                 let main = |size: (f32, f32)| if horizontal { size.0 } else { size.1 };
                 let gaps = style.gap * ids.len().saturating_sub(1) as f32;
+                if layout == Layout::Column && style.align == Align::Stretch && explicit_h.is_none()
+                {
+                    // Reflow width before deriving flex bases or distributing
+                    // height, so cross-axis sizing cannot erase that allocation.
+                    let natural_width = sizes
+                        .iter()
+                        .enumerate()
+                        .map(|(i, size)| {
+                            let margin = self.node(ids[i]).style.margin;
+                            size.0 + margin.left + margin.right
+                        })
+                        .fold(0_f32, f32::max);
+                    let inner_w = dimension(
+                        explicit_w.unwrap_or(natural_width + horizontal_padding),
+                        style.min_width,
+                        style.max_width,
+                    ) - horizontal_padding;
+                    for (i, child) in ids.iter().enumerate() {
+                        let child_style = &self.node(*child).style;
+                        if child_style.width.is_none()
+                            && percentage(child_style.width_percent, percent_width).is_none()
+                        {
+                            let margin = child_style.margin;
+                            sizes[i] = self.measure(
+                                *child,
+                                Constraints {
+                                    width: available_w,
+                                    height: available_h,
+                                    percent_width,
+                                    percent_height,
+                                    force_width: Some(
+                                        (inner_w - margin.left - margin.right).max(0.),
+                                    ),
+                                    ..Default::default()
+                                },
+                            );
+                        }
+                    }
+                }
                 let natural_main = sizes
                     .iter()
                     .enumerate()
@@ -2402,41 +2441,6 @@ impl Scene {
                     style.min_width,
                     style.max_width,
                 ) - horizontal_padding;
-                if layout == Layout::Column && style.align == Align::Stretch && explicit_h.is_none()
-                {
-                    // Width reflow must precede auto-height sizing. The initial
-                    // narrow content probe does not allocate a child's height.
-                    for (i, child) in ids.iter().enumerate() {
-                        let child_style = &self.node(*child).style;
-                        if child_style.width.is_none()
-                            && percentage(child_style.width_percent, percent_width).is_none()
-                        {
-                            let margin = child_style.margin;
-                            sizes[i] = self.measure(
-                                *child,
-                                Constraints {
-                                    width: available_w,
-                                    height: available_h,
-                                    percent_width,
-                                    percent_height,
-                                    force_width: Some(
-                                        (inner_w - margin.left - margin.right).max(0.),
-                                    ),
-                                    ..Default::default()
-                                },
-                            );
-                        }
-                    }
-                    natural_h = sizes
-                        .iter()
-                        .enumerate()
-                        .map(|(i, size)| {
-                            let margin = self.node(ids[i]).style.margin;
-                            size.1 + margin.top + margin.bottom
-                        })
-                        .sum::<f32>()
-                        + gaps;
-                }
                 let inner_h = dimension(
                     explicit_h.unwrap_or(natural_h + vertical_padding),
                     style.min_height,
@@ -3439,6 +3443,138 @@ fn transformed_fade(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn native_column_width_reflow_precedes_height_shrink_and_grow() {
+        use crate::text_layout::{FallbackTextLayout, FontStyle, LineHeight, WordWrap};
+
+        for (natural, min_height, max_height, expected) in
+            [(100., None, Some(50.), 50.), (20., Some(80.), None, 80.)]
+        {
+            let mut scene = Scene::new(200., 400.);
+            let column = scene.append(
+                scene.root(),
+                NodeKind::Container(Layout::Column),
+                Style {
+                    width: Some(100.),
+                    min_height,
+                    max_height,
+                    align: Align::Stretch,
+                    ..Default::default()
+                },
+            );
+            let child = scene.append(
+                column,
+                NodeKind::Rect(Color(0, 0, 0, 0)),
+                Style {
+                    height: Some(natural),
+                    flex_shrink: 1.,
+                    flex_grow: 1.,
+                    ..Default::default()
+                },
+            );
+            let size = scene.measure(column, Constraints::default());
+            scene.arrange(column, 0., 0., &mut FrameReport::default(), false);
+            assert_eq!(size, (100., expected));
+            assert_eq!(scene.layout_bounds(child).width, 100.);
+            assert_eq!(scene.layout_bounds(child).height, expected);
+        }
+
+        let value = "aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa aa";
+        let font = FontStyle {
+            word_wrap: WordWrap::Word,
+            line_height: LineHeight::px(20.),
+            ..Default::default()
+        };
+        let text_height = FallbackTextLayout::measure_with_font(value, 16., Some(100.), &font).1;
+        assert!(text_height > 20. && text_height < 200.);
+        for (min_height, max_height, expected_height) in
+            [(None, Some(100.), 100.), (Some(400.), None, 400.)]
+        {
+            let mut scene = Scene::new(200., 600.);
+            scene.set_font_text_measurer(|text, size, width, font| {
+                FallbackTextLayout::measure_with_font(text, size, width, font)
+            });
+            let column = scene.append(
+                scene.root(),
+                NodeKind::Container(Layout::Column),
+                Style {
+                    min_height,
+                    max_height,
+                    align: Align::Stretch,
+                    ..Default::default()
+                },
+            );
+            let wrapped = scene.append(
+                column,
+                NodeKind::Container(Layout::Column),
+                Style {
+                    flex_shrink: 1.,
+                    flex_grow: 1.,
+                    align: Align::Stretch,
+                    ..Default::default()
+                },
+            );
+            let text = scene.append(
+                wrapped,
+                NodeKind::Text {
+                    text: value.into(),
+                    font_size: 16.,
+                    color: Color(0, 0, 0, 255),
+                },
+                Style {
+                    text_wrap: true,
+                    ..Default::default()
+                },
+            );
+            scene.set_font(text, font.clone());
+            let fixed = scene.append(
+                column,
+                NodeKind::Rect(Color(0, 0, 0, 0)),
+                Style {
+                    width: Some(100.),
+                    height: Some(100.),
+                    flex_shrink: 1.,
+                    flex_grow: 1.,
+                    ..Default::default()
+                },
+            );
+            let natural = text_height + 100.;
+            let wrapped_height = if expected_height < natural {
+                text_height * expected_height / natural
+            } else {
+                text_height + (expected_height - natural) / 2.
+            };
+            for min_content_width in [true, false, true] {
+                let size = scene.measure(
+                    column,
+                    Constraints {
+                        width: Some(if min_content_width { 0. } else { 100. }),
+                        min_content_width,
+                        ..Default::default()
+                    },
+                );
+                scene.arrange(column, 0., 0., &mut FrameReport::default(), false);
+                assert!(
+                    (size.0 - 100.).abs() < 0.001 && (size.1 - expected_height).abs() < 0.001,
+                    "{size:?}"
+                );
+                let wrapped_bounds = scene.layout_bounds(wrapped);
+                let fixed_bounds = scene.layout_bounds(fixed);
+                assert!(
+                    (wrapped_bounds.height - wrapped_height).abs() < 0.001,
+                    "{wrapped_bounds:?}, expected {wrapped_height}"
+                );
+                assert!(
+                    (fixed_bounds.height - (expected_height - wrapped_height)).abs() < 0.001,
+                    "{fixed_bounds:?}"
+                );
+                assert!((fixed_bounds.y - wrapped_height).abs() < 0.001);
+                assert_eq!(scene.layout_bounds(text).width, 100.);
+                assert_eq!(scene.layout_bounds(text).height, text_height);
+            }
+        }
+    }
+
     #[test]
     fn subtree_affine_composes_with_translation_and_inverse_input() {
         let mut scene = Scene::new(300., 300.);
