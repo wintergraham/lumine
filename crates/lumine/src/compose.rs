@@ -193,8 +193,9 @@ impl From<Slot> for View {
 type Builder = Box<dyn FnOnce(&mut Context) -> View>;
 type RegionBuilder = Box<dyn FnOnce(&mut Ui, NodeId, Environment)>;
 type VirtualBuilder = Box<dyn FnOnce(&mut Ui, NodeId, Environment, ScrollbarStyle, bool)>;
+/// Reactive display content sharing one retained paragraph across plain and rich paint.
 #[derive(Clone, PartialEq)]
-enum DisplayText {
+pub enum DisplayText {
     Plain(String),
     Rich(Vec<TextSpan>),
 }
@@ -898,6 +899,10 @@ pub fn text_signal(compute: impl FnMut() -> String + 'static) -> View {
 }
 pub use crate::compose_rich::{RichTextView, TextSpan, rich_text, text_span};
 /// Reactive inline children; equal resolved content preserves paragraph layout/paint.
+/// Reactive display content; plain values retain the native plain-text shaping path.
+pub fn display_text_signal(compute: impl FnMut() -> DisplayText + 'static) -> View {
+    View::new(Kind::DisplayText(Box::new(compute)))
+}
 pub fn rich_text_signal(compute: impl FnMut() -> Vec<TextSpan> + 'static) -> View {
     View::new(Kind::RichText(Box::new(compute)))
 }
@@ -3428,7 +3433,7 @@ pub mod prelude {
         popover, progress, provide, provide_with, row, scroll, scroll_x, slider, submenu, submenu_with_anchor, switch,
         text, text_area, text_input, text_signal, variable_virtual_list, virtual_list,
     };
-    pub use super::{RichTextView, TextSpan, rich_text, rich_text_signal, text_span};
+    pub use super::{DisplayText, RichTextView, TextSpan, display_text_signal, rich_text, rich_text_signal, text_span};
     pub use super::{animated_image, animated_image_controlled, async_image, canvas};
     #[cfg(target_os = "macos")]
     pub use super::{native_surface, native_surface_signal};
