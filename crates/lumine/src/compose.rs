@@ -2364,11 +2364,14 @@ fn mount_element(
                 ..Default::default()
             },
         );
-        let size = ui.observe_content_size(root);
+        let size = ui.observe_content_size_deferred(root);
         let scene = ui.scene.clone();
         ui.bind(root, move || {
-            let data = source();
             let (width, height) = size.get();
+            if !width.is_finite() || !height.is_finite() {
+                return;
+            }
+            let data = source();
             let mut scene = scene.borrow_mut();
             scene.set_kind(child, NodeKind::Svg(data));
             scene.set_style(
@@ -2383,7 +2386,7 @@ fn mount_element(
         });
     }
     if let Some(mut draw) = canvas_compute {
-        let size = ui.observe_content_size(root);
+        let size = ui.observe_content_size_deferred(root);
         let drawing = ui.scene.borrow_mut().append(
             root,
             NodeKind::Canvas(Default::default()),
@@ -2395,6 +2398,9 @@ fn mount_element(
         let scene = ui.scene.clone();
         ui.bind(root, move || {
             let (width, height) = size.get();
+            if !width.is_finite() || !height.is_finite() {
+                return;
+            }
             let content = if width > 0. && height > 0. {
                 draw((width, height))
             } else {
@@ -3463,6 +3469,98 @@ mod scroll_mount_tests {
             assert_eq!(offset.get(), limit);
             assert_eq!(progress.get(), 1.);
         }
+    }
+}
+
+#[cfg(test)]
+mod vector_mount_tests {
+    use super::*;
+    use std::{cell::Cell, sync::Arc};
+
+    #[test]
+    fn svg_and_canvas_wait_for_complete_mount_geometry_and_retain_reactive_sources() {
+        let mut ui = Ui::new(400., 300.);
+        let source = ui.signal(Arc::new(crate::svg::SvgData::new(&b"<svg/>"[..]).unwrap()));
+        let color = ui.signal(crate::scene::Color(255, 0, 0, 255));
+        let width = ui.signal(80.);
+        let svg_calls = Rc::new(Cell::new(0));
+        let canvas_calls = Rc::new(Cell::new(0));
+        let svg_read = source.clone();
+        let svg_count = svg_calls.clone();
+        let canvas_read = color.clone();
+        let canvas_count = canvas_calls.clone();
+        let width_read = width.clone();
+        let view = ui.mount(
+            column()
+                .w(140.)
+                .id("flow")
+                .child(
+                    svg_signal("Icon", move || {
+                        svg_count.set(svg_count.get() + 1);
+                        svg_read.get()
+                    })
+                    .id("svg")
+                    .size(40., 20.),
+                )
+                .child(
+                    canvas(move |(width, height)| {
+                        assert!(width.is_finite() && height.is_finite());
+                        canvas_count.set(canvas_count.get() + 1);
+                        let mut canvas = crate::canvas::Canvas::new();
+                        canvas.fill(
+                            crate::canvas::Path::rectangle(crate::scene::Rect::new(
+                                0., 0., width, height,
+                            )),
+                            canvas_read.get(),
+                        );
+                        canvas
+                    })
+                    .id("canvas")
+                    .h(30.)
+                    .reactive_style(move || Styles::new().w(width_read.get())),
+                )
+                .child(div().id("tail").h(30.)),
+        );
+        assert_eq!(
+            ui.scene.borrow().layout_revision(),
+            0,
+            "vector mounting must not measure partial ancestors"
+        );
+        assert_eq!((svg_calls.get(), canvas_calls.get()), (0, 0));
+        let svg = view.find("svg").unwrap();
+        let canvas = view.find("canvas").unwrap();
+        ui.observe_content_size_deferred(svg).set((40., f32::NAN));
+        ui.observe_content_size_deferred(canvas)
+            .set((f32::NAN, 30.));
+        assert_eq!((svg_calls.get(), canvas_calls.get()), (0, 0));
+        ui.prepare_frame();
+        ui.scene.borrow_mut().flush();
+        assert_eq!((svg_calls.get(), canvas_calls.get()), (1, 1));
+        let (svg_child, canvas_child) = {
+            let scene = ui.scene.borrow();
+            assert_eq!(scene.layout_bounds(view.node()).height, 80.);
+            assert_eq!(scene.layout_bounds(view.find("tail").unwrap()).y, 50.);
+            (scene.children(svg)[0], scene.children(canvas)[0])
+        };
+        source.set(Arc::new(
+            crate::svg::SvgData::new(&b"<svg width=\"2\"/>"[..]).unwrap(),
+        ));
+        color.set(crate::scene::Color(0, 255, 0, 255));
+        ui.prepare_frame();
+        assert_eq!(ui.scene.borrow_mut().flush().layout_nodes, 0);
+        assert_eq!((svg_calls.get(), canvas_calls.get()), (2, 2));
+        width.set(120.);
+        ui.prepare_frame();
+        assert_eq!(ui.scene.borrow().layout_bounds(canvas_child).width, 120.);
+        assert_eq!(ui.scene.borrow().children(svg)[0], svg_child);
+        assert_eq!(ui.scene.borrow().children(canvas)[0], canvas_child);
+        let calls = (svg_calls.get(), canvas_calls.get());
+        view.unmount();
+        source.set(Arc::new(crate::svg::SvgData::new(&b"<svg/>"[..]).unwrap()));
+        color.set(crate::scene::Color(0, 0, 255, 255));
+        width.set(100.);
+        ui.prepare_frame();
+        assert_eq!((svg_calls.get(), canvas_calls.get()), calls);
     }
 }
 
