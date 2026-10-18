@@ -1196,6 +1196,53 @@ mod tests {
     use super::*;
 
     #[test]
+    fn compiled_text_applies_wrapping_only_changes_without_replacing_paragraphs() {
+        let mut ui = Ui::new(400., 200.);
+        let wrap = ui.signal(false);
+        let selected = wrap.clone();
+        let root = ui.mount(compiled_morph(
+            move || selected.get(),
+            move |wrap| {
+                text("Alpha beta gamma delta")
+                    .id("copy")
+                    .w(60.)
+                    .text_size(10.)
+                    .line_height(20.)
+                    .text_wrap(wrap)
+            },
+            || CompiledMorphTiming {
+                source_layout_scale: None,
+                duration: Duration::ZERO,
+                crossfade: Duration::ZERO,
+                color_duration: Duration::ZERO,
+                curve: std::array::from_fn(|i| i as f32 / 48.),
+            },
+        ));
+        ui.prepare_frame();
+        let owner = root.find("copy").unwrap();
+        let paragraph = {
+            let scene = ui.scene.borrow();
+            scene.children(scene.children(owner)[0])[0]
+        };
+        assert!(!ui.scene.borrow().style(paragraph).text_wrap);
+        assert_eq!(ui.scene.borrow().layout_bounds(owner).height, 20.);
+        for value in [true, false, true] {
+            wrap.set(value);
+            ui.prepare_frame();
+            let scene = ui.scene.borrow();
+            assert_eq!(root.find("copy"), Some(owner));
+            assert_eq!(scene.children(scene.children(owner)[0])[0], paragraph);
+            assert_eq!(scene.style(paragraph).text_wrap, value);
+            let height = scene.layout_bounds(owner).height;
+            if value {
+                assert!(height > 20., "{height}");
+            } else {
+                assert_eq!(height, 20.);
+            }
+        }
+    }
+
+    #[test]
     fn compiled_text_retains_paragraphs_across_plain_rich_decorations_and_reactive_runs() {
         use crate::{rich_text::Decoration, scene::Color, text_layout::WordWrap};
         let mut ui = Ui::new(400., 200.);

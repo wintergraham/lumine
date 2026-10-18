@@ -2284,6 +2284,7 @@ fn mount_element(
         let weak = ui.downgrade();
         let typography = environment.typography.clone();
         let mut previous_plain = false;
+        let mut previous_wrap = None;
         ui.bind(root, move || {
             let base = typography.get();
             let value = compute();
@@ -2345,6 +2346,7 @@ fn mount_element(
             // Recomputed but unchanged (its inputs animate for a sibling):
             // nothing to lay out, paint, describe or relabel.
             if plain == previous_plain
+                && previous_wrap == Some(base.wrap)
                 && content_state
                     .with_untracked(|current| *current.rich == rich && current.links == links)
             {
@@ -2382,6 +2384,7 @@ fn mount_element(
                 );
             }
             previous_plain = plain;
+            previous_wrap = Some(base.wrap);
             content_state.set(crate::compose_rich::Content { rich, links });
             ui.semantics.borrow_mut().update(paragraph, |node| {
                 node.label = content.clone();
