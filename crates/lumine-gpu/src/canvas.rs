@@ -1,15 +1,15 @@
 //! Shared bounded vector raster cache. Rasterization only follows changed content,
 //! allocated size or device scale; GPU upload uses ordinary retained image identity.
 use crate::GpuError;
-use resvg::tiny_skia as sk;
-use std::{
-    collections::HashMap,
-    sync::{Arc, Weak},
-};
 use lumine::{
     canvas::*,
     image::ImageData,
     scene::{NodeId, NodeKind, Scene},
+};
+use resvg::tiny_skia as sk;
+use std::{
+    collections::HashMap,
+    sync::{Arc, Weak},
 };
 const BUDGET: usize = 32 * 1024 * 1024;
 const MAX_ENTRIES: usize = 1024;
@@ -284,6 +284,54 @@ pub fn rasterize(
                 )
                 .ok_or_else(|| GpuError("invalid gradient geometry".into()))?
             }
+            Brush::Radial {
+                center,
+                radii,
+                stops,
+            } => {
+                // tiny-skia interpolates straight colors. Sample premultiplied stops
+                // here so transparent CSS stops cannot introduce dark fringes.
+                Brush::radial(*center, *radii, stops.clone())
+                    .map_err(|error| GpuError(error.into()))?;
+                let mut pixels = sk::Pixmap::new(w, h)
+                    .ok_or_else(|| GpuError("radial allocation failed".into()))?;
+                for y in 0..h {
+                    for x in 0..w {
+                        let dx = ((x as f32 + 0.5) * width / w as f32 - center.x) / radii.x;
+                        let dy = ((y as f32 + 0.5) * height / h as f32 - center.y) / radii.y;
+                        let offset = dx.hypot(dy);
+                        let right = stops.partition_point(|stop| stop.offset <= offset);
+                        let left = right.saturating_sub(1);
+                        let a = &stops[left];
+                        let b = &stops[right.min(stops.len() - 1)];
+                        let mix = if right == 0 || right == stops.len() {
+                            0.
+                        } else {
+                            (offset - a.offset) / (b.offset - a.offset)
+                        };
+                        let a = color(a.color).premultiply();
+                        let b = color(b.color).premultiply();
+                        let channel = |a: f32, b: f32| ((a + (b - a) * mix) * 255.).round() as u8;
+                        let alpha = channel(a.alpha(), b.alpha());
+                        pixels.pixels_mut()[(y * w + x) as usize] =
+                            sk::PremultipliedColorU8::from_rgba(
+                                channel(a.red(), b.red()).min(alpha),
+                                channel(a.green(), b.green()).min(alpha),
+                                channel(a.blue(), b.blue()).min(alpha),
+                                alpha,
+                            )
+                            .expect("interpolation preserves premultiplication");
+                    }
+                }
+                tile = pixels;
+                sk::Pattern::new(
+                    tile.as_ref(),
+                    sk::SpreadMode::Pad,
+                    sk::FilterQuality::Nearest,
+                    1.,
+                    sk::Transform::from_scale(width / w as f32, height / h as f32),
+                )
+            }
             Brush::Slash {
                 background,
                 foreground,
@@ -391,6 +439,124 @@ pub fn rasterize(
 #[cfg(test)]
 mod lifetime_tests {
     use super::*;
+    use lumine::scene::{Color, QuadStyle, Rect};
+
+    #[test]
+    fn radial_raster_interpolates_premultiplied_colors_on_rectangular_ellipse() {
+        let mut canvas = Canvas::new();
+        canvas.fill(
+            Path::rectangle(Rect::new(0., 0., 41., 21.)),
+            Brush::radial(
+                Point::new(20.5, 10.5),
+                Point::new(20., 10.),
+                vec![
+                    GradientStop {
+                        offset: 0.,
+                        color: Color(255, 0, 0, 255),
+                    },
+                    GradientStop {
+                        offset: 1.,
+                        color: Color(0, 0, 255, 0),
+                    },
+                ],
+            )
+            .unwrap(),
+        );
+        let image = rasterize(&canvas, 41., 21., 1.).unwrap();
+        let pixel = |x, y| &image.pixels()[4 * (y * 41 + x)..][..4];
+        assert_eq!(pixel(20, 10), [255, 0, 0, 255]);
+        assert_eq!(pixel(30, 10), [255, 0, 0, 128]);
+        assert_eq!(pixel(20, 15), pixel(30, 10));
+        assert_eq!(pixel(40, 10), [0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn radial_raster_preserves_transparent_hard_stops_and_source_over() {
+        let mut canvas = Canvas::new();
+        let rect = Path::rectangle(Rect::new(0., 0., 12., 2.));
+        canvas.fill(rect.clone(), Color(255, 255, 255, 255));
+        canvas.fill(
+            rect,
+            Brush::radial(
+                Point::new(0.5, 0.5),
+                Point::new(20., 20.),
+                vec![
+                    GradientStop {
+                        offset: 0.4,
+                        color: Color(0, 0, 0, 0),
+                    },
+                    GradientStop {
+                        offset: 0.4,
+                        color: Color(255, 0, 0, 255),
+                    },
+                    GradientStop {
+                        offset: 0.45,
+                        color: Color(255, 0, 0, 255),
+                    },
+                    GradientStop {
+                        offset: 0.45,
+                        color: Color(0, 0, 255, 255),
+                    },
+                ],
+            )
+            .unwrap(),
+        );
+        let image = rasterize(&canvas, 12., 2., 1.).unwrap();
+        let pixel = |x| &image.pixels()[4 * x..][..4];
+        assert_eq!(pixel(7), [255, 255, 255, 255]);
+        assert_eq!(pixel(8), [255, 0, 0, 255]);
+        assert_eq!(pixel(9), [0, 0, 255, 255]);
+        assert!(Brush::radial(Point::default(), Point::new(0., 1.), vec![]).is_err());
+        assert!(Brush::radial(Point::default(), Point::new(f32::NAN, 1.), vec![]).is_err());
+    }
+
+    #[test]
+    fn radial_decoration_retains_pixels_until_style_radius_or_bounds_change() {
+        use lumine::decoration::{Background, Decoration};
+        let mut scene = Scene::new(100., 100.);
+        let mut style = QuadStyle::default();
+        style.decoration = Some(Arc::new(Decoration {
+            background: Some(Background::Brush(
+                Brush::radial(
+                    Point::new(20., 10.),
+                    Point::new(20., 10.),
+                    vec![
+                        GradientStop {
+                            offset: 0.,
+                            color: Color(255, 0, 0, 255),
+                        },
+                        GradientStop {
+                            offset: 1.,
+                            color: Color(0, 0, 0, 0),
+                        },
+                    ],
+                )
+                .unwrap(),
+            )),
+            ..Default::default()
+        }));
+        let node = scene.append(
+            scene.root(),
+            NodeKind::Quad(style.clone()),
+            Default::default(),
+        );
+        let mut cache = CanvasCache::default();
+        let first = cache.get_decoration(node, &style, 40., 20., 1.).unwrap();
+        cache.uploaded(node);
+        let same = cache
+            .get_decoration(node, &style.clone(), 40., 20., 1.)
+            .unwrap();
+        assert_eq!(first.id, same.id);
+        assert!(same.pixels.is_none());
+        assert_eq!(cache.rasterizations(), 1);
+        style.radius = 4.;
+        let rounded = cache.get_decoration(node, &style, 40., 20., 1.).unwrap();
+        assert_ne!(first.id, rounded.id);
+        let resized = cache.get_decoration(node, &style, 80., 20., 1.).unwrap();
+        assert_ne!(rounded.id, resized.id);
+        assert_eq!(cache.rasterizations(), 3);
+    }
+
     #[test]
     fn removed_canvas_drops_commands_before_next_paint() {
         let mut scene = Scene::new(100., 100.);

@@ -163,6 +163,12 @@ pub enum Brush {
         end: Point,
         stops: Arc<[GradientStop]>,
     },
+    /// Elliptical radial fill in logical coordinates, interpolated in premultiplied sRGB.
+    Radial {
+        center: Point,
+        radii: Point,
+        stops: Arc<[GradientStop]>,
+    },
     /// Diagonal parallel stripes in logical coordinates.
     Slash {
         background: Color,
@@ -177,6 +183,33 @@ impl From<Color> for Brush {
     }
 }
 impl Brush {
+    pub fn radial(
+        center: Point,
+        radii: Point,
+        stops: impl Into<Arc<[GradientStop]>>,
+    ) -> Result<Self, &'static str> {
+        let stops = stops.into();
+        if ![center.x, center.y, radii.x, radii.y]
+            .iter()
+            .all(|v| v.is_finite())
+            || radii.x <= 0.
+            || radii.y <= 0.
+            || stops.len() < 2
+            || stops.len() > 1024
+            || stops
+                .iter()
+                .any(|s| !s.offset.is_finite() || !(0. ..=1.).contains(&s.offset))
+            || stops.windows(2).any(|s| s[0].offset > s[1].offset)
+        {
+            return Err("invalid radial gradient");
+        }
+        Ok(Self::Radial {
+            center,
+            radii,
+            stops,
+        })
+    }
+
     pub fn linear(
         start: Point,
         end: Point,
