@@ -54,6 +54,8 @@ pub struct CompiledMorphAnimation {
 }
 #[derive(Clone, Default)]
 pub struct CompiledMorphEffect {
+    /// Clip the live text's resizing box without copying that temporary clip to outgoing text.
+    pub text_resize_clip: bool,
     pub enter: Option<CompiledMorphAnimation>,
     pub enter_on_mount: bool,
     pub after_ancestor_reveal: bool,
@@ -379,6 +381,33 @@ struct TextTrack {
     source: Rc<RefCell<TextSource>>,
     revision: Signal<u64>,
     timing: Rc<RefCell<CompiledMorphTiming>>,
+    ghost_clip: Rc<Cell<Option<TextClip>>>,
+}
+#[derive(Clone, Copy)]
+struct TextClip {
+    clip: bool,
+    x: Option<bool>,
+    y: Option<bool>,
+}
+impl TextClip {
+    fn authored(view: &View) -> Option<Self> {
+        view.morph_effect
+            .as_ref()
+            .filter(|effect| effect.text_resize_clip)
+            .map(|_| Self {
+                clip: view.styles.clip.unwrap_or(false),
+                x: view
+                    .styles
+                    .layout_options
+                    .as_ref()
+                    .and_then(|options| options.clip_x),
+                y: view
+                    .styles
+                    .layout_options
+                    .as_ref()
+                    .and_then(|options| options.clip_y),
+            })
+    }
 }
 type TextSource = Box<dyn FnMut() -> DisplayText>;
 enum ContentTrack {
@@ -447,6 +476,13 @@ fn target_style(view: &View) -> Styles {
     if let Kind::Container(layout) = view.kind {
         style.layout = Some(layout);
     }
+    if view
+        .morph_effect
+        .as_ref()
+        .is_some_and(|effect| effect.text_resize_clip)
+    {
+        style = style.overflow_hidden();
+    }
     style
 }
 fn text_source(kind: &mut Kind) -> TextSource {
@@ -480,7 +516,7 @@ impl TextGhost {
             ui.remove(node);
         }
     }
-    fn snapshot(&self, owner: NodeId, paragraph: NodeId) {
+    fn snapshot(&self, owner: NodeId, paragraph: NodeId, clip: Option<TextClip>) {
         self.clear();
         let Some(mut ui) = self.ui.upgrade() else {
             return;
@@ -554,6 +590,13 @@ impl TextGhost {
             target.visible = options.visible;
             target.display = options.display;
         }
+        if let Some(clip) = clip {
+            // Source clones authored overflow, not the live width animation's overflow:hidden.
+            style.clip = clip.clip;
+            let target = std::sync::Arc::make_mut(style.layout_options.as_mut().unwrap());
+            target.clip_x = clip.x;
+            target.clip_y = clip.y;
+        }
         let ghost = ui.container(parent, Layout::Overlay, style);
         let mut style = positioned(
             glyph_bounds,
@@ -592,11 +635,13 @@ fn content(
     view: &mut View,
     timing: &CompiledMorphTiming,
 ) -> ContentTrack {
+    let authored_clip = TextClip::authored(view);
     match &mut view.kind {
         kind @ (Kind::Text(_) | Kind::RichText(_)) => {
             let source = Rc::new(RefCell::new(text_source(kind)));
             let revision = cx.state(0u64);
             let timing = Rc::new(RefCell::new(timing.clone()));
+            let ghost_clip = Rc::new(Cell::new(authored_clip));
             let owner = Rc::new(Cell::new(None));
             let paragraph_node = Rc::new(Cell::new(None));
             let ghost = Rc::new(TextGhost {
@@ -634,6 +679,7 @@ fn content(
             let read = source.clone();
             let changed = revision.clone();
             let options = timing.clone();
+            let clip = ghost_clip.clone();
             let old_owner = owner.clone();
             let old_paragraph = paragraph_node.clone();
             let enter_write = enter.clone();
@@ -642,7 +688,7 @@ fn content(
             let paragraph = View::new(Kind::DisplayText(Box::new(move || {
                 let _ = changed.get();
                 let next = (read.borrow_mut())();
-                if let Some(old) = current.replace(next.clone())
+                if let Some((old, clip)) = current.replace((next.clone(), clip.get()))
                     && old != next
                 {
                     let timing = options.borrow();
@@ -651,7 +697,7 @@ fn content(
                     } else if let (Some(owner), Some(paragraph)) =
                         (old_owner.get(), old_paragraph.get())
                     {
-                        ghost.snapshot(owner, paragraph);
+                        ghost.snapshot(owner, paragraph, clip);
                     }
                     leave_write.set(0.);
                     enter_write.set(0.);
@@ -686,6 +732,7 @@ fn content(
                 source,
                 revision,
                 timing,
+                ghost_clip,
             })
         }
         Kind::Image { source, .. } => {
@@ -716,10 +763,12 @@ fn content(
 }
 
 fn update_content(track: &ContentTrack, view: &mut View, timing: &CompiledMorphTiming) {
+    let authored_clip = TextClip::authored(view);
     match (track, &mut view.kind) {
         (ContentTrack::Text(track), kind @ (Kind::Text(_) | Kind::RichText(_))) => {
             *track.source.borrow_mut() = text_source(kind);
             *track.timing.borrow_mut() = timing.clone();
+            track.ghost_clip.set(authored_clip);
             track
                 .revision
                 .update(|revision| *revision = revision.wrapping_add(1));
@@ -2582,6 +2631,169 @@ mod tests {
     }
 
     #[test]
+    fn nested_text_resize_clip_preserves_outgoing_tails_on_reverse() {
+        use crate::{
+            frame::{Frame, FrameClock},
+            task::LocalExecutor,
+        };
+        use std::time::Instant;
+        for authored_clip in ["visible", "hidden", "x"] {
+            let mut ui = Ui::new(800., 300.);
+            let executor = Rc::new(RefCell::new(LocalExecutor::new()));
+            let frames = FrameClock::new();
+            let selected = ui.signal(false);
+            let read = selected.clone();
+            let root = ui.mount(provide(
+                TaskRunner::from_executor(executor.clone()),
+                provide(
+                    frames.clone(),
+                    compiled_morph(
+                        move || read.get(),
+                        move |long| {
+                            column()
+                                .id("approval")
+                                .size(430., 200.)
+                                .p(10.)
+                                .overflow_hidden()
+                                .child(div().id("header").size(20., if long { 60. } else { 20. }))
+                                .child(
+                                    row()
+                                        .id("details")
+                                        .size(600., 24.)
+                                        .gap(10.)
+                                        .child(text("Cancellation").id("key").size(90., 24.))
+                                        .child(
+                                            text(if long {
+                                                "No charge unless cancelled <24h"
+                                            } else {
+                                                "Saved"
+                                            })
+                                            .id("value")
+                                            .size(if long { 360. } else { 90. }, 24.)
+                                            .text_size(24.)
+                                            .text_wrap(false)
+                                            .when(authored_clip == "hidden", |v| {
+                                                v.overflow_hidden()
+                                            })
+                                            .when(authored_clip == "x", |v| v.overflow_x_hidden())
+                                            .morph_effect(CompiledMorphEffect {
+                                                text_resize_clip: true,
+                                                ..Default::default()
+                                            }),
+                                        ),
+                                )
+                        },
+                        || CompiledMorphTiming {
+                            source_layout_scale: Some(1.),
+                            duration: Duration::from_millis(400),
+                            crossfade: Duration::from_millis(140),
+                            color_duration: Duration::ZERO,
+                            curve: std::array::from_fn(|i| i as f32 / 48.),
+                        },
+                    ),
+                ),
+            ));
+            ui.prepare_frame();
+            let owner = root.find("value").unwrap();
+            let parent = root.find("details").unwrap();
+            let approval = root.find("approval").unwrap();
+            let paragraph = ui.scene.borrow().children(owner)[0];
+            let glyph = ui.scene.borrow().children(paragraph)[0];
+            let ghost = |ui: &Ui| {
+                let scene = ui.scene.borrow();
+                scene
+                    .children(parent)
+                    .iter()
+                    .copied()
+                    .find(|node| scene.style(*node).absolute)
+                    .unwrap()
+            };
+            let mut time = Instant::now() + Duration::from_secs(60);
+            frames.deliver(Frame {
+                index: 0,
+                time,
+                interval: Duration::from_millis(16),
+            });
+            let mut index = 0;
+            let mut advance = |ui: &Ui, millis| {
+                executor.borrow_mut().tick();
+                time += Duration::from_millis(millis);
+                index += 1;
+                frames.deliver(Frame {
+                    index,
+                    time,
+                    interval: Duration::from_millis(millis),
+                });
+                executor.borrow_mut().tick();
+                executor.borrow_mut().tick();
+                ui.prepare_frame();
+            };
+            selected.set(true);
+            ui.prepare_frame();
+            let first_ghost = ghost(&ui);
+            advance(&ui, 50);
+            let interrupted = {
+                let scene = ui.scene.borrow();
+                let bounds = scene.layout_bounds(owner);
+                assert!(scene.style(owner).clip);
+                assert!(bounds.width < scene.layout_bounds(glyph).width);
+                let visible = scene.visible_bounds(glyph).unwrap();
+                assert!(visible.x + visible.width <= bounds.x + bounds.width + 0.001);
+                bounds
+            };
+            selected.set(false);
+            ui.prepare_frame();
+            assert!(!ui.scene.borrow().contains(first_ghost));
+            let outgoing = ghost(&ui);
+            let outgoing_glyph = ui.scene.borrow().children(outgoing)[0];
+            advance(&ui, 50);
+            {
+                let scene = ui.scene.borrow();
+                assert_eq!(root.find("value"), Some(owner));
+                assert_eq!(scene.children(owner)[0], paragraph);
+                assert_eq!(scene.children(paragraph)[0], glyph);
+                assert!(
+                    matches!(scene.kind(outgoing_glyph), NodeKind::Text { text, .. }
+                    if text.as_ref() == "No charge unless cancelled <24h")
+                );
+                let bounds = scene.layout_bounds(outgoing);
+                assert!((bounds.width - interrupted.width).abs() < 0.001);
+                // The frozen clone stays in its moving row, rather than pinning viewport geometry.
+                assert!((bounds.y - scene.layout_bounds(parent).y).abs() < 0.001);
+                assert!((bounds.y - interrupted.y).abs() > 0.001);
+                let glyph_bounds = scene.layout_bounds(outgoing_glyph);
+                let visible = scene.visible_bounds(outgoing_glyph).unwrap();
+                let clip = scene.layout_bounds(approval);
+                let mut expected_right =
+                    (glyph_bounds.x + glyph_bounds.width).min(clip.x + clip.width);
+                if authored_clip != "visible" {
+                    expected_right = expected_right.min(bounds.x + bounds.width);
+                } else {
+                    assert!(visible.x + visible.width > bounds.x + bounds.width);
+                    assert!(glyph_bounds.x + glyph_bounds.width > clip.x + clip.width);
+                }
+                assert!((visible.x + visible.width - expected_right).abs() < 0.001);
+                assert!(
+                    scene.effects(outgoing).opacity > 0. && scene.effects(outgoing).opacity < 1.
+                );
+                assert!(
+                    scene.effects(outgoing_glyph).opacity > 0.
+                        && scene.effects(outgoing_glyph).opacity < 1.
+                );
+                assert_eq!(
+                    scene.projection_transform(outgoing_glyph),
+                    crate::affine::Affine::IDENTITY
+                );
+            }
+            advance(&ui, 800);
+            assert!(!ui.scene.borrow().contains(outgoing));
+            root.unmount();
+            executor.borrow_mut().tick();
+            assert!(!frames.wants_frame());
+        }
+    }
+
+    #[test]
     fn outgoing_text_preserves_visibility_effects_and_interrupted_enter_opacity() {
         use crate::{
             frame::{Frame, FrameClock},
@@ -2804,7 +3016,8 @@ mod tests {
                 );
                 assert_eq!(scene.effects(next_ghost).blur_radius, blur);
                 assert!(
-                    (scene.effects(next_glyph).opacity - leaf_effects.opacity * entering_opacity).abs()
+                    (scene.effects(next_glyph).opacity - leaf_effects.opacity * entering_opacity)
+                        .abs()
                         < 0.000001,
                     "{diagnostics}"
                 );
