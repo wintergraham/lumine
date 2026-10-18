@@ -185,7 +185,7 @@ fn scroll_padding_preserves_badge_paint_and_hits_without_changing_content_or_ran
                                     .bottom(-7.5)
                                     .size(20., 20.)
                                     .bg(Color(255, 0, 0, 255))
-                                    .on_click(move || clicked.set(clicked.get() + 1)),
+                                    .on_click(move || { clicked.set(clicked.get() + 1); }),
                             ),
                     )
                     .child(div().size(400., 400.)),
