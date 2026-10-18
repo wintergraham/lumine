@@ -5,7 +5,46 @@ use lumine::{
     text_layout::{FontFamily, FontStyle, LineHeight},
 };
 use lumine_gpu::{GpuRenderer, text::ShapedText};
-use std::sync::Arc;
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+    sync::Arc,
+};
+
+fn pixel_hash(pixels: &[u8]) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    pixels.hash(&mut hasher);
+    hasher.finish()
+}
+
+fn assert_pixels_equal(actual: &[u8], expected: &[u8], width: usize, context: &str) {
+    assert_eq!(actual.len(), expected.len(), "{context}: frame lengths");
+    if actual == expected {
+        return;
+    }
+    let (mut left, mut top, mut right, mut bottom, mut count) = (usize::MAX, usize::MAX, 0, 0, 0);
+    for (index, (actual, expected)) in actual
+        .chunks_exact(4)
+        .zip(expected.chunks_exact(4))
+        .enumerate()
+    {
+        if actual != expected {
+            let (x, y) = (index % width, index / width);
+            left = left.min(x);
+            top = top.min(y);
+            right = right.max(x + 1);
+            bottom = bottom.max(y + 1);
+            count += 1;
+        }
+    }
+    panic!(
+        "{context}: {count} pixel differences in [{left}, {top}, {}, {}]; actual hash {:016x}, expected hash {:016x}",
+        right - left,
+        bottom - top,
+        pixel_hash(actual),
+        pixel_hash(expected),
+    );
+}
 
 #[test]
 fn normal_text_max_content_matches_gpu_paint_and_keeps_real_wrapping() {
@@ -95,10 +134,11 @@ fn normal_text_max_content_matches_gpu_paint_and_keeps_real_wrapping() {
         scene.set_style(node, style);
         let frame = scene.flush();
         gpu.render(&scene, &frame.damage).unwrap();
-        assert_eq!(
-            gpu.readback().unwrap(),
-            intrinsic,
-            "{value}: natural-width paint loses glyphs"
+        assert_pixels_equal(
+            &gpu.readback().unwrap(),
+            &intrinsic,
+            800,
+            &format!("{value}: natural-width paint loses glyphs"),
         );
         let narrow = expected.0 * 0.55;
         let mut style = scene.style(node);
@@ -107,9 +147,8 @@ fn normal_text_max_content_matches_gpu_paint_and_keeps_real_wrapping() {
         let frame = scene.flush();
         assert!(scene.layout_bounds(node).height >= pitch * 2. - 0.001);
         gpu.render(&scene, &frame.damage).unwrap();
-        assert_ne!(
-            gpu.readback().unwrap(),
-            intrinsic,
+        assert!(
+            gpu.readback().unwrap() != intrinsic,
             "{value}: finite width must wrap"
         );
         let mut style = scene.style(node);
@@ -122,20 +161,36 @@ fn normal_text_max_content_matches_gpu_paint_and_keeps_real_wrapping() {
         );
         gpu.render(&scene, &frame.damage).unwrap();
         if value == "add/send." {
-            let nowrap = gpu.readback().unwrap();
-            assert_ne!(
-                nowrap, intrinsic,
-                "explicit nowrap retains cross-slash kerning"
-            );
+            let clipped_nowrap = gpu.readback().unwrap();
+            let clip = scene.bounds(node);
             let mut style = scene.style(node);
             style.width = Some(700.);
             scene.set_style(node, style);
             let frame = scene.flush();
             gpu.render(&scene, &frame.damage).unwrap();
-            assert_eq!(
-                gpu.readback().unwrap(),
-                nowrap,
-                "nowrap ignores a soft width limit"
+            let nowrap = gpu.readback().unwrap();
+            assert!(
+                nowrap != intrinsic,
+                "full-width explicit nowrap retains cross-slash kerning; hash {:016x}",
+                pixel_hash(&nowrap),
+            );
+            let mut expected_clipped = nowrap;
+            // The renderer intersects ordinary text with its box, then rounds its scissor out.
+            for (index, pixel) in expected_clipped.chunks_exact_mut(4).enumerate() {
+                let (x, y) = (index % 800, index / 800);
+                if (x as f32) < clip.x.floor()
+                    || (x as f32) >= (clip.x + clip.width).ceil()
+                    || (y as f32) < clip.y.floor()
+                    || (y as f32) >= (clip.y + clip.height).ceil()
+                {
+                    pixel.copy_from_slice(&[0, 0, 0, 255]);
+                }
+            }
+            assert_pixels_equal(
+                &clipped_nowrap,
+                &expected_clipped,
+                800,
+                "nowrap preserves glyph positions inside its text-box clip",
             );
         }
         let mut style = scene.style(node);
@@ -144,10 +199,11 @@ fn normal_text_max_content_matches_gpu_paint_and_keeps_real_wrapping() {
         scene.set_style(node, style);
         let frame = scene.flush();
         gpu.render(&scene, &frame.damage).unwrap();
-        assert_eq!(
-            gpu.readback().unwrap(),
-            intrinsic,
-            "{value}: restoration must reuse the correct mode"
+        assert_pixels_equal(
+            &gpu.readback().unwrap(),
+            &intrinsic,
+            800,
+            &format!("{value}: restoration must reuse the correct mode"),
         );
         let frame = scene.flush();
         assert_eq!(gpu.render(&scene, &frame.damage).unwrap().shaped_nodes, 0);
