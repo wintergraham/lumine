@@ -638,15 +638,13 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                     for node in returning {
                         retiring.borrow_mut().insert(node);
                         let scene = ui.scene.borrow();
-                        live.retain(|id, entry| {
-                            if entry.node != node && !scene.ancestors(entry.node).any(|p| p == node)
-                            {
-                                return true;
-                            }
-                            if let Some(nodes) = environment.registry.borrow_mut().get_mut(id) {
-                                nodes.retain(|n| *n != entry.node);
-                            }
-                            false
+                        // Components can register descendants absent from the flattened specs.
+                        environment.registry.borrow_mut().retain(|_, nodes| {
+                            nodes.retain(|n| *n != node && !scene.ancestors(*n).any(|p| p == node));
+                            !nodes.is_empty()
+                        });
+                        live.retain(|_, entry| {
+                            entry.node != node && !scene.ancestors(entry.node).any(|p| p == node)
                         });
                     }
                 }
@@ -2092,10 +2090,13 @@ mod tests {
                             .gap(6.);
                         if !away {
                             rows = rows.child(
-                                column()
-                                    .id("returning")
-                                    .h(30.)
-                                    .child(div().id("returning-child").h(30.)),
+                                column().id("returning").h(30.).child(
+                                    component(|_| {
+                                        column().child(div().id("returning-internal").h(30.))
+                                    })
+                                    .id("returning-child")
+                                    .h(30.),
+                                ),
                             );
                         }
                         rows.child(div().id("survivor").h(30.))
@@ -2115,6 +2116,7 @@ mod tests {
         let rows = root.find("rows").unwrap();
         let old = root.find("returning").unwrap();
         let old_child = root.find("returning-child").unwrap();
+        let old_internal = root.find("returning-internal").unwrap();
         let mut time = std::time::Instant::now();
         let mut index = 0;
         let mut advance = |ms: u64| {
@@ -2126,6 +2128,7 @@ mod tests {
                 time,
                 interval: Duration::from_millis(ms),
             });
+            executor.borrow_mut().tick();
             executor.borrow_mut().tick();
             ui.prepare_frame();
         };
@@ -2139,9 +2142,18 @@ mod tests {
         ui.prepare_frame();
         let fresh = root.find("returning").unwrap();
         let fresh_child = root.find("returning-child").unwrap();
+        let fresh_internal = root.find("returning-internal").unwrap();
         assert_ne!(fresh, old);
         assert_ne!(fresh_child, old_child);
+        assert_ne!(fresh_internal, old_internal);
+        assert!(
+            ui.scene
+                .borrow()
+                .ancestors(fresh_internal)
+                .any(|p| p == fresh)
+        );
         assert!(ui.scene.borrow().contains(old));
+        assert!(ui.scene.borrow().contains(old_internal));
         assert!((ui.scene.borrow().layout_bounds(rows).height - before).abs() < 0.001);
         advance(0);
         advance(50);
@@ -2152,8 +2164,10 @@ mod tests {
         advance(300);
         assert!(!ui.scene.borrow().contains(old));
         assert!(!ui.scene.borrow().contains(old_child));
+        assert!(!ui.scene.borrow().contains(old_internal));
         assert_eq!(root.find("returning"), Some(fresh));
         assert_eq!(root.find("returning-child"), Some(fresh_child));
+        assert_eq!(root.find("returning-internal"), Some(fresh_internal));
         assert!(ui.scene.borrow().contains(fresh));
         advance(50);
         assert_eq!(ui.scene.borrow().children(rows).len(), 2);
