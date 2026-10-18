@@ -497,7 +497,9 @@ impl Scene {
             }
         }
         // Taffy floors negative intrinsic flex contributions, adding back a gap
-        // that a clipped reveal has cancelled with its trailing margin.
+        // that a clipped reveal has cancelled with its trailing margin. Its
+        // MaxContent flex fraction also scales negative margins by the basis,
+        // collapsing even positive outer contributions in an auto-height column.
         let has_negative_margin = ids.iter().any(|child| {
             let style = &self.node(*child).style;
             let options = style.layout_options.as_deref().copied().unwrap_or_default();
@@ -522,11 +524,14 @@ impl Scene {
             let padding = self.resolved_padding(id, constraints);
             let width = constraints.force_width.or(root_style.width)
                 .or_else(|| percentage(root_style.width_percent, constraints.percent_width))
-                .or(constraints.width)
+                .map(|w| dimension(w, root_style.min_width, root_style.max_width))
+                .or_else(|| constraints.width.map(|w| w.min(root_style.max_width.unwrap_or(f32::INFINITY))))
+                .or(root_style.max_width)
                 .map(|w| (w - padding.left - padding.right).max(0.));
             let mut total = 0.;
             let mut count = 0usize;
             let mut cancelled = false;
+            let mut auto_basis = true;
             for child in &ids {
                 let style = self.node(*child).style.clone();
                 let options = style.layout_options.as_deref().copied().unwrap_or_default();
@@ -550,10 +555,13 @@ impl Scene {
                 );
                 let contribution = size.1 + top + bottom;
                 cancelled |= contribution < 0.;
+                auto_basis &= matches!(options.basis, None | Some(Length::Auto));
                 total += contribution;
                 count += 1;
             }
-            if cancelled {
+            // Authored bases may differ from content size; leave their
+            // MaxContent sizing to Taffy instead of replacing it with this sum.
+            if cancelled || (constraints.height.is_none() && auto_basis) {
                 let gap = match root_options.gap_y { Some(Length::Px(value)) => value, _ => root_style.gap };
                 mapped.size.height = dim(Length::Px(total + gap * count.saturating_sub(1) as f32 + padding.top + padding.bottom));
             }
@@ -1235,6 +1243,250 @@ mod tests {
                 "unchanged layout must reuse its measurements"
             );
         }
+    }
+
+    #[test]
+    fn stroked_negative_margin_column_keeps_max_content_height_through_native_ancestors() {
+        use crate::layout::{EdgeLengths, LayoutOptions};
+        let mut scene = Scene::new(800., 600.);
+        let stage = scene.append(
+            scene.root(),
+            NodeKind::Container(Layout::Column),
+            Style {
+                width: Some(800.),
+                height: Some(400.),
+                align: Align::Center,
+                justify: Justify::End,
+                ..Default::default()
+            },
+        );
+        let wrapper = scene.append(stage, NodeKind::Container(Layout::Column), Style::default());
+        let overlay = scene.append(
+            wrapper,
+            NodeKind::Container(Layout::Overlay),
+            Style::default(),
+        );
+        let owner = scene.append(
+            overlay,
+            NodeKind::Container(Layout::Column),
+            Style {
+                width: Some(594.),
+                gap: 15.,
+                ..Default::default()
+            },
+        );
+        // The hidden sibling selects advanced layout for the retained owner,
+        // while the surrounding wrappers and composer remain ordinary columns.
+        scene.append(
+            owner,
+            NodeKind::Container(Layout::Column),
+            Style {
+                layout_options: Some(Arc::new(LayoutOptions {
+                    display: Some(ViewDisplay::None),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        );
+        let composer = scene.append(
+            owner,
+            NodeKind::Container(Layout::Column),
+            Style {
+                width: Some(594.),
+                gap: 9.,
+                ..Default::default()
+            },
+        );
+        let fill = Style {
+            width_percent: Some(1.),
+            ..Default::default()
+        };
+        let body = scene.append(composer, NodeKind::Container(Layout::Column), fill.clone());
+        let input = scene.append(
+            body,
+            NodeKind::Container(Layout::Column),
+            Style {
+                padding: 9.,
+                gap: 12.,
+                ..fill.clone()
+            },
+        );
+        let stroke = scene.append(
+            input,
+            NodeKind::Container(Layout::Overlay),
+            Style {
+                absolute: true,
+                layout_options: Some(Arc::new(LayoutOptions {
+                    inset: EdgeLengths::all(Length::Px(-0.75)),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        );
+        // The viewport includes 33px of padding and cancels 30px vertically.
+        // Its outer contribution stays positive, which the old cancelled-only
+        // intrinsic correction missed under MaxContent.
+        let attachments = scene.append(
+            input,
+            NodeKind::Container(Layout::Overlay),
+            Style {
+                width: Some(588.),
+                height: Some(93.),
+                padding_edges: Some(Insets {
+                    top: 18.,
+                    right: 3.,
+                    bottom: 15.,
+                    left: 15.,
+                }),
+                margin: Insets {
+                    top: -15.,
+                    bottom: -15.,
+                    left: -12.,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        let tile = scene.append(
+            attachments,
+            NodeKind::Rect(Color(34, 51, 68, 255)),
+            Style {
+                width: Some(570.),
+                height: Some(60.),
+                ..Default::default()
+            },
+        );
+        let editor = scene.append(input, NodeKind::Container(Layout::Row), fill.clone());
+        scene.append(
+            editor,
+            NodeKind::Rect(Color(255, 255, 255, 255)),
+            Style {
+                width: Some(24.),
+                height: Some(48.),
+                ..Default::default()
+            },
+        );
+        let footer = scene.append(
+            composer,
+            NodeKind::Container(Layout::Row),
+            Style {
+                height: Some(39.),
+                ..fill
+            },
+        );
+        assert!(scene.uses_advanced_layout(owner));
+        assert!(scene.uses_advanced_layout(input));
+        assert!(!scene.uses_advanced_layout(composer));
+        for (viewport_height, input_height, composer_height) in [
+            (None, 66., 114.),
+            (Some(93.), 141., 189.),
+            (Some(120.), 168., 216.),
+            (None, 66., 114.),
+            (Some(93.), 141., 189.),
+        ] {
+            let mut style = scene.style(attachments);
+            style.height = Some(viewport_height.unwrap_or(93.));
+            style.layout_options = viewport_height.is_none().then(|| {
+                Arc::new(LayoutOptions {
+                    display: Some(ViewDisplay::None),
+                    ..Default::default()
+                })
+            });
+            scene.set_style(attachments, style);
+            let mut style = scene.style(tile);
+            style.height = Some(viewport_height.unwrap_or(93.) - 33.);
+            scene.set_style(tile, style);
+            // The actual trace disagreed only on the unbounded probe. Exercise
+            // both numeric available-height probes and restore the same cache key.
+            for height in [None, Some(0.), Some(66.), None] {
+                let constraints = Constraints {
+                    width: Some(594.),
+                    percent_width: Some(594.),
+                    height,
+                    ..Default::default()
+                };
+                assert_eq!(scene.measure(input, constraints), (594., input_height));
+                assert_eq!(
+                    scene.measure(composer, constraints),
+                    (594., composer_height)
+                );
+            }
+            scene.flush();
+            for node in [wrapper, overlay, owner, composer] {
+                assert_eq!(
+                    scene.layout_bounds(node).height,
+                    composer_height,
+                    "{node:?}"
+                );
+                assert_eq!(scene.layout_bounds(node).y + composer_height, 400.);
+            }
+            let composer_bounds = scene.layout_bounds(composer);
+            assert_eq!(scene.layout_bounds(body).height, input_height);
+            assert_eq!(scene.layout_bounds(input).height, input_height);
+            assert_eq!(scene.layout_bounds(stroke).height, input_height + 1.5);
+            let footer_bounds = scene.layout_bounds(footer);
+            assert_eq!(footer_bounds.y - composer_bounds.y, input_height + 9.);
+            assert_eq!(footer_bounds.y + footer_bounds.height, 400.);
+            assert_eq!(scene.flush().layout_nodes, 0);
+        }
+    }
+
+    #[test]
+    fn negative_margin_max_content_height_wraps_at_the_clamped_column_width() {
+        use crate::text_layout::{FontStyle, LineHeight};
+        let mut scene = Scene::new(400., 200.);
+        let column = scene.append(
+            scene.root(),
+            NodeKind::Container(Layout::Column),
+            Style {
+                width: Some(120.),
+                max_width: Some(60.),
+                layout_options: Some(Arc::new(crate::layout::LayoutOptions {
+                    gap_y: Some(Length::Px(0.)),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        );
+        let text = scene.append(
+            column,
+            NodeKind::Text {
+                text: "abcdefghijabcdefghij".into(),
+                font_size: 10.,
+                color: Color(255, 255, 255, 255),
+            },
+            Style {
+                text_wrap: true,
+                margin: Insets {
+                    top: -1.,
+                    bottom: -1.,
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        );
+        scene.set_font(
+            text,
+            FontStyle {
+                line_height: LineHeight::px(10.),
+                ..Default::default()
+            },
+        );
+        for height in [None, Some(0.), None] {
+            assert_eq!(
+                scene.measure(
+                    column,
+                    Constraints {
+                        height,
+                        ..Default::default()
+                    }
+                ),
+                (60., 18.)
+            );
+        }
+        scene.flush();
+        assert_eq!(scene.layout_bounds(column).height, 18.);
+        assert_eq!(scene.layout_bounds(text).height, 20.);
     }
 
     #[test]
