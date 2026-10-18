@@ -54,6 +54,9 @@ pub struct CompiledMorphAnimation {
 }
 #[derive(Clone, Default)]
 pub struct CompiledMorphEffect {
+    /// Match source morph() text clones and effect-level WAAPI opacity timing.
+    /// Native defaults retain interrupted enter opacity in outgoing snapshots.
+    pub source_text_swap: bool,
     /// Clip the live text's resizing box without copying that temporary clip to outgoing text.
     pub text_resize_clip: bool,
     pub enter: Option<CompiledMorphAnimation>,
@@ -382,6 +385,7 @@ struct TextTrack {
     revision: Signal<u64>,
     timing: Rc<RefCell<CompiledMorphTiming>>,
     ghost_clip: Rc<Cell<Option<TextClip>>>,
+    source_swap: Rc<Cell<bool>>,
 }
 #[derive(Clone, Copy)]
 struct TextClip {
@@ -516,7 +520,13 @@ impl TextGhost {
             ui.remove(node);
         }
     }
-    fn snapshot(&self, owner: NodeId, paragraph: NodeId, clip: Option<TextClip>) {
+    fn snapshot(
+        &self,
+        owner: NodeId,
+        paragraph: NodeId,
+        clip: Option<TextClip>,
+        source_swap: bool,
+    ) {
         self.clear();
         let Some(mut ui) = self.ui.upgrade() else {
             return;
@@ -610,8 +620,10 @@ impl TextGhost {
             let mut scene = ui.scene.borrow_mut();
             scene.set_font(text, font);
             scene.set_effects(ghost, owner_effects);
-            // The internal paragraph contributes enter opacity; keep nonlinear leaf effects local.
-            glyph_effects.opacity *= paragraph_opacity;
+            // cloneNode does not copy the source label's running WAAPI enter animation.
+            if !source_swap {
+                glyph_effects.opacity *= paragraph_opacity;
+            }
             scene.set_effects(text, glyph_effects);
             scene.set_transform(ghost, transform);
             scene.set_paint_transform_origin(ghost, paint, origin);
@@ -636,12 +648,17 @@ fn content(
     timing: &CompiledMorphTiming,
 ) -> ContentTrack {
     let authored_clip = TextClip::authored(view);
+    let source_swap = view
+        .morph_effect
+        .as_ref()
+        .is_some_and(|effect| effect.source_text_swap);
     match &mut view.kind {
         kind @ (Kind::Text(_) | Kind::RichText(_)) => {
             let source = Rc::new(RefCell::new(text_source(kind)));
             let revision = cx.state(0u64);
             let timing = Rc::new(RefCell::new(timing.clone()));
             let ghost_clip = Rc::new(Cell::new(authored_clip));
+            let source_swap = Rc::new(Cell::new(source_swap));
             let owner = Rc::new(Cell::new(None));
             let paragraph_node = Rc::new(Cell::new(None));
             let ghost = Rc::new(TextGhost {
@@ -680,6 +697,7 @@ fn content(
             let changed = revision.clone();
             let options = timing.clone();
             let clip = ghost_clip.clone();
+            let swap_policy = source_swap.clone();
             let old_owner = owner.clone();
             let old_paragraph = paragraph_node.clone();
             let enter_write = enter.clone();
@@ -692,40 +710,60 @@ fn content(
                     && old != next
                 {
                     let timing = options.borrow();
+                    let source_swap = swap_policy.get();
                     if timing.crossfade.is_zero() {
                         ghost.clear();
                     } else if let (Some(owner), Some(paragraph)) =
                         (old_owner.get(), old_paragraph.get())
                     {
-                        ghost.snapshot(owner, paragraph, clip);
+                        ghost.snapshot(owner, paragraph, clip, source_swap);
                     }
                     leave_write.set(0.);
                     enter_write.set(0.);
+                    let easing = if source_swap {
+                        crate::motion::Easing::cubic_bezier(0., 0., 0.58, 1.)
+                    } else {
+                        crate::motion::Easing::EaseOut
+                    };
                     leave_write.animate_to(
                         1.,
                         crate::motion::Transition::tween(
-                            timing.crossfade,
-                            crate::motion::Easing::EaseOut,
+                            if source_swap {
+                                timing.crossfade.mul_f32(0.6)
+                            } else {
+                                timing.crossfade
+                            },
+                            easing,
                         ),
                     );
                     enter_write.animate_to(
                         1.,
-                        crate::motion::Transition::tween(
-                            timing.crossfade.mul_f32(1.3),
-                            crate::motion::Easing::EaseOut,
-                        )
-                        .delay(timing.crossfade.mul_f32(0.2)),
+                        crate::motion::Transition::tween(timing.crossfade.mul_f32(1.3), easing)
+                            .delay(if source_swap {
+                                Duration::ZERO
+                            } else {
+                                timing.crossfade.mul_f32(0.2)
+                            }),
                     );
                 }
                 next
             })))
             .h_full();
             let opacity = enter.clone();
+            let incoming_policy = source_swap.clone();
             view.kind = Kind::Component(Box::new(move |_| {
                 overlay().child(
                     paragraph
                         .on_mount(move |node| paragraph_node.set(Some(node)))
-                        .reactive_style(move || Styles::new().opacity(opacity.get())),
+                        .reactive_style(move || {
+                            let progress = opacity.get();
+                            // WAAPI effect easing precedes interpolation of the 0/.2/1 keyframes.
+                            Styles::new().opacity(if incoming_policy.get() {
+                                ((progress - 0.2) / 0.8).clamp(0., 1.)
+                            } else {
+                                progress
+                            })
+                        }),
                 )
             }));
             ContentTrack::Text(TextTrack {
@@ -733,6 +771,7 @@ fn content(
                 revision,
                 timing,
                 ghost_clip,
+                source_swap,
             })
         }
         Kind::Image { source, .. } => {
@@ -764,11 +803,16 @@ fn content(
 
 fn update_content(track: &ContentTrack, view: &mut View, timing: &CompiledMorphTiming) {
     let authored_clip = TextClip::authored(view);
+    let source_swap = view
+        .morph_effect
+        .as_ref()
+        .is_some_and(|effect| effect.source_text_swap);
     match (track, &mut view.kind) {
         (ContentTrack::Text(track), kind @ (Kind::Text(_) | Kind::RichText(_))) => {
             *track.source.borrow_mut() = text_source(kind);
             *track.timing.borrow_mut() = timing.clone();
             track.ghost_clip.set(authored_clip);
+            track.source_swap.set(source_swap);
             track
                 .revision
                 .update(|revision| *revision = revision.wrapping_add(1));
@@ -2787,6 +2831,171 @@ mod tests {
             }
             advance(&ui, 800);
             assert!(!ui.scene.borrow().contains(outgoing));
+            root.unmount();
+            executor.borrow_mut().tick();
+            assert!(!frames.wants_frame());
+        }
+    }
+
+    #[test]
+    fn source_text_swap_reverse_50ms_clones_authored_opacity_and_waapi_timing() {
+        use crate::{
+            frame::{Frame, FrameClock},
+            scene::Effects,
+            task::LocalExecutor,
+        };
+        use std::time::Instant;
+        for (base_opacity, ancestor_opacity, leaf_opacity) in [(1., 1., 1.), (0.6, 0.5, 0.7)] {
+            let mut ui = Ui::new(800., 300.);
+            let executor = Rc::new(RefCell::new(LocalExecutor::new()));
+            let frames = FrameClock::new();
+            let selected = ui.signal(false);
+            let read = selected.clone();
+            let root = ui.mount(provide(
+                TaskRunner::from_executor(executor.clone()),
+                provide(
+                    frames.clone(),
+                    compiled_morph(
+                        move || read.get(),
+                        move |long| {
+                            column()
+                                .id("approval")
+                                .size(600., 100.)
+                                .p(10.)
+                                .opacity(ancestor_opacity)
+                                .overflow_hidden()
+                                .child(
+                                    text(if long {
+                                        "No charge unless cancelled <24h"
+                                    } else {
+                                        "Saved"
+                                    })
+                                    .id("value")
+                                    .size(if long { 360. } else { 90. }, 24.)
+                                    .text_size(24.)
+                                    .text_wrap(false)
+                                    .opacity(base_opacity)
+                                    .blur(3.)
+                                    .morph_effect(
+                                        CompiledMorphEffect {
+                                            text_resize_clip: true,
+                                            source_text_swap: true,
+                                            ..Default::default()
+                                        },
+                                    ),
+                                )
+                        },
+                        || CompiledMorphTiming {
+                            source_layout_scale: Some(1.),
+                            duration: Duration::from_millis(400),
+                            crossfade: Duration::from_millis(140),
+                            color_duration: Duration::ZERO,
+                            curve: std::array::from_fn(|i| i as f32 / 48.),
+                        },
+                    ),
+                ),
+            ));
+            ui.prepare_frame();
+            let owner = root.find("value").unwrap();
+            let parent = root.find("approval").unwrap();
+            let paragraph = ui.scene.borrow().children(owner)[0];
+            let glyph = ui.scene.borrow().children(paragraph)[0];
+            let leaf_effects = Effects {
+                opacity: leaf_opacity,
+                blur_radius: 1.25,
+                edge_fade: 0.2,
+            };
+            ui.scene.borrow_mut().set_effects(glyph, leaf_effects);
+            let ghost = |ui: &Ui| {
+                let scene = ui.scene.borrow();
+                scene
+                    .children(parent)
+                    .iter()
+                    .copied()
+                    .find(|node| *node != owner)
+                    .unwrap()
+            };
+            let mut time = Instant::now() + Duration::from_secs(60);
+            frames.deliver(Frame {
+                index: 0,
+                time,
+                interval: Duration::from_millis(16),
+            });
+            let mut index = 0;
+            let mut advance = |ui: &Ui, millis| {
+                executor.borrow_mut().tick();
+                time += Duration::from_millis(millis);
+                index += 1;
+                frames.deliver(Frame {
+                    index,
+                    time,
+                    interval: Duration::from_millis(millis),
+                });
+                executor.borrow_mut().tick();
+                executor.borrow_mut().tick();
+                ui.prepare_frame();
+            };
+            selected.set(true);
+            ui.prepare_frame();
+            let first_ghost = ghost(&ui);
+            advance(&ui, 20);
+            assert_eq!(ui.scene.borrow().effects(paragraph).opacity, 0.);
+            advance(&ui, 5);
+            // Independent CSS ease-out evaluations, then interpolation of the 0/.2/1 keyframes.
+            assert!((ui.scene.borrow().effects(paragraph).opacity - 0.021385128).abs() < 0.000001);
+            advance(&ui, 25);
+            assert!((ui.scene.borrow().effects(paragraph).opacity - 0.2645452).abs() < 0.000001);
+            assert!(
+                (ui.scene.borrow().effects(first_ghost).opacity - base_opacity * 0.21931966).abs()
+                    < 0.000001
+            );
+            selected.set(false);
+            ui.prepare_frame();
+            assert!(!ui.scene.borrow().contains(first_ghost));
+            let outgoing = ghost(&ui);
+            let outgoing_glyph = ui.scene.borrow().children(outgoing)[0];
+            {
+                let scene = ui.scene.borrow();
+                assert_eq!(scene.effects(outgoing).opacity, base_opacity);
+                assert_eq!(scene.effects(outgoing_glyph), leaf_effects);
+                assert_eq!(scene.effects(paragraph).opacity, 0.);
+                assert!(scene.style(owner).clip);
+                assert!(!scene.style(outgoing).clip);
+                assert!(scene.style(parent).clip);
+            }
+            advance(&ui, 50);
+            {
+                let scene = ui.scene.borrow();
+                assert_eq!(root.find("value"), Some(owner));
+                assert_eq!(scene.children(owner)[0], paragraph);
+                assert_eq!(scene.children(paragraph)[0], glyph);
+                // 1 - cubic-bezier(0,0,.58,1)(50/84), unaffected by the interrupted enter.
+                assert!(
+                    (scene.effects(outgoing).opacity - base_opacity * 0.21931966).abs() < 0.000001
+                );
+                assert_eq!(scene.effects(outgoing).blur_radius, 3.);
+                assert_eq!(scene.effects(outgoing_glyph), leaf_effects);
+                let effective_opacity = std::iter::once(outgoing_glyph)
+                    .chain(scene.ancestors(outgoing_glyph))
+                    .map(|node| scene.effects(node).opacity)
+                    .product::<f32>();
+                assert!(
+                    (effective_opacity
+                        - ancestor_opacity * base_opacity * leaf_opacity * 0.21931966)
+                        .abs()
+                        < 0.000001
+                );
+                assert!((scene.effects(paragraph).opacity - 0.2645452).abs() < 0.000001);
+                assert_eq!(
+                    scene.projection_transform(outgoing_glyph),
+                    crate::affine::Affine::IDENTITY
+                );
+            }
+            advance(&ui, 34);
+            assert!(!ui.scene.borrow().contains(outgoing));
+            assert!((ui.scene.borrow().effects(paragraph).opacity - 0.55296665).abs() < 0.000001);
+            advance(&ui, 98);
+            assert_eq!(ui.scene.borrow().effects(paragraph).opacity, 1.);
             root.unmount();
             executor.borrow_mut().tick();
             assert!(!frames.wants_frame());
