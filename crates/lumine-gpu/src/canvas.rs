@@ -463,7 +463,7 @@ mod lifetime_tests {
             .unwrap(),
         );
         let image = rasterize(&canvas, 41., 21., 1.).unwrap();
-        let pixel = |x, y| &image.pixels()[4 * (y * 41 + x)..][..4];
+        let pixel = |x: usize, y: usize| &image.pixels()[4 * (y * 41 + x)..][..4];
         assert_eq!(pixel(20, 10), [255, 0, 0, 255]);
         assert_eq!(pixel(30, 10), [255, 0, 0, 128]);
         assert_eq!(pixel(20, 15), pixel(30, 10));
@@ -502,7 +502,7 @@ mod lifetime_tests {
             .unwrap(),
         );
         let image = rasterize(&canvas, 12., 2., 1.).unwrap();
-        let pixel = |x| &image.pixels()[4 * x..][..4];
+        let pixel = |x: usize| &image.pixels()[4 * x..][..4];
         assert_eq!(pixel(7), [255, 255, 255, 255]);
         assert_eq!(pixel(8), [255, 0, 0, 255]);
         assert_eq!(pixel(9), [0, 0, 255, 255]);
