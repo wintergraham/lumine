@@ -767,7 +767,11 @@ impl Scene {
                     width: Some(child_layout.size.width),
                     height: Some(child_layout.size.height),
                     percent_width: Some(inner_width),
-                    percent_height: Some(inner_height),
+                    percent_height: if synthesized_height && !self.node(child).style.absolute {
+                        child_percent_height
+                    } else {
+                        Some(inner_height)
+                    },
                     force_width: Some(child_layout.size.width),
                     force_height: Some(child_layout.size.height),
                     min_content_width: false,
@@ -1590,6 +1594,11 @@ mod tests {
                     "case={case}, known={known}"
                 );
                 scene.arrange(column, 0., 0., &mut FrameReport::default(), false);
+                assert_eq!(
+                    scene.node(child).measurement.as_ref().unwrap().constraints.percent_height,
+                    known.then_some(100.),
+                    "case={case}, known={known}: preserve the original percentage basis"
+                );
                 let child_height = if known {
                     match case {
                         2 => 50.,
