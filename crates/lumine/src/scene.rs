@@ -1976,7 +1976,7 @@ impl Scene {
     }
     /// Intrinsic probes consume only a size. Keep them separate from the few
     /// complete measurements that must restore descendant geometry for arrange.
-    fn cached_intrinsic_size(&mut self, id: NodeId, constraints: Constraints) -> Option<(f32, f32)> {
+    fn measure_intrinsic(&mut self, id: NodeId, constraints: Constraints) -> (f32, f32) {
         let revision = self.text_shaper_revision;
         if let Some(index) = self
             .node(id)
@@ -1988,15 +1988,8 @@ impl Scene {
             let hit = sizes.remove(index);
             let size = hit.2;
             sizes.insert(0, hit);
-            return Some(size);
-        }
-        None
-    }
-    fn measure_intrinsic(&mut self, id: NodeId, constraints: Constraints) -> (f32, f32) {
-        if let Some(size) = self.cached_intrinsic_size(id, constraints) {
             return size;
         }
-        let revision = self.text_shaper_revision;
         let size = self.measure(id, constraints);
         let sizes = &mut self.node_mut(id).intrinsic_sizes;
         sizes.truncate(INTRINSIC_MEASUREMENTS - 1);

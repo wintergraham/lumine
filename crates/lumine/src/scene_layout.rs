@@ -631,80 +631,38 @@ impl Scene {
             }
             cache.measure_context = measure_context;
         }
-        // Resolve exact probes between Taffy calls, so ancestor flex/grid stack
-        // frames are gone before measuring another retained subtree.
-        let mut answers =
-            std::collections::HashMap::<NodeId, Vec<(Constraints, (f32, f32))>>::new();
-        loop {
-            let mut pending = std::collections::HashMap::<NodeId, Constraints>::new();
-            let mut unresolved = std::collections::HashSet::new();
-            {
-                #[cfg(test)]
-                let _pass = tests::TaffyPass::enter();
-                cache
-                    .tree
-                    .compute_layout_with_measure(
-                        root,
-                        t::Size {
-                            width: available(constraints.width),
-                            height: available(constraints.height),
+        cache
+            .tree
+            .compute_layout_with_measure(
+                root,
+                t::Size {
+                    width: available(constraints.width),
+                    height: available(constraints.height),
+                },
+                |known, space, _, context, _| {
+                    let Some(context) = context else {
+                        return t::Size::ZERO;
+                    };
+                    let child = *context;
+                    let size = self.measure_intrinsic(
+                        child,
+                        Constraints {
+                            width: known.width.or_else(|| bound(space.width)),
+                            height: known.height.or_else(|| bound(space.height)),
+                            percent_width: child_percent_width,
+                            percent_height: child_percent_height,
+                            force_width: known.width,
+                            force_height: known.height,
+                            hidden: false,
                         },
-                        |known, space, key, context, _| {
-                            let Some(context) = context else {
-                                return t::Size::ZERO;
-                            };
-                            let child = *context;
-                            let probe = Constraints {
-                                width: known.width.or_else(|| bound(space.width)),
-                                height: known.height.or_else(|| bound(space.height)),
-                                percent_width: child_percent_width,
-                                percent_height: child_percent_height,
-                                force_width: known.width,
-                                force_height: known.height,
-                                hidden: false,
-                            };
-                            let size = answers
-                                .get(&child)
-                                .and_then(|sizes| {
-                                    sizes
-                                        .iter()
-                                        .find(|(at, _)| *at == probe)
-                                        .map(|(_, size)| *size)
-                                })
-                                .or_else(|| self.cached_intrinsic_size(child, probe));
-                            let Some(size) = size else {
-                                pending.entry(child).or_insert(probe);
-                                unresolved.insert(key);
-                                // This whole pass is uncommitted and must be replayed.
-                                return t::Size::ZERO;
-                            };
-                            t::Size {
-                                width: size.0,
-                                height: size.1,
-                            }
-                        },
-                    )
-                    .expect("retained tree is structurally valid");
-            }
-            if pending.is_empty() {
-                break;
-            }
-            for (child, probe) in pending {
-                let size = self.measure_intrinsic(child, probe);
-                answers.entry(child).or_default().push((probe, size));
-            }
-            // A provisional leaf/root result must never answer a later pass.
-            for key in unresolved {
-                cache
-                    .tree
-                    .mark_dirty(key)
-                    .expect("unresolved retained child");
-            }
-            cache
-                .tree
-                .mark_dirty(root)
-                .expect("uncommitted retained root");
-        }
+                    );
+                    t::Size {
+                        width: size.0,
+                        height: size.1,
+                    }
+                },
+            )
+            .expect("retained tree is structurally valid");
         let root_layout = *cache.tree.layout(root).expect("computed root");
         let inner_width =
             (root_layout.size.width - root_layout.padding.left - root_layout.padding.right).max(0.);
@@ -749,39 +707,14 @@ mod tests {
     use super::*;
     use std::{cell::Cell, rc::Rc};
 
-    thread_local! { static TAFFY_ACTIVE: Cell<bool> = const { Cell::new(false) }; }
-    pub(super) struct TaffyPass;
-    impl TaffyPass {
-        pub(super) fn enter() -> Self {
-            TAFFY_ACTIVE.with(|active| {
-                assert!(
-                    !active.replace(true),
-                    "Taffy must return before measuring another retained subtree"
-                )
-            });
-            Self
-        }
-    }
-    impl Drop for TaffyPass {
-        fn drop(&mut self) {
-            TAFFY_ACTIVE.with(|active| active.set(false));
-        }
-    }
-
     #[test]
-    fn deep_auto_minimum_probes_leave_taffy_before_measuring_and_match_shallow_geometry() {
+    fn deep_auto_minimum_probes_preserve_finite_shallow_geometry() {
         use crate::text_layout::{FallbackTextLayout, FontStyle, WordWrap};
         fn make(depth: usize) -> (Scene, NodeId, NodeId, NodeId, Rc<Cell<usize>>) {
             let mut scene = Scene::new(400., 200.);
             let calls = Rc::new(Cell::new(0));
             let count = calls.clone();
             scene.set_font_text_measurer(move |text, size, width, font| {
-                TAFFY_ACTIVE.with(|active| {
-                    assert!(
-                        !active.get(),
-                        "text measurement ran inside a Taffy callback"
-                    )
-                });
                 count.set(count.get() + 1);
                 FallbackTextLayout::measure_with_font(text, size, width, font)
             });
@@ -865,6 +798,14 @@ mod tests {
             );
             assert_eq!(deep.layout_bounds(row), shallow.layout_bounds(shallow_row));
             assert_eq!(deep.layout_bounds(text), shallow.layout_bounds(leaf));
+            for node in [outer, row, text] {
+                let bounds = deep.layout_bounds(node);
+                assert!(
+                    [bounds.x, bounds.y, bounds.width, bounds.height]
+                        .into_iter()
+                        .all(f32::is_finite)
+                );
+            }
             let measured = calls.get();
             deep.flush();
             assert_eq!(
