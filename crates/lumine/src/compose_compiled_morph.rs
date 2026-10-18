@@ -498,7 +498,8 @@ fn content(cx: &mut Context, view: &mut View, timing: &CompiledMorphTiming) -> C
                     );
                 }
                 next
-            })));
+            })))
+            .h_full();
             let old = previous.clone();
             let opacity = enter.clone();
             let old_opacity = leave.clone();
@@ -510,6 +511,7 @@ fn content(cx: &mut Context, view: &mut View, timing: &CompiledMorphTiming) -> C
                             .absolute()
                             .left(0.)
                             .top(0.)
+                            .h_full()
                             .disabled(true)
                             .reactive_style(move || {
                                 Styles::new()
