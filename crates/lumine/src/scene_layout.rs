@@ -283,6 +283,12 @@ impl Scene {
     }
     pub(super) fn resolved_leaf_style(&self, id: NodeId, constraints: Constraints) -> Style {
         let mut style = self.node(id).style.clone();
+        if constraints.min_content_width && constraints.force_width.is_none() {
+            // Taffy asks for this item's content contribution, not its preferred
+            // width. Descendant styles remain intact for their own contributions.
+            style.width = None;
+            style.width_percent = None;
+        }
         let Some(options) = style.layout_options.as_deref() else {
             return style;
         };
@@ -636,7 +642,11 @@ impl Scene {
             .compute_layout_with_measure(
                 root,
                 t::Size {
-                    width: available(constraints.width),
+                    width: if constraints.min_content_width && constraints.force_width.is_none() {
+                        t::AvailableSpace::MinContent
+                    } else {
+                        available(constraints.width)
+                    },
                     height: available(constraints.height),
                 },
                 |known, space, _, context, _| {
@@ -648,6 +658,8 @@ impl Scene {
                         child,
                         Constraints {
                             width: known.width.or_else(|| bound(space.width)),
+                            min_content_width: known.width.is_none()
+                                && matches!(space.width, t::AvailableSpace::MinContent),
                             height: known.height.or_else(|| bound(space.height)),
                             percent_width: child_percent_width,
                             percent_height: child_percent_height,
@@ -681,6 +693,7 @@ impl Scene {
                     percent_height: Some(inner_height),
                     force_width: Some(child_layout.size.width),
                     force_height: Some(child_layout.size.height),
+                    min_content_width: false,
                     hidden: false,
                 };
                 self.measure(child, child_constraints);
@@ -706,6 +719,209 @@ impl Scene {
 mod tests {
     use super::*;
     use std::{cell::Cell, rc::Rc};
+
+    #[test]
+    fn empty_preferred_width_auto_minimum_shrinks_to_the_actual_flex_allocation() {
+        let mut scene = Scene::new(400., 200.);
+        let row = scene.append(
+            scene.root(),
+            NodeKind::Container(Layout::Row),
+            Style {
+                width: Some(226.),
+                gap: 10.,
+                ..Default::default()
+            },
+        );
+        scene.append(
+            row,
+            NodeKind::Rect(Color(0, 0, 0, 0)),
+            Style {
+                width: Some(20.),
+                height: Some(13.),
+                ..Default::default()
+            },
+        );
+        let child = scene.append(
+            row,
+            NodeKind::Container(Layout::Column),
+            Style {
+                width: Some(196.097),
+                height: Some(13.),
+                flex_shrink: 1.,
+                layout_options: Some(Arc::new(crate::layout::LayoutOptions {
+                    min_width: Some(Length::Auto),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        );
+        scene.flush();
+        let bounds = scene.layout_bounds(child);
+        assert!((bounds.width - 196.).abs() < 0.0001, "{bounds:?}");
+        assert!((bounds.x - 30.).abs() < 0.0001, "{bounds:?}");
+        assert_eq!(bounds.height, 13.);
+    }
+
+    #[test]
+    fn min_content_query_preserves_descendant_preferences_known_zero_and_other_constraints() {
+        use crate::text_layout::{FallbackTextLayout, FontStyle, WordWrap};
+        use std::cell::RefCell;
+        let min = Constraints {
+            width: Some(0.),
+            min_content_width: true,
+            ..Default::default()
+        };
+        let definite = Constraints {
+            width: Some(0.),
+            ..Default::default()
+        };
+        let known_zero = Constraints {
+            force_width: Some(0.),
+            ..min
+        };
+        let mut scene = Scene::new(400., 200.);
+        let empty = scene.append(
+            scene.root(),
+            NodeKind::Container(Layout::Column),
+            Style {
+                width: Some(196.097),
+                ..Default::default()
+            },
+        );
+        // Identical numeric available width, different query identity and result.
+        assert_eq!(scene.measure_intrinsic(empty, min).0, 0.);
+        assert_eq!(scene.measure_intrinsic(empty, definite).0, 196.097);
+        assert_eq!(scene.measure_intrinsic(empty, known_zero).0, 0.);
+        assert_eq!(
+            scene.measure_intrinsic(empty, Constraints::default()).0,
+            196.097
+        );
+        assert_eq!(scene.measure_intrinsic(empty, min).0, 0.);
+        let mut style = scene.style(empty);
+        style.min_width = Some(30.);
+        style.max_width = Some(80.);
+        scene.set_style(empty, style);
+        assert_eq!(scene.measure_intrinsic(empty, min).0, 30.);
+        assert_eq!(
+            scene.measure_intrinsic(empty, Constraints::default()).0,
+            80.
+        );
+        let percentage = scene.append(
+            scene.root(),
+            NodeKind::Container(Layout::Column),
+            Style {
+                width_percent: Some(0.5),
+                ..Default::default()
+            },
+        );
+        let percent = Constraints {
+            percent_width: Some(200.),
+            ..Default::default()
+        };
+        assert_eq!(scene.measure_intrinsic(percentage, percent).0, 100.);
+        assert_eq!(
+            scene
+                .measure_intrinsic(
+                    percentage,
+                    Constraints {
+                        percent_width: percent.percent_width,
+                        ..min
+                    }
+                )
+                .0,
+            0.
+        );
+        assert_eq!(
+            scene
+                .measure_intrinsic(
+                    percentage,
+                    Constraints {
+                        percent_width: percent.percent_width,
+                        ..known_zero
+                    }
+                )
+                .0,
+            0.
+        );
+
+        for layout in [Layout::Column, Layout::Row, Layout::Overlay] {
+            for advanced in [false, true] {
+                for preferred in [None, Some(196.097)] {
+                    let wrapper = scene.append(
+                        scene.root(),
+                        NodeKind::Container(layout),
+                        Style {
+                            width: preferred,
+                            layout_options: advanced.then(|| {
+                                Arc::new(crate::layout::LayoutOptions {
+                                    gap_y: Some(Length::Px(0.)),
+                                    ..Default::default()
+                                })
+                            }),
+                            ..Default::default()
+                        },
+                    );
+                    scene.append(
+                        wrapper,
+                        NodeKind::Container(Layout::Column),
+                        Style {
+                            width: Some(120.),
+                            height: Some(13.),
+                            ..Default::default()
+                        },
+                    );
+                    assert_eq!(
+                        scene.measure_intrinsic(wrapper, min).0,
+                        120.,
+                        "{layout:?}, advanced={advanced}, preferred={preferred:?}"
+                    );
+                }
+            }
+        }
+
+        let limits = Rc::new(RefCell::new(Vec::new()));
+        let measured = limits.clone();
+        scene.set_font_text_measurer(move |text, size, width, font| {
+            measured.borrow_mut().push(width);
+            FallbackTextLayout::measure_with_font(text, size, width, font)
+        });
+        for wrap in [true, false] {
+            let text = scene.append(
+                scene.root(),
+                label("short longestword"),
+                Style {
+                    width: Some(196.097),
+                    text_wrap: wrap,
+                    ..Default::default()
+                },
+            );
+            let font = FontStyle {
+                word_wrap: WordWrap::Word,
+                ..Default::default()
+            };
+            scene.set_font(text, font.clone());
+            limits.borrow_mut().clear();
+            let size = scene.measure_intrinsic(text, min);
+            assert_eq!(limits.borrow().as_slice(), &[wrap.then_some(0.)]);
+            let expected = FallbackTextLayout::measure_with_font(
+                if wrap {
+                    "longestword"
+                } else {
+                    "short longestword"
+                },
+                16.,
+                None,
+                &font,
+            );
+            assert_eq!(size.0, expected.0);
+            assert_eq!(scene.measure_intrinsic(text, known_zero).0, 0.);
+            assert_eq!(scene.measure_intrinsic(text, definite).0, 196.097);
+            assert_eq!(
+                scene.measure_intrinsic(text, Constraints::default()).0,
+                196.097
+            );
+        }
+    }
 
     #[test]
     fn deep_auto_minimum_probes_preserve_finite_shallow_geometry() {

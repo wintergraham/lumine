@@ -384,6 +384,8 @@ impl TextSizes {
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 struct Constraints {
     width: Option<f32>,
+    // A content-size query for this item, distinct from a definite zero width.
+    min_content_width: bool,
     height: Option<f32>,
     percent_width: Option<f32>,
     percent_height: Option<f32>,
@@ -2244,6 +2246,7 @@ impl Scene {
                                     percent_height,
                                     force_width: horizontal.then_some(allocated),
                                     force_height: (!horizontal).then_some(allocated),
+                                    min_content_width: false,
                                     hidden: false,
                                 },
                             );
@@ -2275,6 +2278,7 @@ impl Scene {
                                     percent_height,
                                     force_width: horizontal.then_some(sizes[i].0),
                                     force_height: (!horizontal).then_some(sizes[i].1),
+                                    min_content_width: false,
                                     hidden: false,
                                 },
                             );
@@ -2371,6 +2375,7 @@ impl Scene {
                                     } else {
                                         None
                                     },
+                                    min_content_width: false,
                                     hidden: false,
                                 },
                             );
