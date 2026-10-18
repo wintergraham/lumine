@@ -898,11 +898,11 @@ pub fn text_signal(compute: impl FnMut() -> String + 'static) -> View {
     View::new(Kind::BoundText(Box::new(compute)))
 }
 pub use crate::compose_rich::{RichTextView, TextSpan, rich_text, text_span};
-/// Reactive inline children; equal resolved content preserves paragraph layout/paint.
 /// Reactive display content; plain values retain the native plain-text shaping path.
 pub fn display_text_signal(compute: impl FnMut() -> DisplayText + 'static) -> View {
     View::new(Kind::DisplayText(Box::new(compute)))
 }
+/// Reactive inline children; equal resolved content preserves paragraph layout/paint.
 pub fn rich_text_signal(compute: impl FnMut() -> Vec<TextSpan> + 'static) -> View {
     View::new(Kind::RichText(Box::new(compute)))
 }
