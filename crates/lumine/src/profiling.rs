@@ -18,6 +18,13 @@ pub struct CpuSpan {
     pub excluded_ms: f64,
     pub self_ms: f64,
 }
+/// Totals since reset, independent of the bounded raw trace ring.
+#[derive(Clone, Debug, Default)]
+pub struct StageProfile {
+    pub calls: u64,
+    pub total_ms: f64,
+    pub self_ms: f64,
+}
 #[derive(Clone, Debug, Default)]
 pub struct NodeProfile {
     pub calls: u64,
@@ -50,6 +57,7 @@ struct Recording {
     nodes: HashMap<NodeId, NodeProfile>,
     dropped: u64,
     rates: HashMap<&'static str, VecDeque<RateBucket>>,
+    stages: HashMap<&'static str, StageProfile>,
 }
 impl Default for Recording {
     fn default() -> Self {
@@ -60,6 +68,7 @@ impl Default for Recording {
             spans: VecDeque::new(),
             nodes: HashMap::new(),
             rates: HashMap::new(),
+            stages: HashMap::new(),
             dropped: 0,
         }
     }
@@ -167,6 +176,14 @@ impl Profiler {
             .map(|(id, stats)| (*id, stats.clone()))
             .collect()
     }
+    pub fn stages(&self) -> Vec<(&'static str, StageProfile)> {
+        self.recording
+            .borrow()
+            .stages
+            .iter()
+            .map(|(name, stats)| (*name, stats.clone()))
+            .collect()
+    }
     pub fn spans(&self) -> Vec<CpuSpan> {
         self.recording.borrow().spans.iter().cloned().collect()
     }
@@ -251,6 +268,10 @@ impl Drop for SpanGuard {
             return;
         }
         let measured_ms = (duration_ms - open.excluded_ms).max(0.);
+        let stage = recording.stages.entry(self.name).or_default();
+        stage.calls += 1;
+        stage.total_ms += measured_ms;
+        stage.self_ms += self_ms;
         if let Some(node) = self
             .node
             .filter(|node| self.profiler.parents.borrow().contains_key(node))
@@ -349,6 +370,19 @@ mod tests {
             drop(profiler.span("rate", None));
         }
         assert_eq!(profiler.recent("rate").0, MAX_SPANS as u64 + 3);
+        let stages = profiler.stages();
+        assert_eq!(
+            stages
+                .iter()
+                .find(|(name, _)| *name == "rate")
+                .unwrap()
+                .1
+                .calls,
+            MAX_SPANS as u64 + 3
+        );
+        assert!(stages.iter().all(|(name, _)| *name != "tools"));
+        profiler.reset();
+        assert!(profiler.stages().is_empty());
     }
     #[test]
     fn nested_spans_exclude_children_and_reset_discards_open_work() {
