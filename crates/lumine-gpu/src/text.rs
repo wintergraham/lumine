@@ -845,6 +845,10 @@ impl CpuTextRaster {
     pub fn measure(&mut self, text: &str, size: f32, width: Option<f32>, style: &lumine::text_layout::FontStyle) -> (f32, f32) {
         ShapedText::with_font(&mut self.fonts, text, size, width, style).size()
     }
+    /// Measure rich text with the same registered fonts used by CPU rasterization.
+    pub fn measure_rich(&mut self, rich: &lumine::rich_text::RichText, width: Option<f32>) -> (f32, f32) {
+        ShapedText::with_runs(&mut self.fonts, rich, width).size()
+    }
     pub fn register_font(&mut self, font: &FontData) {
         font.install(&mut self.fonts);
     }
