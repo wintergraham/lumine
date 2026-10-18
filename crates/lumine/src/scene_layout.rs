@@ -723,19 +723,27 @@ impl Scene {
                         return t::Size::ZERO;
                     };
                     let child = *context;
-                    let size = self.measure_intrinsic(
+                    let query = Constraints {
+                        width: known.width.or_else(|| bound(space.width)),
+                        min_content_width: known.width.is_none()
+                            && matches!(space.width, t::AvailableSpace::MinContent),
+                        height: known.height.or_else(|| bound(space.height)),
+                        percent_width: child_percent_width,
+                        percent_height: child_percent_height,
+                        force_width: known.width,
+                        force_height: known.height,
+                        hidden: false,
+                    };
+                    let size = self.measure_intrinsic(child, query);
+                    self.trace_layout(
                         child,
-                        Constraints {
-                            width: known.width.or_else(|| bound(space.width)),
-                            min_content_width: known.width.is_none()
-                                && matches!(space.width, t::AvailableSpace::MinContent),
-                            height: known.height.or_else(|| bound(space.height)),
-                            percent_width: child_percent_width,
-                            percent_height: child_percent_height,
-                            force_width: known.width,
-                            force_height: known.height,
-                            hidden: false,
+                        match space.height {
+                            t::AvailableSpace::MinContent => "taffy.height.min-content",
+                            t::AvailableSpace::MaxContent => "taffy.height.max-content",
+                            t::AvailableSpace::Definite(_) => "taffy.height.definite",
                         },
+                        Some(query),
+                        Some(size),
                     );
                     t::Size {
                         width: size.0,
