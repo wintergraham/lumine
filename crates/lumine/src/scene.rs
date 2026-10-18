@@ -2076,9 +2076,9 @@ impl Scene {
             NodeKind::Text {
                 text, font_size, ..
             } => {
+                // Keep MaxContent in the wrapping shaper; None selects explicit nowrap.
                 let limit = (style.text_wrap || style.text_options != Default::default())
-                    .then_some(available_w)
-                    .flatten();
+                    .then_some(available_w.unwrap_or(f32::INFINITY));
                 let revision = self.text_shaper_revision;
                 if let Some(size) = self.node(id).text_size.get(limit, revision) {
                     size
@@ -2111,8 +2111,7 @@ impl Scene {
             }
             NodeKind::RichText { text } => {
                 let limit = (style.text_wrap || text.options() != Default::default())
-                    .then_some(available_w)
-                    .flatten();
+                    .then_some(available_w.unwrap_or(f32::INFINITY));
                 // Same cache as plain text: colour-only changes keep layout
                 // (see `set_kind`), so they keep this size too.
                 let revision = self.text_shaper_revision;
@@ -3844,6 +3843,61 @@ mod tests {
         scene.flush();
         assert_eq!(scene.bounds(a).width, 80.0);
         assert_eq!(scene.bounds(b), Rect::new(85.0, 5.0, 50.0, 23.0));
+    }
+    #[test]
+    fn max_content_text_preserves_wrapping_mode_for_plain_and_rich_measurement() {
+        use std::{cell::RefCell, rc::Rc};
+        let mut scene = Scene::new(400., 200.);
+        let limits = Rc::new(RefCell::new(Vec::new()));
+        let plain_limits = limits.clone();
+        scene.set_font_text_measurer(move |text, size, width, font| {
+            plain_limits.borrow_mut().push(width);
+            crate::text_layout::FallbackTextLayout::measure_with_font(text, size, width, font)
+        });
+        let rich_limits = limits.clone();
+        scene.set_rich_text_measurer(move |rich, width| {
+            rich_limits.borrow_mut().push(width);
+            crate::rich_text::fallback_measure(rich, width)
+        });
+        let value = "alpha beta gamma";
+        let rich = crate::rich_text::RichText::new(
+            value,
+            vec![crate::rich_text::TextRun {
+                range: 0..value.len(),
+                ..Default::default()
+            }],
+        )
+        .unwrap();
+        for kind in [
+            text(value),
+            NodeKind::RichText {
+                text: Arc::new(rich),
+            },
+        ] {
+            let mut sizes = Vec::new();
+            for (wrap, max_width, expected_limit) in [
+                (true, None, Some(f32::INFINITY)),
+                (false, None, None),
+                (true, Some(30.), Some(30.)),
+                (false, Some(30.), None),
+            ] {
+                let node = scene.append(
+                    scene.root(),
+                    kind.clone(),
+                    Style {
+                        text_wrap: wrap,
+                        max_width,
+                        ..Default::default()
+                    },
+                );
+                limits.borrow_mut().clear();
+                sizes.push(scene.measure_intrinsic(node, Constraints::default()));
+                assert_eq!(limits.borrow().as_slice(), &[expected_limit]);
+            }
+            assert_eq!(sizes[0].1, sizes[1].1);
+            assert!(sizes[2].1 > sizes[0].1, "finite constraints still wrap");
+            assert_eq!(sizes[3].1, sizes[1].1, "explicit nowrap keeps one line");
+        }
     }
     #[test]
     fn text_measurement_reflows_when_parent_constraint_changes() {
