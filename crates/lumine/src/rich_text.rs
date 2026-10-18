@@ -222,18 +222,14 @@ impl RichText {
     }
 }
 
-/// Approximate headless metrics. Default wrapping measures without allocation;
-/// opt-in word wrapping shares fallback layout. Native hosts install full shaping.
+/// Approximate headless metrics without allocation, sharing the fallback layout's
+/// soft-boundary policy. Native hosts install full shaping.
 pub fn fallback_measure(rich: &RichText, width: Option<f32>) -> (f32, f32) {
     use unicode_segmentation::UnicodeSegmentation;
     if rich.text.is_empty() {
         return (0., 0.);
     }
-    if rich.runs[0].font.word_wrap == crate::text_layout::WordWrap::Word {
-        return crate::text_layout::TextLayout::size(
-            &crate::text_layout::FallbackTextLayout::with_rich(rich, width),
-        );
-    }
+    let mut words = rich.text.split_word_bound_indices().peekable();
     let mut run_index = 0;
     let limit = rich
         .options
@@ -275,7 +271,9 @@ pub fn fallback_measure(rich: &RichText, width: Option<f32>) -> (f32, f32) {
             continue;
         }
         let advance = (run.font_size * 0.6 + run.font.letter_spacing.pixels()).max(0.);
-        if width.is_some_and(|w| x > 0. && x + advance > w.max(0.)) {
+        let wrapping_advance =
+            crate::text_layout::fallback_rich_wrap_advance(rich, &mut words, index, run_index);
+        if width.is_some_and(|w| x > 0. && wrapping_advance.is_some_and(|a| x + a > w.max(0.))) {
             if limit.is_some_and(|limit| row >= limit) {
                 return (
                     width.unwrap().max(0.).min(max_x.max(

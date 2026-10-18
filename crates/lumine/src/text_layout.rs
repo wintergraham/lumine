@@ -315,6 +315,35 @@ fn fallback_word_width<'a>(
             .sum(),
     )
 }
+/// The same soft-boundary policy for rich fallback cells and size-only metrics.
+/// Single-line ellipsis retains the existing glyph-level truncation contract.
+pub(crate) fn fallback_rich_wrap_advance<'a>(
+    rich: &'a crate::rich_text::RichText,
+    words: &mut std::iter::Peekable<impl Iterator<Item = (usize, &'a str)>>,
+    index: usize,
+    run_index: usize,
+) -> Option<f32> {
+    let advance = |run: &crate::rich_text::TextRun| {
+        (run.font_size * 0.6 + run.font.letter_spacing.pixels()).max(0.)
+    };
+    let word_only = rich.runs()[0].font.word_wrap == WordWrap::Word
+        && !(rich.options().overflow == TextOverflow::Ellipsis
+            && rich
+                .options()
+                .line_clamp
+                .is_none_or(|limit| limit.get() == 1));
+    if !word_only {
+        return Some(advance(&rich.runs()[run_index]));
+    }
+    let mut word_run = run_index;
+    fallback_word_width(words, index, |byte| {
+        while rich.runs()[word_run].range.end <= byte {
+            word_run += 1;
+        }
+        advance(&rich.runs()[word_run])
+    })
+}
+
 /// Approximate grapheme cells for headless/core use. Native hosts install a real shaper.
 pub struct FallbackTextLayout {
     cells: Vec<(Range<usize>, Rect)>,
@@ -329,15 +358,6 @@ impl FallbackTextLayout {
         let mut row_start = 0;
         let mut run_index = 0;
         let mut words = rich.text().split_word_bound_indices().peekable();
-        let policy = rich
-            .runs()
-            .first()
-            .map_or(WordWrap::default(), |run| run.font.word_wrap);
-        let single_line_ellipsis = rich.options().overflow == TextOverflow::Ellipsis
-            && rich
-                .options()
-                .line_clamp
-                .is_none_or(|limit| limit.get() == 1);
         for (index, grapheme) in rich.text().grapheme_indices(true) {
             while rich.runs()[run_index].range.end <= index {
                 run_index += 1;
@@ -346,18 +366,7 @@ impl FallbackTextLayout {
             let line = run.font.line_height.resolve(run.font_size);
             let newline = grapheme.contains(['\r', '\n']);
             let advance = (run.font_size * 0.6 + run.font.letter_spacing.pixels()).max(0.);
-            let wrapping_advance = if policy == WordWrap::Word && !single_line_ellipsis {
-                let mut word_run = run_index;
-                fallback_word_width(&mut words, index, |byte| {
-                    while rich.runs()[word_run].range.end <= byte {
-                        word_run += 1;
-                    }
-                    let run = &rich.runs()[word_run];
-                    (run.font_size * 0.6 + run.font.letter_spacing.pixels()).max(0.)
-                })
-            } else {
-                Some(advance)
-            };
+            let wrapping_advance = fallback_rich_wrap_advance(rich, &mut words, index, run_index);
             if newline
                 || width
                     .is_some_and(|w| x > 0. && wrapping_advance.is_some_and(|a| x + a > w.max(0.)))
@@ -773,6 +782,153 @@ mod tests {
             14.
         );
     }
+    #[test]
+    fn rich_word_fallback_clamp_and_ellipsis_share_finite_metrics() {
+        use crate::rich_text::{RichText, TextRun, fallback_measure};
+        use std::num::NonZeroU32;
+        let value = "ab cd ef";
+        let font = FontStyle {
+            word_wrap: WordWrap::Word,
+            line_height: LineHeight::px(20.),
+            ..Default::default()
+        };
+        for (overflow, clamp, expected, cells) in [
+            (TextOverflow::Clip, None, (18., 60.), 8),
+            (TextOverflow::Clip, Some(1), (18., 20.), 3),
+            (TextOverflow::Clip, Some(2), (18., 40.), 6),
+            (TextOverflow::Ellipsis, None, (18., 20.), 2),
+            (TextOverflow::Ellipsis, Some(1), (18., 20.), 2),
+            (TextOverflow::Ellipsis, Some(2), (18., 40.), 5),
+        ] {
+            let rich = RichText::new(
+                value,
+                vec![TextRun {
+                    range: 0..value.len(),
+                    font: font.clone(),
+                    font_size: 10.,
+                    ..Default::default()
+                }],
+            )
+            .unwrap()
+            .with_options(TextOptions {
+                overflow,
+                line_clamp: clamp.and_then(NonZeroU32::new),
+            });
+            // Both entry points previously recursed when Word met display options.
+            assert_eq!(fallback_measure(&rich, Some(18.)), expected);
+            assert_eq!(
+                crate::rich_text::TextMeasure::default().measure(&rich, Some(18.)),
+                expected
+            );
+            let layout = FallbackTextLayout::with_rich(&rich, Some(18.));
+            assert_eq!(layout.size(), expected);
+            assert_eq!(layout.cells.len(), cells);
+            assert_eq!(fallback_measure(&rich, None), (48., 20.));
+            assert_eq!(
+                FallbackTextLayout::with_rich(&rich, None).size(),
+                (48., 20.)
+            );
+        }
+        let rich = RichText::new(
+            "Active",
+            vec![TextRun {
+                range: 0..6,
+                font,
+                font_size: 10.,
+                ..Default::default()
+            }],
+        )
+        .unwrap()
+        .with_options(TextOptions {
+            line_clamp: NonZeroU32::new(1),
+            ..Default::default()
+        });
+        assert_eq!(fallback_measure(&rich, Some(35.99)), (36., 20.));
+        assert_eq!(
+            FallbackTextLayout::with_rich(&rich, Some(35.99)).size(),
+            (36., 20.)
+        );
+    }
+
+    #[test]
+    fn rich_word_fallback_preserves_empty_trailing_newline_and_mixed_pitch_heights() {
+        use crate::rich_text::{RichText, TextRun, fallback_measure};
+        use std::num::NonZeroU32;
+        for policy in [WordWrap::Word, WordWrap::WordOrGlyph] {
+            let font = FontStyle {
+                word_wrap: policy,
+                line_height: LineHeight::px(20.),
+                ..Default::default()
+            };
+            for (value, natural, clamped) in [
+                ("", (0., 0.), (0., 0.)),
+                ("\n", (0., 40.), (0., 20.)),
+                ("\r\n", (0., 40.), (0., 20.)),
+                ("ab\n", (12., 40.), (12., 20.)),
+                ("ab\r\n", (12., 40.), (12., 20.)),
+            ] {
+                for (clamp, expected) in [(None, natural), (Some(1), clamped), (Some(2), natural)] {
+                    let runs = if value.is_empty() {
+                        Vec::new()
+                    } else {
+                        vec![TextRun {
+                            range: 0..value.len(),
+                            font: font.clone(),
+                            font_size: 10.,
+                            ..Default::default()
+                        }]
+                    };
+                    let rich = RichText::new(value, runs)
+                        .unwrap()
+                        .with_options(TextOptions {
+                            line_clamp: clamp.and_then(NonZeroU32::new),
+                            ..Default::default()
+                        });
+                    assert_eq!(
+                        fallback_measure(&rich, None),
+                        expected,
+                        "{policy:?} {value:?} {clamp:?}"
+                    );
+                    assert_eq!(FallbackTextLayout::with_rich(&rich, None).size(), expected);
+                }
+            }
+            let rich = RichText::new(
+                "ab\ncd\n",
+                vec![
+                    TextRun {
+                        range: 0..3,
+                        font: font.clone(),
+                        font_size: 10.,
+                        ..Default::default()
+                    },
+                    TextRun {
+                        range: 3..6,
+                        font: FontStyle {
+                            line_height: LineHeight::px(40.),
+                            ..font
+                        },
+                        font_size: 20.,
+                        ..Default::default()
+                    },
+                ],
+            )
+            .unwrap();
+            for (clamp, expected) in [
+                (None, (24., 100.)),
+                (Some(1), (12., 20.)),
+                (Some(2), (24., 60.)),
+                (Some(3), (24., 100.)),
+            ] {
+                let rich = rich.clone().with_options(TextOptions {
+                    line_clamp: clamp.and_then(NonZeroU32::new),
+                    ..Default::default()
+                });
+                assert_eq!(fallback_measure(&rich, None), expected);
+                assert_eq!(FallbackTextLayout::with_rich(&rich, None).size(), expected);
+            }
+        }
+    }
+
     #[test]
     fn explicit_pitch_keeps_wrapped_unicode_hit_selection_and_caret_aligned() {
         let layout = FallbackTextLayout::with_line_height(
