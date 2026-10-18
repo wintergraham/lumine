@@ -326,6 +326,20 @@ impl Scene {
         style.padding_edges = Some(self.resolved_padding(id, constraints));
         style
     }
+    pub(super) fn child_min_content_width(
+        &self,
+        child: NodeId,
+        constraints: Constraints,
+        percent_width: Option<f32>,
+    ) -> bool {
+        let style = &self.node(child).style;
+        // Auto descendants continue the content query. A descendant's own
+        // definite preference still contributes, even when the queried root's does not.
+        constraints.min_content_width
+            && constraints.force_width.is_none()
+            && style.width.is_none()
+            && percentage(style.width_percent, percent_width).is_none()
+    }
     pub(super) fn uses_advanced_layout(&self, id: NodeId) -> bool {
         let options = self
             .node(id)
@@ -448,6 +462,7 @@ impl Scene {
                     Constraints {
                         width: constraints.width,
                         height: constraints.height,
+                        min_content_width: self.child_min_content_width(*child, constraints, None),
                         ..Default::default()
                     },
                 );
@@ -508,7 +523,15 @@ impl Scene {
                 };
                 let top = px(options.margin.top, style.margin.top);
                 let bottom = px(options.margin.bottom, style.margin.bottom);
-                let size = self.measure_intrinsic(*child, Constraints { width, percent_width: width, ..Default::default() });
+                let size = self.measure_intrinsic(
+                    *child,
+                    Constraints {
+                        width,
+                        percent_width: width,
+                        min_content_width: self.child_min_content_width(*child, constraints, width),
+                        ..Default::default()
+                    },
+                );
                 let contribution = size.1 + top + bottom;
                 cancelled |= contribution < 0.;
                 total += contribution;
@@ -920,6 +943,115 @@ mod tests {
                 scene.measure_intrinsic(text, Constraints::default()).0,
                 196.097
             );
+        }
+    }
+
+    #[test]
+    fn min_content_survives_auto_containers_without_erasing_fixed_descendants() {
+        use crate::text_layout::{FallbackTextLayout, FontStyle, WordWrap};
+        let font = FontStyle {
+            word_wrap: WordWrap::Word,
+            ..Default::default()
+        };
+        let longest = FallbackTextLayout::measure_with_font("longestword", 16., None, &font).0;
+        let min = Constraints {
+            width: Some(0.),
+            min_content_width: true,
+            ..Default::default()
+        };
+        for layout in [Layout::Column, Layout::Row, Layout::Overlay] {
+            for fixed in [false, true] {
+                let mut scene = Scene::new(400., 200.);
+                // The ordinary outer container must preserve the typed probe
+                // until the advanced auto descendant reaches its text callback.
+                let outer = scene.append(
+                    scene.root(),
+                    NodeKind::Container(Layout::Column),
+                    Style {
+                        width: Some(196.097),
+                        ..Default::default()
+                    },
+                );
+                let auto = scene.append(
+                    outer,
+                    NodeKind::Container(layout),
+                    Style {
+                        layout_options: Some(Arc::new(crate::layout::LayoutOptions {
+                            gap_y: Some(Length::Px(0.)),
+                            ..Default::default()
+                        })),
+                        ..Default::default()
+                    },
+                );
+                if fixed {
+                    // A further ordinary auto wrapper must retain the fixed
+                    // grandchild's contribution through the same query path.
+                    let wrapper =
+                        scene.append(auto, NodeKind::Container(Layout::Column), Style::default());
+                    scene.append(
+                        wrapper,
+                        NodeKind::Container(Layout::Column),
+                        Style {
+                            width: Some(120.),
+                            height: Some(13.),
+                            ..Default::default()
+                        },
+                    );
+                } else {
+                    let text = scene.append(
+                        auto,
+                        label("short longestword"),
+                        Style {
+                            text_wrap: true,
+                            layout_options: Some(Arc::new(crate::layout::LayoutOptions {
+                                min_width: Some(Length::Auto),
+                                ..Default::default()
+                            })),
+                            ..Default::default()
+                        },
+                    );
+                    scene.set_font(text, font.clone());
+                }
+                let expected = if fixed { 120. } else { longest };
+                assert_eq!(
+                    scene.measure_intrinsic(outer, min).0,
+                    expected,
+                    "{layout:?}, fixed={fixed}"
+                );
+                assert_eq!(
+                    scene
+                        .measure_intrinsic(
+                            outer,
+                            Constraints {
+                                width: Some(0.),
+                                ..Default::default()
+                            }
+                        )
+                        .0,
+                    196.097
+                );
+                assert_eq!(
+                    scene
+                        .measure_intrinsic(
+                            outer,
+                            Constraints {
+                                force_width: Some(0.),
+                                ..min
+                            }
+                        )
+                        .0,
+                    0.
+                );
+                assert_eq!(
+                    scene.measure_intrinsic(outer, Constraints::default()).0,
+                    196.097
+                );
+                assert_eq!(
+                    scene.measure_intrinsic(outer, min).0,
+                    expected,
+                    "cached {layout:?}, fixed={fixed}"
+                );
+            }
         }
     }
 

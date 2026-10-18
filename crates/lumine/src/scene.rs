@@ -2149,6 +2149,11 @@ impl Scene {
                                 height: available_h,
                                 percent_width,
                                 percent_height,
+                                min_content_width: self.child_min_content_width(
+                                    *child,
+                                    constraints,
+                                    percent_width,
+                                ),
                                 ..Constraints::default()
                             },
                         )
