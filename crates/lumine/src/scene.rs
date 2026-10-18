@@ -3751,20 +3751,31 @@ mod tests {
         let mut ui = Ui::new(160., 120.);
         let x = ui.signal(0.);
         let y = ui.signal(0.);
-        ui.mount(
+        let view = ui.mount(
             overlay()
                 .w_full()
                 .h_full()
                 .child(
-                    scroll_x(x.clone()).w_full().h_full().child(
-                        scroll(y.clone())
-                            .w(300.)
-                            .h_full()
-                            .child(div().size(300., 360.).bg(rgb(0x223344))),
-                    ),
+                    // Scrollbar overlays move independently of the nested
+                    // content, so they cannot participate in a rigid diagonal copy.
+                    scroll_x(x.clone())
+                        .scrollbar(false)
+                        .id("outer-scroll")
+                        .w_full()
+                        .h_full()
+                        .child(
+                            scroll(y.clone())
+                                .scrollbar(false)
+                                .id("inner-scroll")
+                                .w(300.)
+                                .h_full()
+                                .child(div().size(300., 360.).bg(rgb(0x223344))),
+                        ),
                 )
                 .child(
                     scroll(y.clone())
+                        .scrollbar(false)
+                        .id("mirror-scroll")
                         .absolute()
                         .right(0.)
                         .w(8.)
@@ -3773,6 +3784,25 @@ mod tests {
                 ),
         );
         ui.prepare_frame();
+        {
+            let scene = ui.scene.borrow();
+            for (id, expected) in [
+                ("outer-scroll", (160., 120., 300., 120.)),
+                ("inner-scroll", (300., 120., 300., 360.)),
+                ("mirror-scroll", (8., 120., 8., 360.)),
+            ] {
+                let root = view.find(id).unwrap();
+                let viewport = scene.children(root)[0];
+                let content = scene.children(viewport)[0];
+                let bounds = scene.layout_bounds(viewport);
+                let extent = scene.layout_bounds(content);
+                assert_eq!(
+                    (bounds.width, bounds.height, extent.width, extent.height),
+                    expected,
+                    "{id}"
+                );
+            }
+        }
         ui.scene.borrow_mut().flush();
         y.set(12.);
         ui.prepare_frame();
@@ -3787,6 +3817,80 @@ mod tests {
         assert_eq!(
             (scene.scroll_moves()[0].dx, scene.scroll_moves()[0].dy),
             (-12., -12.)
+        );
+    }
+    #[test]
+    fn nested_scroll_moves_repaint_when_an_overlay_does_not_move_with_inner_content() {
+        let mut scene = Scene::new(160., 120.);
+        let viewport = scene.append(
+            scene.root(),
+            NodeKind::Container(Layout::Overlay),
+            Style {
+                width: Some(160.),
+                height: Some(120.),
+                clip: true,
+                ..Default::default()
+            },
+        );
+        let horizontal = scene.append(
+            viewport,
+            NodeKind::Container(Layout::Overlay),
+            Style {
+                width: Some(300.),
+                height: Some(120.),
+                ..Default::default()
+            },
+        );
+        let inner_viewport = scene.append(
+            horizontal,
+            NodeKind::Container(Layout::Overlay),
+            Style {
+                width: Some(300.),
+                height: Some(120.),
+                clip: true,
+                ..Default::default()
+            },
+        );
+        let vertical = scene.append(
+            inner_viewport,
+            NodeKind::Rect(Color(34, 51, 68, 255)),
+            Style {
+                width: Some(300.),
+                height: Some(360.),
+                ..Default::default()
+            },
+        );
+        // This paints like an inner scrollbar: it moves with the outer axis,
+        // independently of the vertical content's translation.
+        let overlay = scene.append(
+            inner_viewport,
+            NodeKind::Quad(QuadStyle {
+                fill: Color(255, 255, 255, 51),
+                ..Default::default()
+            }),
+            Style {
+                absolute: true,
+                width: Some(4.),
+                height: Some(32.),
+                ..Default::default()
+            },
+        );
+        scene.set_scroll_copy(horizontal, true);
+        scene.set_scroll_copy(vertical, true);
+        scene.flush();
+        assert!(scene.own_ink(overlay).is_some());
+        scene.set_transform(horizontal, Transform { x: -12., y: 0. });
+        scene.set_transform(vertical, Transform { x: 0., y: -12. });
+        let report = scene.flush();
+        assert!(
+            scene.scroll_moves().is_empty(),
+            "the overlay makes a diagonal copy nonrigid"
+        );
+        assert!(
+            report
+                .damage
+                .iter()
+                .any(|rect| *rect == Rect::new(0., 0., 160., 120.))
         );
     }
     fn text(value: &str) -> NodeKind {
