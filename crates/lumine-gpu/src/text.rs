@@ -1589,6 +1589,76 @@ mod rich_tests {
         FontSystem::new_with_locale_and_db("en-US".into(), db)
     }
     #[test]
+    fn decoration_offsets_use_the_shaped_baseline_and_keep_plain_rich_prepared_metrics() {
+        use lumine::rich_text::Decoration;
+        let mut fonts = bundled_test_fonts();
+        let value: Arc<str> = "underline words".into();
+        let font = FontStyle::default();
+        let make = |underline, strikethrough| {
+            RichText::new(
+                value.clone(),
+                vec![TextRun {
+                    range: 0..value.len(),
+                    font: font.clone(),
+                    font_size: 20.,
+                    color: Color(250, 240, 230, 255),
+                    underline,
+                    strikethrough,
+                    ..Default::default()
+                }],
+            )
+            .unwrap()
+        };
+        let plain = make(None, None);
+        let buffer = rich_buffer(&mut fonts, &plain, Some(240.), None);
+        let baseline =
+            buffer.layout_runs().next().unwrap().line_y + font.line_height.baseline_offset();
+        let auto = make(Some(Decoration::new(0.)), Some(Decoration::new(2.)));
+        let automatic = rich_decorations(&buffer, &auto);
+        assert_eq!(automatic.len(), 2);
+        assert_eq!(automatic[0].bounds.y, baseline + 20. * 0.1);
+        assert_eq!(automatic[0].bounds.height, 1.);
+        assert_eq!(automatic[0].color, plain.runs()[0].color);
+        assert_eq!(automatic[1].bounds.y, baseline - 20. * 0.3);
+        assert_eq!(automatic[1].bounds.height, 2.);
+        assert!(automatic[1].strike);
+        let mut cache = crate::prepared::TextCache::default();
+        let rich_key = cache.layout(&mut fonts, &plain, Some(240.)).key();
+        let plain_key = cache
+            .layout_plain(&mut fonts, &value, 20., &font, Some(240.))
+            .key();
+        for offset in [4., -3., 0.] {
+            for thickness in [0., 2.5] {
+                let color = Color(12, 180, 75, 255);
+                let rich = make(
+                    Some(
+                        Decoration::default()
+                            .with_baseline_offset(offset)
+                            .with_thickness(thickness)
+                            .color(color),
+                    ),
+                    None,
+                );
+                let decorations = rich_decorations(&buffer, &rich);
+                assert_eq!(decorations.len(), 1);
+                let decoration = decorations[0];
+                assert_eq!(decoration.bounds.y, baseline + offset);
+                assert_eq!(decoration.bounds.height, thickness);
+                assert_eq!(decoration.color, color);
+                assert_eq!(decoration.bounds.x, automatic[0].bounds.x);
+                assert_eq!(decoration.bounds.width, automatic[0].bounds.width);
+                assert_eq!(cache.layout(&mut fonts, &rich, Some(240.)).key(), rich_key);
+                assert_eq!(
+                    cache
+                        .layout_plain(&mut fonts, &value, 20., &font, Some(240.))
+                        .key(),
+                    plain_key
+                );
+            }
+        }
+    }
+
+    #[test]
     fn word_only_geist_labels_keep_glyphs_and_paragraphs_keep_word_boundaries() {
         use lumine::text_layout::{FontFamily, LineHeight, WordWrap};
         let mut fonts = word_wrap_test_fonts();
@@ -2087,13 +2157,18 @@ pub fn rich_decorations_in<'a>(
                     });
                 }
                 let baseline = line.line_y + run.font.line_height.baseline_offset();
-                for (decoration, y, strike) in [
-                    (run.underline, baseline + run.font_size * 0.1, false),
-                    (run.strikethrough, baseline - run.font_size * 0.3, true),
+                for (decoration, auto_offset, strike) in [
+                    (run.underline, run.font_size * 0.1, false),
+                    (run.strikethrough, -run.font_size * 0.3, true),
                 ] {
                     if let Some(style) = decoration {
                         output.push(RichDecoration {
-                            bounds: Rect::new(left, y, right - left, style.thickness()),
+                            bounds: Rect::new(
+                                left,
+                                baseline + style.baseline_offset().unwrap_or(auto_offset),
+                                right - left,
+                                style.thickness(),
+                            ),
                             color: style.color.unwrap_or(run.color),
                             background: false,
                             run: index,

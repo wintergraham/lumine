@@ -53,11 +53,13 @@ impl TextMeasure {
 pub struct Decoration {
     pub color: Option<Color>,
     thickness: f32,
+    baseline_offset: Option<f32>,
 }
 impl Decoration {
     pub fn new(thickness: f32) -> Self {
         Self {
             color: None,
+            baseline_offset: None,
             thickness: if thickness.is_finite() && thickness > 0. {
                 thickness
             } else {
@@ -71,6 +73,27 @@ impl Decoration {
     }
     pub fn thickness(self) -> f32 {
         self.thickness
+    }
+    /// Set an exact nonnegative logical thickness, including zero. Invalid or
+    /// negative values use 1 px, as in `new`; `new(0.)` keeps its legacy 1 px.
+    pub fn with_thickness(mut self, thickness: f32) -> Self {
+        self.thickness = if thickness.is_finite() && thickness >= 0. {
+            thickness
+        } else {
+            1.
+        };
+        self
+    }
+    /// Place the rectangle's top edge this many logical pixels from the shaped
+    /// baseline. Positive is below, negative above. Nonfinite values restore
+    /// automatic underline/strikethrough positioning.
+    pub fn with_baseline_offset(mut self, offset: f32) -> Self {
+        self.baseline_offset = offset.is_finite().then_some(offset);
+        self
+    }
+    /// `None` uses the native automatic position for the decoration kind.
+    pub fn baseline_offset(self) -> Option<f32> {
+        self.baseline_offset
     }
 }
 impl Default for Decoration {
@@ -159,9 +182,10 @@ impl RichText {
         self.same_metrics(other)
             && self.runs.iter().zip(other.runs.iter()).all(|(a, b)| {
                 a.background.is_some() == b.background.is_some()
-                    && a.underline.map(|d| d.thickness()) == b.underline.map(|d| d.thickness())
-                    && a.strikethrough.map(|d| d.thickness())
-                        == b.strikethrough.map(|d| d.thickness())
+                    && a.underline.map(|d| (d.thickness(), d.baseline_offset()))
+                        == b.underline.map(|d| (d.thickness(), d.baseline_offset()))
+                    && a.strikethrough.map(|d| (d.thickness(), d.baseline_offset()))
+                        == b.strikethrough.map(|d| (d.thickness(), d.baseline_offset()))
             })
     }
     pub(crate) fn same_metrics(&self, other: &Self) -> bool {
@@ -279,6 +303,63 @@ pub fn fallback_measure(rich: &RichText, width: Option<f32>) -> (f32, f32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn decoration_offsets_and_exact_zero_thickness_keep_metrics_but_change_paint_identity() {
+        assert_eq!(Decoration::new(0.).thickness(), 1.);
+        assert_eq!(Decoration::default().baseline_offset(), None);
+        for invalid in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY, -1.] {
+            assert_eq!(
+                Decoration::default().with_thickness(invalid).thickness(),
+                1.
+            );
+        }
+        for invalid in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            assert_eq!(
+                Decoration::default()
+                    .with_baseline_offset(3.)
+                    .with_baseline_offset(invalid)
+                    .baseline_offset(),
+                None
+            );
+        }
+        let make = |decoration, strike| {
+            let mut text = run(0..11);
+            if strike {
+                text.strikethrough = decoration;
+            } else {
+                text.underline = decoration;
+            }
+            RichText::new("alpha words", vec![text]).unwrap()
+        };
+        for strike in [false, true] {
+            let plain = make(None, strike);
+            let auto = make(Some(Decoration::new(2.)), strike);
+            assert!(!plain.same_shape(&auto));
+            assert!(auto.same_shape(&make(
+                Some(Decoration::new(2.).color(Color(1, 2, 3, 255))),
+                strike
+            )));
+            for decoration in [
+                Decoration::new(2.).with_baseline_offset(4.),
+                Decoration::new(2.).with_baseline_offset(-3.),
+                Decoration::new(2.).with_baseline_offset(0.),
+                Decoration::new(2.).with_thickness(0.),
+            ] {
+                let changed = make(Some(decoration), strike);
+                assert_ne!(auto, changed);
+                assert!(!auto.same_shape(&changed));
+                assert!(plain.same_metrics(&changed));
+                for width in [None, Some(40.), Some(f32::INFINITY)] {
+                    assert_eq!(
+                        fallback_measure(&plain, width),
+                        fallback_measure(&changed, width)
+                    );
+                }
+            }
+        }
+        assert_eq!(Decoration::new(2.).with_thickness(0.).thickness(), 0.);
+    }
+
     #[test]
     fn replacing_measurers_drops_captures_outside_the_shared_borrow() {
         use std::{
