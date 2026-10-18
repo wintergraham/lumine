@@ -59,6 +59,8 @@ struct Inner {
     /// Last refresh index delivered to each refresh divisor. Requests with the
     /// same divisor tick together and stay evenly spaced.
     cadence: RefCell<HashMap<u64, u64>>,
+    unpaced_cadence: RefCell<HashMap<u64, Instant>>,
+    unpaced: Cell<bool>,
 }
 struct Waiter {
     max_rate: Option<f64>,
@@ -152,6 +154,7 @@ impl FrameClock {
     /// Host entry point: deliver one display refresh. Returns how many
     /// requests it resolved.
     pub fn deliver(&self, frame: Frame) -> usize {
+        self.0.unpaced.set(false);
         self.0.last.set(Some(frame));
         let refresh = frame.refresh_rate();
         let mut wakers = Vec::new();
@@ -188,6 +191,32 @@ impl FrameClock {
         for waker in wakers {
             waker.wake();
         }
+        resolved
+    }
+    /// Developer throughput mode uses actual elapsed time. Refresh divisors are
+    /// only correct for a fixed display cadence; individual requested rates remain caps.
+    pub fn is_unpaced(&self) -> bool { self.0.unpaced.get() }
+    pub fn deliver_unpaced(&self, frame: Frame) -> usize {
+        self.0.unpaced.set(true);
+        self.0.last.set(Some(frame));
+        let mut wakers = Vec::new();
+        {
+            let mut waiters = self.0.waiters.borrow_mut();
+            let mut cadence = self.0.unpaced_cadence.borrow_mut();
+            let mut due = HashMap::new();
+            for waiter in waiters.values_mut().filter(|w|w.frame.is_none()) {
+                let rate = [waiter.max_rate, self.0.max_rate.get()].into_iter().flatten().reduce(f64::min);
+                let ready = rate.is_none_or(|rate| {
+                    let key = (rate * 1000.).round().max(1.) as u64;
+                    *due.entry(key).or_insert_with(|| cadence.get(&key).is_none_or(|last|
+                        frame.time.saturating_duration_since(*last).as_secs_f64() >= 1. / rate))
+                });
+                if ready { waiter.frame = Some(frame); wakers.extend(waiter.waker.take()); }
+            }
+            for (key, ready) in due { if ready { cadence.insert(key, frame.time); } }
+        }
+        let resolved = wakers.len();
+        for waker in wakers { waker.wake(); }
         resolved
     }
     /// Refreshes between frames for a request, combining its rate with the cap.
@@ -331,6 +360,25 @@ mod tests {
             }
         }
         received
+    }
+
+    #[test]
+    fn unpaced_delivery_preserves_rate_caps_with_variable_intervals() {
+        let clock = FrameClock::new(); let start = Instant::now();
+        let waker = Waker::from(Arc::new(Count(AtomicUsize::new(0))));
+        let mut cx = Context::from_waker(&waker);
+        let mut next = Box::pin(clock.next().max_rate(30.));
+        assert!(next.as_mut().poll(&mut cx).is_pending());
+        clock.deliver_unpaced(Frame { index: 0, time: start, interval: Duration::from_millis(1) });
+        assert!(next.as_mut().poll(&mut cx).is_ready());
+        let mut next = Box::pin(clock.next().max_rate(30.));
+        assert!(next.as_mut().poll(&mut cx).is_pending());
+        for (index, ms) in [1, 2, 3, 13, 20, 33].into_iter().enumerate() {
+            clock.deliver_unpaced(Frame { index: index as u64 + 1, time: start + Duration::from_millis(ms), interval: Duration::from_millis(if ms == 13 { 10 } else { 1 }) });
+            assert!(next.as_mut().poll(&mut cx).is_pending(), "rate exceeded at {ms} ms");
+        }
+        clock.deliver_unpaced(Frame { index: 8, time: start + Duration::from_millis(34), interval: Duration::from_millis(1) });
+        assert!(next.as_mut().poll(&mut cx).is_ready());
     }
 
     #[test]

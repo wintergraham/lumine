@@ -80,6 +80,7 @@ impl Cache {
         source: &wgpu::Texture,
         revision: u64,
         chain: &FilteredImage,
+        profiler: &std::cell::RefCell<Option<crate::profiling::Profiler>>,
     ) -> Result<wgpu::Texture, &'static str> {
         let width = source.width();
         let height = source.height();
@@ -270,9 +271,10 @@ impl Cache {
                     resource.input = input.clone();
                 }
                 {
+                    let stamp = profiler.borrow_mut().as_mut().and_then(|p| p.pass("effect_chain"));
                     let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                         label: Some("image effect stage"),
-                        ..Default::default()
+                        timestamp_writes: stamp.as_ref().map(|s| s.compute_writes()),
                     });
                     pass.set_pipeline(pipeline);
                     pass.set_bind_group(0, &resource.bind, &[]);

@@ -426,3 +426,18 @@ fn visibility_binding_follows_retained_geometry_and_native_presentation() {
     executor.borrow_mut().tick();
     assert!(!frames.wants_frame());
 }
+
+#[test]
+fn unpaced_mixed_effects_keep_authored_rates_with_a_real_driver() {
+    let h = Harness::new(&[options(12., 0), options(8., 0)]);
+    h.tick();
+    for index in 0..=500 {
+        h.frames.deliver_unpaced(Frame {
+            index, time: h.start + Duration::from_millis(index), interval: Duration::from_millis(1),
+        });
+        h.tick();
+    }
+    assert_eq!(h.clocks[1].frame().get().tick, 5, "8 Hz effect was undersampled");
+    assert!((6..=7).contains(&h.clocks[0].frame().get().tick));
+    assert!(h.frames.wants_frame());
+}

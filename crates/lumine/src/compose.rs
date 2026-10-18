@@ -2528,6 +2528,7 @@ fn mount_element(
         });
     }
     if let Some(id) = view.id {
+        ui.scene.borrow().profiler().label(root, id.clone());
         environment
             .registry
             .borrow_mut()

@@ -38,6 +38,13 @@ pub(crate) struct PassStamp {
     end: u32,
 }
 impl PassStamp {
+    pub fn compute_writes(&self) -> wgpu::ComputePassTimestampWrites<'_> {
+        wgpu::ComputePassTimestampWrites {
+            query_set: &self.set,
+            beginning_of_pass_write_index: Some(self.start),
+            end_of_pass_write_index: Some(self.end),
+        }
+    }
     pub fn writes(&self) -> wgpu::RenderPassTimestampWrites<'_> {
         wgpu::RenderPassTimestampWrites {
             query_set: &self.set,
@@ -103,13 +110,17 @@ impl Profiler {
                 free: Vec::new(),
                 completed: Vec::new(),
                 period: queue.get_timestamp_period() as f64 / 1e6,
-                encoders: device
+                // Metal's out-of-pass timestamps use blit encoders. Empty blits
+                // can return zero timestamps, invalidating an otherwise valid
+                // frame. Measure real render/compute pass boundaries instead.
+                encoders: !cfg!(target_os = "macos") && device
                     .features()
                     .contains(wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS),
                 frame: 0,
                 dropped: 0,
             })
     }
+    pub(crate) fn frame_id(&self) -> u64 { self.frame }
     pub fn begin(&mut self, device: &wgpu::Device) {
         self.poll();
         // No command buffer for an idle frame.

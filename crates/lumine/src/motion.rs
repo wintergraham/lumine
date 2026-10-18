@@ -182,15 +182,18 @@ fn scheduler_for(cx: &Context) -> Rc<Scheduler> {
         .as_ref()
         .and_then(|_| cx.try_service::<TaskRunner>())
         .map(|r| (*r).clone());
-    match (frames, runner) {
+    let scheduler = match (frames, runner) {
         (Some(frames), Some(runner)) => frames.motion_scheduler(runtime.clone(), Some(runner)),
         _ => Scheduler::new(runtime.clone(), FrameClock::new(), None),
-    }
+    };
+    if let Some(profiler) = cx.try_service::<crate::profiling::Profiler>() { *scheduler.profiler.borrow_mut() = (*profiler).clone(); }
+    scheduler
 }
 
 static NEXT_SCHEDULER_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
 pub(crate) struct Scheduler {
+    profiler: RefCell<crate::profiling::Profiler>,
     id: u64,
     runtime: Runtime,
     frames: FrameClock,
@@ -215,6 +218,7 @@ impl Scheduler {
         runner: Option<TaskRunner>,
     ) -> Rc<Self> {
         let this = Rc::new(Self {
+            profiler: RefCell::default(),
             id: NEXT_SCHEDULER_ID
                 .fetch_update(
                     std::sync::atomic::Ordering::Relaxed,
@@ -272,6 +276,7 @@ impl Scheduler {
         });
     }
     fn step(&self, frame: Frame) {
+        let _span = self.profiler.borrow().span("motion/native-update", None);
         let started = (self.profiling.get() > 0).then(Instant::now);
         let mut sampled = 0;
         self.runtime.batch(|| {

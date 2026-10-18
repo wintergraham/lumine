@@ -102,6 +102,7 @@ impl Track {
 }
 
 pub(crate) struct Scheduler {
+    profiler: RefCell<crate::profiling::Profiler>,
     runtime: Runtime,
     frames: FrameClock,
     runner: Option<TaskRunner>,
@@ -124,6 +125,7 @@ impl Scheduler {
         runner: Option<TaskRunner>,
     ) -> Rc<Self> {
         let this = Rc::new(Self {
+            profiler: RefCell::default(),
             budget: runtime.signal(usize::MAX),
             revision: runtime.signal(0),
             runtime,
@@ -235,6 +237,7 @@ impl Scheduler {
     }
     fn rate(&self, last_index: Option<u64>) -> Option<f64> {
         let selected = self.selected.borrow();
+        if self.frames.is_unpaced() { return selected.iter().map(|track|track.options.with_untracked(|value|value.hz)).reduce(f64::max); }
         if selected.is_empty() {
             return None;
         }
@@ -264,9 +267,18 @@ impl Scheduler {
         }
     }
     fn step(&self, frame: Frame) {
+        let _span = self.profiler.borrow().span("effects/native-update", None);
         self.runtime.batch(|| {
             for track in self.selected.borrow().iter() {
                 if track.alive.get() {
+                    if self.frames.is_unpaced() {
+                        let hz = track.options.with_untracked(|value|value.hz);
+                        let period = Duration::try_from_secs_f64(1. / hz).unwrap_or(Duration::MAX);
+                        if track.last.get().is_none_or(|last|frame.time.saturating_duration_since(last) >= period) {
+                            track.step(Frame { interval: period, ..frame }, 1);
+                        }
+                        continue;
+                    }
                     let divisor = self.divisor(
                         frame.refresh_rate(),
                         track.options.with_untracked(|value| value.hz),
@@ -282,7 +294,7 @@ struct Driver {
     scheduler: Weak<Scheduler>,
     generation: u64,
     frame: Option<NextFrame>,
-    rate: Option<f64>,
+    rate: Option<(f64, bool)>,
     last_index: Option<u64>,
 }
 impl Future for Driver {
@@ -308,12 +320,14 @@ impl Future for Driver {
             scheduler.step(frame);
             return self.poll(cx);
         }
-        if self.rate != Some(rate) {
+        let unpaced = scheduler.frames.is_unpaced();
+        if self.rate != Some((rate, unpaced)) {
             self.frame = None;
-            self.rate = Some(rate);
+            self.rate = Some((rate, unpaced));
         }
         if self.frame.is_none() {
-            let mut frame = scheduler.frames.next().max_rate(rate);
+            let mut frame = scheduler.frames.next();
+            if !unpaced { frame = frame.max_rate(rate); }
             if let Some(index) = self.last_index {
                 frame = frame.after_index(index);
             }
@@ -343,6 +357,7 @@ impl EffectScheduler {
             (Some(frames), Some(runner)) => frames.effect_scheduler(runtime, (*runner).clone()),
             _ => Scheduler::new(runtime, FrameClock::new(), None),
         };
+        if let Some(profiler) = cx.try_service::<crate::profiling::Profiler>() { *scheduler.profiler.borrow_mut() = (*profiler).clone(); }
         Self(scheduler)
     }
     /// Limit concurrently ticking effects. Zero pauses all continuous effects.

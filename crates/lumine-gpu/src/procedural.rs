@@ -98,6 +98,7 @@ impl Cache {
         display_layout: &wgpu::BindGroupLayout,
         data: &lumine::image::ImageData,
         budget: usize,
+        profiler: &std::cell::RefCell<Option<crate::profiling::Profiler>>,
     ) -> Result<(wgpu::Texture, wgpu::BindGroup), &'static str> {
         self.reserve_capacity(data, budget)?;
         let revision = data.id();
@@ -212,7 +213,11 @@ impl Cache {
             self.allocations += 1;
             &mut temporary
         };
-        let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor::default());
+        let stamp = profiler.borrow_mut().as_mut().and_then(|p| p.pass("dither"));
+        let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+            label: Some("procedural image"),
+            timestamp_writes: stamp.as_ref().map(|s| s.compute_writes()),
+        });
         pass.set_pipeline(pipeline);
         pass.set_bind_group(0, &entry.bind, &[]);
         pass.dispatch_workgroups(image.dispatch[0], image.dispatch[1], 1);

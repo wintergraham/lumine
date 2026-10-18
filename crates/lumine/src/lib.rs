@@ -2,6 +2,7 @@
 //! The core has no platform dependencies and can be targeted by template compilers.
 pub mod collections;
 pub mod reactive;
+pub mod profiling;
 pub mod scene;
 pub mod task;
 pub mod view;

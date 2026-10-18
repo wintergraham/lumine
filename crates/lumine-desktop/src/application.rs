@@ -408,6 +408,7 @@ pub struct WindowContext {
     pub frames: FrameClock,
     /// Optional native presentation counter, independent of animation requests.
     pub frame_counter: crate::FrameCounter,
+    pub performance: crate::Performance,
     /// Last rendered frame's layout and shader work, read without polling.
     pub motion_diagnostics: lumine::motion::RenderDiagnostics,
     close_requested: Option<Box<dyn FnMut() -> bool>>,
@@ -480,7 +481,7 @@ impl WindowContext {
                 self.frame_counter.clone(),
                 lumine::compose::provide(
                     self.motion_diagnostics.clone(),
-                    lumine::compose::provide(runner, view),
+                    lumine::compose::provide(self.performance.clone(), lumine::compose::provide(self.performance.profiler.clone(), lumine::compose::provide(runner, view))),
                 ),
             ),
         ))
@@ -735,6 +736,11 @@ struct Host {
     gpu_stats: Option<crate::gpu_stats::GpuStatsLog>,
     motion_pending_layout: usize,
     counter_frame_pending: bool,
+    performance_frame_pending: bool,
+    performance_gpu_enabled: bool,
+    performance_gpu_content: VecDeque<(u64, bool)>,
+    unpaced_index: u64,
+    last_unpaced: Option<std::time::Instant>,
     /// `LUMINE_DAMAGE_CHECK=1`: compare every damaged frame with a full
     /// repaint and report stale pixels (slow; for debugging damage).
     damage_check: Option<u64>,
@@ -776,7 +782,9 @@ impl Host {
                 event.prevent_default();
             }
         });
+        let performance = crate::Performance::new(ui.scene.borrow().profiler());
         let context = WindowContext {
+            performance,
             window_info,
             menu_model,
             dialogs: crate::FileDialogs::new(handle.clone()),
@@ -841,6 +849,11 @@ impl Host {
             gpu_stats: crate::gpu_stats::GpuStatsLog::from_env(),
             motion_pending_layout: 0,
             counter_frame_pending: false,
+            performance_frame_pending: false,
+            performance_gpu_enabled: false,
+            performance_gpu_content: VecDeque::new(),
+            unpaced_index: 0,
+            last_unpaced: None,
             damage_check: std::env::var_os("LUMINE_DAMAGE_CHECK").map(|_| 0),
             frames,
             #[cfg(target_os = "macos")]
@@ -870,6 +883,8 @@ impl Host {
         &mut self,
         event: InputEvent,
     ) -> Result<bool, lumine::widgets::LayoutFeedbackError> {
+        let _work = self.context.performance.work(0);
+        let _span = self.context.performance.profiler.span("input", None);
         let result = self
             .context
             .ui
@@ -880,6 +895,7 @@ impl Host {
         Ok(result.default_prevented)
     }
     fn sync_accessibility(&mut self) {
+        let _span = self.context.performance.profiler.span("accessibility", None);
         let state = (
             self.context.ui.semantics.borrow().revision(),
             self.context.ui.input.focused(),
@@ -976,17 +992,26 @@ impl Host {
         );
         self.context.ui.set_presented(presented);
         if !presented {
+            self.sync_performance();
+            self.context.performance.break_sequence();
             self.context.ui.cancel_interactions();
             return Ok(());
         }
+        let update_work = self.context.performance.work(2);
+        let update_span = self.context.performance.profiler.span("update", None);
         self.context
             .ui
             .advance_interactions(std::time::Instant::now())?;
         self.context.ui.try_prepare_frame()?;
         self.sync_ime_cancellation();
+        drop(update_span); drop(update_work);
+        let layout_work = self.context.performance.work(3);
+        let layout_span = self.context.performance.profiler.span("layout/damage", None);
         let scene = self.context.ui.scene.clone();
         let mut scene = scene.borrow_mut();
         let report = scene.flush();
+        drop(layout_span); drop(layout_work);
+        self.performance_frame_pending |= self.context.performance.content_damage(&report.damage, self.context.frame_counter.overlay_bounds());
         self.motion_pending_layout = self
             .motion_pending_layout
             .saturating_add(report.layout_nodes);
@@ -1007,7 +1032,15 @@ impl Host {
             } else {
                 if let Some(renderer) = &mut self.renderer {
                     renderer.set_svg_motion(self.frames.wants_frame());
+                    let encode_work = self.context.performance.work(4);
+                    let encode_span = self.context.performance.profiler.span("encode/submit", None);
                     let stats = renderer.render(&scene, damage)?;
+                    drop(encode_span); drop(encode_work);
+                    if self.performance_frame_pending { self.context.performance.record_stats(stats); }
+                    if let Some(frame) = renderer.gpu_profile_frame_id() {
+                        if self.performance_gpu_content.len() == 128 { self.performance_gpu_content.pop_front(); }
+                        self.performance_gpu_content.push_back((frame, self.performance_frame_pending));
+                    }
                     let previous = self.context.motion_diagnostics.snapshot();
                     self.context
                         .motion_diagnostics
@@ -1022,9 +1055,15 @@ impl Host {
                         *frame += 1;
                         check_damage(renderer, &scene, damage, &full, size.width as usize, *frame)?;
                     }
-                    if let Some(log) = &mut self.gpu_stats {
-                        log.record(stats, renderer);
-                    }
+                    if self.context.performance.enabled() {
+                        let mut profiles = self.context.performance.gpu.borrow_mut();
+                        for profile in renderer.take_gpu_profiles() {
+                            if !self.performance_gpu_content.iter().any(|(id,content)|*id == profile.frame && *content) { continue; }
+                            if profiles.len() == crate::performance::FRAME_HISTORY { profiles.pop_front(); }
+                            if !self.context.performance.paused() { profiles.push_back(profile); }
+                        }
+                        self.context.performance.set_gpu_status(self.context.performance.gpu_supported(), renderer.dropped_gpu_profiles());
+                    } else if let Some(log) = &mut self.gpu_stats { log.record(stats, renderer); }
                     self.presentation.damaged();
                 }
                 self.force = false;
@@ -1039,11 +1078,17 @@ impl Host {
                 // on the shared UI thread. Keep its rendered target and damage.
                 window.request_redraw();
             } else {
+                let present_work = self.context.performance.work(5);
+                let present_span = self.context.performance.profiler.span("present", None);
                 let status = renderer.present_with_notify(|| window.pre_present_notify())?;
+                drop(present_span); drop(present_work);
                 if status == lumine_gpu::PresentationStatus::Presented {
                     self.context
                         .frame_counter
                         .presented(std::mem::take(&mut self.counter_frame_pending));
+                    let content = std::mem::take(&mut self.performance_frame_pending);
+                    self.context.performance.presented(std::time::Instant::now(), content,
+                        self.frames.wants_frame() || self.context.performance.continuous() || self.scroll.active(std::time::Instant::now()));
                     self.present_ready = false;
                     let now = std::time::Instant::now();
                     self.trim_at = Some(now + TRIM_DELAY);
@@ -1311,6 +1356,9 @@ impl Host {
         });
         renderer.install_text(&mut self.context.ui.scene.borrow_mut());
         self.context.ui.refresh_text_geometry();
+        renderer.set_vsync(!self.context.performance.effective_uncapped());
+        self.performance_gpu_enabled = false;
+        self.performance_gpu_content.clear();
         self.renderer = Some(renderer);
         self.adapter = Some(adapter);
         window.set_maximized(self.state.maximized);
@@ -1380,7 +1428,7 @@ impl Host {
             self.last_accessibility = None;
         }
         if let WindowCommand::MaxFrameRate(hz) = command {
-            self.frames.set_max_rate(hz);
+            self.frames.set_max_rate(if self.context.performance.effective_uncapped() { None } else { hz });
         }
         let Some(window) = &self.window else { return };
         match command {
@@ -1489,6 +1537,7 @@ impl Host {
         self.ime_geometry = None;
         self.modifiers = Modifiers::default();
         self.focus_memory.deactivate(&self.context.ui);
+        self.sync_performance();
     }
     fn unregister_file_surface(&mut self) {
         #[cfg(target_os = "linux")]
@@ -1726,6 +1775,7 @@ impl Host {
             WindowEvent::Focused(true) => {
                 self.native_focused = true;
                 self.focus_memory.activate(&self.context.ui);
+                self.sync_performance();
             }
             WindowEvent::Ime(event) => {
                 if self.ime_restart.accepts(&event)
@@ -1814,6 +1864,7 @@ impl Host {
         }
     }
     fn update(&mut self) -> Result<bool, Box<dyn Error>> {
+        self.sync_performance();
         self.poll_frame_deadline(std::time::Instant::now());
         if self.scroll.pending() {
             // Each refresh applies the motion due by then; with no refreshes
@@ -1859,10 +1910,12 @@ impl Host {
             self.tasks.spawn(task);
         }
         if self.tasks.has_ready() {
+            let _work = self.context.performance.work(1);
+            let _span = self.context.performance.profiler.span("tasks", None);
             self.tasks.tick();
         }
         #[cfg(target_os = "macos")]
-        let paced = self
+        let paced = !self.context.performance.effective_uncapped() && self
             .display_link
             .as_ref()
             .is_some_and(|link| link.running());
@@ -1875,6 +1928,23 @@ impl Host {
         }
         self.sync_frames();
         Ok(self.tasks.has_ready() || !self.pending.borrow().is_empty())
+    }
+    fn sync_performance(&mut self) {
+        let monitor = &self.context.performance;
+        let before = monitor.effective_uncapped();
+        monitor.set_compositor_paced(self.frame_paced);
+        let uncapped = monitor.sync(self.native_focused, self.frames_presented(), self.frame_interval.as_secs_f64() * 1000.);
+        if uncapped != before { self.frames.set_max_rate(if uncapped { None } else { self.options.max_frame_rate }); }
+        if let Some(renderer) = &mut self.renderer {
+            if uncapped != before { renderer.set_vsync(!uncapped); self.frame_deadline = None; self.last_unpaced = None; }
+            let profiling = monitor.enabled() && !monitor.paused();
+            if profiling != self.performance_gpu_enabled {
+                let supported = renderer.set_gpu_profiling(profiling);
+                self.performance_gpu_enabled = profiling;
+                self.performance_gpu_content.clear();
+                monitor.set_gpu_status(if profiling { supported } else { monitor.gpu_supported() }, renderer.dropped_gpu_profiles());
+            }
+        }
     }
     fn frames_presented(&self) -> bool {
         self.window.is_some()
@@ -1901,12 +1971,18 @@ impl Host {
         self.frame_deadline = None;
         self.frame_heartbeat = Some(std::time::Instant::now());
         if self.frames_presented() {
-            self.frames.deliver(frame);
+            if self.context.performance.continuous() && self.native_focused { self.force = true; self.performance_frame_pending = true; }
+            if self.context.performance.effective_uncapped() { self.frames.deliver_unpaced(frame); } else { self.frames.deliver(frame); }
         }
     }
     fn poll_frame_deadline(&mut self, now: std::time::Instant) {
         if self.frame_deadline.is_some_and(|deadline| now >= deadline) {
-            let frame = self.frame_timer.frame(now, self.frame_interval);
+            let frame = if self.context.performance.effective_uncapped() {
+                self.unpaced_index = self.unpaced_index.wrapping_add(1);
+                let interval = self.last_unpaced.replace(now).map_or(self.frame_interval, |last| now.saturating_duration_since(last)).max(std::time::Duration::from_nanos(1));
+                if self.context.performance.continuous() { self.force = true; self.performance_frame_pending = true; }
+                Frame { index: self.unpaced_index, time: now, interval }
+            } else { self.frame_timer.frame(now, self.frame_interval) };
             self.deliver_frame(frame);
         }
     }
@@ -1914,7 +1990,16 @@ impl Host {
     fn sync_frames(&mut self) {
         let now = std::time::Instant::now();
         let scrolling = self.scroll.active(now);
-        let wanted = (self.frames.wants_frame() || scrolling) && self.frames_presented();
+        let stress = self.context.performance.continuous() && self.native_focused;
+        let wanted = (self.frames.wants_frame() || scrolling || stress) && self.frames_presented();
+        if !wanted { self.context.performance.break_sequence(); self.last_unpaced = None; }
+        if self.context.performance.effective_uncapped() {
+            #[cfg(target_os = "macos")]
+            if let Some(link) = &mut self.display_link { link.set_running(false); }
+            self.frame_deadline = wanted.then_some(now);
+            return;
+        }
+
         if !wanted {
             self.frame_heartbeat = None;
             self.frame_deadline = None;
@@ -1940,7 +2025,7 @@ impl Host {
                 link.set_preferred_rate(
                     self.frames
                         .demanded_rate(refresh)
-                        .filter(|rate| !scrolling && *rate < refresh - 0.5),
+                        .filter(|rate| !scrolling && !stress && *rate < refresh - 0.5),
                 );
                 let heartbeat = *self.frame_heartbeat.get_or_insert(now);
                 self.frame_deadline = Some(heartbeat + crate::frame_source::WATCHDOG);

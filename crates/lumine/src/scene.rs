@@ -544,6 +544,7 @@ pub struct PaintItem<'a> {
 type FontMeasurer =
     dyn Fn(&std::sync::Arc<str>, f32, Option<f32>, &crate::text_layout::FontStyle) -> (f32, f32);
 pub struct Scene {
+    profiler: crate::profiling::Profiler,
     identity: u64,
     tree_revision: u64,
     visibility_revision: u64,
@@ -600,7 +601,10 @@ impl Scene {
             index: 0,
             generation: 0,
         };
+        let profiler = crate::profiling::Profiler::default();
+        profiler.register_root(root);
         Self {
+            profiler,
             identity: NEXT_SCENE_ID
                 .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1))
                 .expect("scene identity exhausted"),
@@ -673,6 +677,7 @@ impl Scene {
         }
     }
     /// Stable identity separates renderer caches when a whole scene is replaced.
+    pub fn profiler(&self) -> crate::profiling::Profiler { self.profiler.clone() }
     pub fn identity(&self) -> u64 {
         self.identity
     }
@@ -1346,6 +1351,7 @@ impl Scene {
                 generation: 0,
             }
         };
+        self.profiler.register_node(id, parent);
         self.node_mut(parent).children.push(id);
         self.dirty.push(id);
         self.invalidate_layout(parent);
@@ -1373,6 +1379,7 @@ impl Scene {
         }
     }
     fn free_subtree(&mut self, id: NodeId) {
+        self.profiler.remove(id);
         let node = self.slots[id.index as usize].node.take().unwrap();
         self.cursor_styles -= usize::from(node.cursor.is_some());
         if node.isolated {
@@ -2046,6 +2053,7 @@ impl Scene {
     /// Intrinsic probes consume only a size. Keep them separate from the few
     /// complete measurements that must restore descendant geometry for arrange.
     fn measure_intrinsic(&mut self, id: NodeId, constraints: Constraints) -> (f32, f32) {
+        let _span = self.profiler.span("intrinsic", Some(id));
         let revision = self.text_shaper_revision;
         if let Some(index) = self
             .node(id)
@@ -2067,6 +2075,7 @@ impl Scene {
         size
     }
     fn measure(&mut self, id: NodeId, mut constraints: Constraints) -> (f32, f32) {
+        let _span = self.profiler.span("measure", Some(id));
         #[cfg(test)]
         {
             self.measure_calls += 1;
@@ -2082,6 +2091,7 @@ impl Scene {
             && usable(current)
         {
             let size = current.size;
+            self.profiler.layout_query(id, true);
             self.trace_layout(id, "measure.current", Some(constraints), Some(size));
             return size;
         }
@@ -2094,9 +2104,11 @@ impl Scene {
                 node.alternates.insert(0, previous);
             }
             node.arrange_dirty = true;
+            self.profiler.layout_query(id, true);
             self.trace_layout(id, "measure.alternate", Some(constraints), Some(size));
             return size;
         }
+        self.profiler.layout_query(id, false);
         if constraints.hidden {
             return self.measure_hidden(id, constraints);
         }
@@ -2612,6 +2624,8 @@ impl Scene {
         if !self.node(id).arrange_dirty && self.node(id).bounds == bounds {
             return;
         }
+        let _span = self.profiler.span("arrange", Some(id));
+        self.profiler.arranged(id);
         let children = cache.children.clone();
         let child_constraints = cache.child_constraints.clone();
         let changed = self.node(id).bounds != bounds;
@@ -2663,6 +2677,7 @@ impl Scene {
         if self.node(self.root).dirty & LAYOUT == 0 && self.layout_roots.is_empty() {
             return;
         }
+        let _span = self.profiler.span("layout/pass", None);
         let mut report = FrameReport::default();
         if self.node(self.root).dirty & LAYOUT != 0 {
             self.measure(self.root, Constraints::default());
@@ -2720,6 +2735,7 @@ impl Scene {
             }
             let flags = self.node(*id).dirty;
             if flags & PAINT != 0 {
+                self.profiler.repaint(*id);
                 report.paint_nodes += 1;
                 self.damage_node(*id);
             }

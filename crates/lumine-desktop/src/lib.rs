@@ -48,6 +48,8 @@ pub use native_prompt::{PromptButtons, PromptLevel, PromptOptions, PromptRespons
 pub use url::{OpenUrlError, open_url};
 pub use window_info::{DisplayInfo, DisplaySelector, WindowBounds, WindowCapabilities, WindowInfo};
 mod focus_memory;
+pub mod performance;
+pub use performance::Performance;
 mod frame_counter;
 pub use frame_counter::FrameCounter;
 mod frame_source;

@@ -2365,7 +2365,9 @@ impl GpuRenderer {
         });
         let mut draws = Vec::new();
         self.geometry.begin();
+        let element_profiler = scene.profiler();
         for mut item in items {
+            let _span = element_profiler.span("paint/prepare", Some(item.id));
             // Retained hidden subtrees must not allocate textures, shape text,
             // or trigger filters until their effective opacity is visible.
             if item.effects.opacity <= 0. {
@@ -4358,7 +4360,6 @@ impl GpuRenderer {
                 .unwrap_or_else(|| self.device.create_command_encoder(&Default::default()));
             // Mapped uploads must precede any stage sampling its source.
             self.texture_uploads.encode(&self.device, &mut encoder);
-            let stamp = self.profile_start(&mut encoder, "effect_chain");
             let result = self
                 .chain_cache
                 .render(
@@ -4368,9 +4369,9 @@ impl GpuRenderer {
                     &self.image_textures[&chain.input.id()],
                     image.id(),
                     chain,
+                    &self.profiler,
                 )
                 .map_err(|error| GpuError(error.into()));
-            profiling::Profiler::end(&mut encoder, stamp);
             // Earlier recursive uploads and procedural fills may already be
             // cached. Keep their commands even if this chain rejects its budget.
             self.procedural_encoder = Some(encoder);
@@ -4392,7 +4393,6 @@ impl GpuRenderer {
                 .procedural_encoder
                 .take()
                 .unwrap_or_else(|| self.device.create_command_encoder(&Default::default()));
-            let stamp = self.profile_start(&mut encoder, "dither");
             let result = self.procedural.render(
                 &self.device,
                 &self.queue,
@@ -4400,8 +4400,8 @@ impl GpuRenderer {
                 &self.context.inner.texture_layout,
                 image,
                 self.image_budget,
+                &self.profiler,
             );
-            profiling::Profiler::end(&mut encoder, stamp);
             self.procedural_encoder = Some(encoder);
             let (texture, bind) = result.map_err(|error| GpuError(error.into()))?;
             display = Some(bind);
@@ -4924,6 +4924,17 @@ impl GpuRenderer {
     }
     /// Enable bounded GPU pass timestamps. Returns false on unsupported adapters.
     /// No device waits or readbacks are added when profiling is disabled.
+    /// Disable presentation vsync for developer throughput measurements. The OS compositor
+    /// can still limit delivered frames. Restore AutoVsync when focus is lost.
+    pub fn set_vsync(&mut self, enabled: bool) {
+        let mode = if enabled { wgpu::PresentMode::AutoVsync } else { wgpu::PresentMode::AutoNoVsync };
+        if let (Some(surface), Some(config)) = (&self.surface, &mut self.config) {
+            if config.present_mode != mode {
+                config.present_mode = mode;
+                surface.configure(&self.device, config);
+            }
+        }
+    }
     pub fn set_gpu_profiling(&mut self, enabled: bool) -> bool {
         self.flush_pending_inner(true);
         *self.profiler.get_mut() = if enabled {
@@ -4944,6 +4955,7 @@ impl GpuRenderer {
             .as_mut()
             .map_or_else(Vec::new, |p| p.take())
     }
+    pub fn gpu_profile_frame_id(&self) -> Option<u64> { self.profiler.borrow().as_ref().map(|p|p.frame_id()) }
     pub fn dropped_gpu_profiles(&self) -> u64 {
         self.profiler.borrow().as_ref().map_or(0, |p| p.dropped)
     }

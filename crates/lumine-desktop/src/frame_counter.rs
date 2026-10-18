@@ -21,6 +21,7 @@ impl FrameCounter {
     pub fn frames(&self) -> u64 {
         self.frames.get()
     }
+    pub(crate) fn overlay_bounds(&self) -> Option<Rect> { self.overlay_bounds.get() }
     pub fn set_overlay_bounds(&self, bounds: Option<Rect>) {
         self.overlay_bounds.set(bounds);
     }
