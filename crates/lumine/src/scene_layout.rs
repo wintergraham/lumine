@@ -2058,6 +2058,124 @@ mod tests {
     }
 
     #[test]
+    fn auto_grid_rows_keep_individual_card_content_heights_at_the_natural_allocation() {
+        use crate::layout::{LayoutOptions, Length};
+        let mut scene = Scene::new(937., 2000.);
+        let grid = scene.append(
+            scene.root(),
+            NodeKind::Container(Layout::Column),
+            Style {
+                width: Some(937.),
+                gap: 12.,
+                align: Align::Stretch,
+                layout_options: Some(Arc::new(LayoutOptions {
+                    display: Some(ViewDisplay::Grid),
+                    columns: Some(2),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            },
+        );
+        let mut cards = Vec::new();
+        for (content_height, expected_height) in [(187.2, 343.2), (440., 596.), (274., 430.)] {
+            let card = scene.append(
+                grid,
+                NodeKind::Container(Layout::Column),
+                Style {
+                    width_percent: Some(1.),
+                    padding: 1.,
+                    min_height: Some(300.),
+                    align: Align::Stretch,
+                    layout_options: Some(Arc::new(LayoutOptions {
+                        column_full: Some(true),
+                        align_self: Some(Align::Stretch),
+                        gap_x: Some(Length::Px(0.)),
+                        ..Default::default()
+                    })),
+                    ..Default::default()
+                },
+            );
+            let demo = scene.append(
+                card,
+                NodeKind::Container(Layout::Row),
+                Style {
+                    width_percent: Some(1.),
+                    flex_grow: 1.,
+                    flex_shrink: 1.,
+                    align: Align::Center,
+                    justify: Justify::Center,
+                    padding_edges: Some(Insets {
+                        top: 56.,
+                        bottom: 56.,
+                        left: 24.,
+                        right: 24.,
+                    }),
+                    layout_options: Some(Arc::new(LayoutOptions {
+                        basis: Some(Length::Percent(0.)),
+                        gap_x: Some(Length::Px(16.)),
+                        ..Default::default()
+                    })),
+                    ..Default::default()
+                },
+            );
+            let content = scene.append(
+                demo,
+                NodeKind::Rect(Color(34, 51, 68, 255)),
+                Style {
+                    width: Some(620.),
+                    height: Some(content_height),
+                    ..Default::default()
+                },
+            );
+            let footer = scene.append(
+                card,
+                NodeKind::Rect(Color(255, 255, 255, 255)),
+                Style {
+                    width_percent: Some(1.),
+                    height: Some(42.),
+                    ..Default::default()
+                },
+            );
+            cards.push((card, demo, content, footer, content_height, expected_height));
+        }
+        let total = cards.iter().map(|card| card.5).sum::<f32>() + 24.;
+        // Giving the grid its already-natural height must not redistribute
+        // height between unrelated auto rows or move each demo's centered content.
+        for height in [None, Some(total), None, Some(total)] {
+            let size = scene.measure(
+                grid,
+                Constraints {
+                    width: Some(937.),
+                    force_width: Some(937.),
+                    height,
+                    force_height: height,
+                    ..Default::default()
+                },
+            );
+            assert!((size.1 - total).abs() < 0.001, "grid {size:?}");
+            scene.arrange(grid, 0., 0., &mut FrameReport::default(), false);
+            let mut y = 0.;
+            for &(card, demo, content, footer, content_height, expected_height) in &cards {
+                let bounds = scene.layout_bounds(card);
+                assert!(
+                    (bounds.height - expected_height).abs() < 0.001,
+                    "{height:?}: {bounds:?}, expected {expected_height}"
+                );
+                assert!((bounds.y - y).abs() < 0.001);
+                let demo_bounds = scene.layout_bounds(demo);
+                assert!((demo_bounds.height - content_height - 112.).abs() < 0.001);
+                assert!((scene.layout_bounds(content).y - demo_bounds.y - 56.).abs() < 0.001);
+                let footer_bounds = scene.layout_bounds(footer);
+                assert!(
+                    (footer_bounds.y + footer_bounds.height + 1. - bounds.y - bounds.height).abs()
+                        < 0.001
+                );
+                y += expected_height + 12.;
+            }
+        }
+    }
+
+    #[test]
     fn advanced_cache_survives_changes_and_removes_stale_children() {
         let mut scene = Scene::new(500., 300.);
         let root = scene.root();
