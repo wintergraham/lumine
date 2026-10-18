@@ -97,8 +97,11 @@ impl Profiler {
         self.excluded.borrow_mut().insert(node);
     }
     pub fn is_excluded(&self, node: NodeId) -> bool {
-        let parents = self.parents.borrow();
         let excluded = self.excluded.borrow();
+        if excluded.is_empty() {
+            return false;
+        }
+        let parents = self.parents.borrow();
         let mut at = Some(node);
         while let Some(node) = at {
             if excluded.contains(&node) {
@@ -325,7 +328,10 @@ mod tests {
         );
         let child = scene.append(tools, NodeKind::Container(Layout::Column), Style::default());
         profiler.label(element, "Outgoing element".into());
+        assert!(!profiler.is_excluded(child));
         profiler.exclude(tools);
+        assert!(profiler.is_excluded(child));
+        assert!(!profiler.is_excluded(element));
         profiler.set_enabled(true);
         {
             let _app = profiler.span("app", Some(element));

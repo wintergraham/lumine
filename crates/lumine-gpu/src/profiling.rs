@@ -1,7 +1,10 @@
 //! Opt-in, bounded GPU timestamp collection. Normal rendering never waits.
 //! Read results with GpuRenderer::take_gpu_profiles after polling the device.
 use std::{collections::VecDeque, sync::mpsc};
-const QUERIES: u32 = 128;
+// Large native boards can animate hundreds of independent layers. Keep their
+// scopes measurable without silently truncating most of an active frame. The
+// bounded eight-slot pool still uses under 1 MiB for timestamp/readback storage.
+const QUERIES: u32 = 4096;
 const MAX_PENDING: usize = 8;
 #[derive(Clone, Debug)]
 pub struct GpuSpan {
