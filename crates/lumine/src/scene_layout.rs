@@ -496,6 +496,7 @@ impl Scene {
                 mapped.size.height = dim(Length::Px(natural.1 + padding.top + padding.bottom));
             }
         }
+        let mut synthesized_height = false;
         // Taffy floors negative intrinsic flex contributions, adding back a gap
         // that a clipped reveal has cancelled with its trailing margin. Its
         // MaxContent flex fraction also scales negative margins by the basis,
@@ -555,7 +556,7 @@ impl Scene {
                 );
                 let contribution = size.1 + top + bottom;
                 cancelled |= contribution < 0.;
-                auto_basis &= matches!(options.basis, None | Some(Length::Auto));
+                auto_basis &= matches!(options.basis, None | Some(Length::Auto | Length::Percent(_)));
                 total += contribution;
                 count += 1;
             }
@@ -564,6 +565,7 @@ impl Scene {
             if cancelled || (constraints.height.is_none() && auto_basis) {
                 let gap = match root_options.gap_y { Some(Length::Px(value)) => value, _ => root_style.gap };
                 mapped.size.height = dim(Length::Px(total + gap * count.saturating_sub(1) as f32 + padding.top + padding.bottom));
+                synthesized_height = true;
             }
         }
         let overlay_content = (layout == Layout::Overlay
@@ -597,6 +599,22 @@ impl Scene {
             .iter()
             .map(|child| {
                 let mut mapped = style(&self.node(*child).style, Layout::Column, true);
+                if synthesized_height && !self.node(*child).style.absolute {
+                    // An intrinsic sum gives Taffy an allocation, not a definite
+                    // percentage-height basis. Keep the original auto-height
+                    // contract, matching child_percent_height in the callback.
+                    let unresolved = |value: &mut t::Dimension, fallback| {
+                        if value.tag() == taffy::style::CompactLength::PERCENT_TAG {
+                            *value = fallback;
+                        }
+                    };
+                    unresolved(&mut mapped.size.height, t::Dimension::auto());
+                    unresolved(&mut mapped.min_size.height, t::Dimension::length(0.));
+                    unresolved(&mut mapped.max_size.height, t::Dimension::auto());
+                    if layout == Layout::Column {
+                        unresolved(&mut mapped.flex_basis, t::Dimension::auto());
+                    }
+                }
                 if let Some((width, height)) = overlay_content {
                     mapped.position = t::Position::Absolute;
                     // Only in-flow layers inherit overlay alignment. Explicitly
@@ -1487,6 +1505,105 @@ mod tests {
         scene.flush();
         assert_eq!(scene.layout_bounds(column).height, 18.);
         assert_eq!(scene.layout_bounds(text).height, 20.);
+    }
+
+    #[test]
+    fn negative_margin_intrinsic_height_keeps_percentage_children_indefinite() {
+        use crate::layout::LayoutOptions;
+        for case in 0..5 {
+            let mut scene = Scene::new(400., 200.);
+            let column = scene.append(
+                scene.root(),
+                NodeKind::Container(Layout::Column),
+                Style {
+                    width: Some(200.),
+                    layout_options: Some(Arc::new(LayoutOptions {
+                        gap_x: Some(Length::Px(0.)),
+                        ..Default::default()
+                    })),
+                    ..Default::default()
+                },
+            );
+            let mut options = LayoutOptions::default();
+            match case {
+                1 => options.min_height = Some(Length::Percent(1.)),
+                2 => options.max_height = Some(Length::Percent(0.5)),
+                3 => options.basis = Some(Length::Percent(1.)),
+                4 => options.basis = Some(Length::Percent(0.)),
+                _ => {}
+            }
+            let child = scene.append(
+                column,
+                NodeKind::Container(Layout::Column),
+                Style {
+                    height_percent: Some(1.),
+                    margin: Insets {
+                        bottom: -1.,
+                        ..Default::default()
+                    },
+                    layout_options: Some(Arc::new(options)),
+                    ..Default::default()
+                },
+            );
+            let nested = scene.append(
+                child,
+                NodeKind::Container(Layout::Column),
+                Style {
+                    height_percent: Some(1.),
+                    ..Default::default()
+                },
+            );
+            scene.append(
+                nested,
+                NodeKind::Rect(Color(34, 51, 68, 255)),
+                Style {
+                    width: Some(20.),
+                    height: Some(20.),
+                    ..Default::default()
+                },
+            );
+            let last = scene.append(
+                column,
+                NodeKind::Rect(Color(255, 255, 255, 255)),
+                Style {
+                    width: Some(20.),
+                    height: Some(20.),
+                    ..Default::default()
+                },
+            );
+            for known in [false, true, false] {
+                let constraints = Constraints {
+                    force_height: known.then_some(100.),
+                    ..Default::default()
+                };
+                assert_eq!(
+                    scene.measure(column, constraints).1,
+                    if known { 100. } else { 39. },
+                    "case={case}, known={known}"
+                );
+                scene.arrange(column, 0., 0., &mut FrameReport::default(), false);
+                let child_height = if known {
+                    match case {
+                        2 => 50.,
+                        4 => 0.,
+                        _ => 100.,
+                    }
+                } else {
+                    20.
+                };
+                assert_eq!(
+                    scene.layout_bounds(child).height,
+                    child_height,
+                    "case={case}, known={known}"
+                );
+                assert_eq!(scene.layout_bounds(nested).height, child_height);
+                let last = scene.layout_bounds(last);
+                assert_eq!(last.y, child_height - 1.);
+                if !known {
+                    assert_eq!(last.y + last.height, 39.);
+                }
+            }
+        }
     }
 
     #[test]
