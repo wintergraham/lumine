@@ -347,6 +347,7 @@ struct State {
     focused: Option<NodeId>,
     captured: Option<NodeId>,
     capture_button: Option<PointerButton>,
+    pointer_buttons: Vec<PointerButton>,
     hovered: Option<NodeId>,
     file_hovered: Option<NodeId>,
     pressed: Option<NodeId>,
@@ -781,6 +782,10 @@ impl InputDispatcher {
     }
     pub fn captured(&self) -> Option<NodeId> {
         self.state.borrow().captured
+    }
+    /// Physical press state, independent of hit targets, capture and prevention.
+    pub fn pointer_is_down(&self) -> bool {
+        !self.state.borrow().pointer_buttons.is_empty()
     }
     fn set_capture(&self, node: Option<NodeId>, event: &InputEvent) {
         let mut state = self.state.borrow_mut();
@@ -1223,6 +1228,21 @@ impl InputDispatcher {
         modifiers: Option<Modifiers>,
         bindings: bool,
     ) -> DispatchResult {
+        {
+            let mut state = self.state.borrow_mut();
+            match &event {
+                InputEvent::PointerDown { button, .. } => {
+                    if !state.pointer_buttons.contains(button) {
+                        state.pointer_buttons.push(*button);
+                    }
+                }
+                InputEvent::PointerUp { button, .. } => {
+                    state.pointer_buttons.retain(|pressed| pressed != button);
+                }
+                InputEvent::PointerCancel | InputEvent::Blur => state.pointer_buttons.clear(),
+                _ => {}
+            }
+        }
         if self.dispatch_drag(scene, &event) {
             return DispatchResult {
                 default_prevented: true,
