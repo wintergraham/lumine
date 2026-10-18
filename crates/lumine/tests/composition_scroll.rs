@@ -137,3 +137,112 @@ fn disabled_scroll_blocks_input_and_unmount_releases_observers() {
     ui.prepare_frame();
     assert_eq!(offset.get(), 900.);
 }
+
+#[test]
+fn scroll_padding_preserves_badge_paint_and_hits_without_changing_content_or_range() {
+    use lumine::scene::Color;
+    for horizontal in [false, true] {
+        for padded in [false, true] {
+            let mut ui = Ui::new(500., 300.);
+            let offset = ui.signal(0.);
+            let redistributed = ui.signal(false);
+            let read = redistributed.clone();
+            let calls = ui.signal(0);
+            let clicked = calls.clone();
+            let view = if horizontal {
+                scroll_x(offset.clone())
+            } else {
+                scroll(offset.clone())
+            };
+            let view = ui.mount(
+                view.size(200., 100.)
+                    .scrollbar(false)
+                    .reactive_style(move || {
+                        if !padded {
+                            Styles::new()
+                        } else if read.get() {
+                            Styles::new().pl(14.).pr(6.).pt(6.).pb(14.)
+                        } else {
+                            Styles::new().p(10.)
+                        }
+                    })
+                    .child(
+                        div()
+                            .id("attachment")
+                            .size(
+                                50.,
+                                if horizontal {
+                                    if padded { 80. } else { 100. }
+                                } else {
+                                    50.
+                                },
+                            )
+                            .child(
+                                button()
+                                    .id("badge")
+                                    .absolute()
+                                    .left(-4.5)
+                                    .bottom(-7.5)
+                                    .size(20., 20.)
+                                    .bg(Color(255, 0, 0, 255))
+                                    .on_click(move || clicked.set(clicked.get() + 1)),
+                            ),
+                    )
+                    .child(div().size(400., 400.)),
+            );
+            ui.prepare_frame();
+            let badge = view.find("badge").unwrap();
+            let attachment = view.find("attachment").unwrap();
+            let assert_paint = |ui: &Ui| {
+                let scene = ui.scene.borrow();
+                let bounds = scene.bounds(badge);
+                let visible = scene.visible_bounds(badge).unwrap();
+                if padded {
+                    assert_eq!(visible, bounds);
+                } else {
+                    assert!((visible.x - bounds.x - 4.5).abs() < 0.001);
+                    if horizontal {
+                        assert!((bounds.height - visible.height - 7.5).abs() < 0.001);
+                    }
+                }
+                bounds
+            };
+            let bounds = assert_paint(&ui);
+            if padded {
+                let x = bounds.x + 1.;
+                let y = bounds.y + bounds.height - 1.;
+                ui.dispatch(InputEvent::PointerDown {
+                    x,
+                    y,
+                    button: lumine::input::PointerButton::Primary,
+                });
+                ui.dispatch(InputEvent::PointerUp {
+                    x,
+                    y,
+                    button: lumine::input::PointerButton::Primary,
+                });
+                assert_eq!(calls.get(), 1);
+            }
+            let initial = ui.scene.borrow().layout_bounds(attachment);
+            assert_eq!(initial.x, if padded { 10. } else { 0. });
+            assert_eq!(initial.y, if padded { 10. } else { 0. });
+            offset.set(f32::INFINITY);
+            assert_eq!(
+                offset.get(),
+                if horizontal {
+                    450. - if padded { 180. } else { 200. }
+                } else {
+                    450. - if padded { 80. } else { 100. }
+                }
+            );
+            offset.set(0.);
+            redistributed.set(true);
+            ui.prepare_frame();
+            assert_paint(&ui);
+            if padded {
+                let bounds = ui.scene.borrow().layout_bounds(attachment);
+                assert_eq!((bounds.x, bounds.y), (14., 6.));
+            }
+        }
+    }
+}

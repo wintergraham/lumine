@@ -462,19 +462,165 @@ fn text_source(kind: &mut Kind) -> TextSource {
         _ => unreachable!("compiled text source"),
     }
 }
-fn content(cx: &mut Context, view: &mut View, timing: &CompiledMorphTiming) -> ContentTrack {
+// A ghost belongs to its label's lifetime but paints beside its shrinking clip.
+struct TextGhost {
+    ui: WeakUi,
+    node: Signal<Option<NodeId>>,
+}
+impl TextGhost {
+    fn clear(&self) {
+        let node = self.node.with_untracked(|node| *node);
+        if node.is_some() {
+            self.node.set(None);
+        }
+        if let Some(node) = node
+            && let Some(mut ui) = self.ui.upgrade()
+        {
+            ui.remove(node);
+        }
+    }
+    fn snapshot(&self, owner: NodeId, paragraph: NodeId) {
+        self.clear();
+        let Some(mut ui) = self.ui.upgrade() else {
+            return;
+        };
+        let (
+            parent,
+            owner_bounds,
+            parent_bounds,
+            glyph_bounds,
+            owner_style,
+            glyph_style,
+            kind,
+            font,
+            transform,
+            paint,
+            origin,
+            projection,
+        ) = {
+            let scene = ui.scene.borrow();
+            let Some(parent) = scene.parent(owner) else {
+                return;
+            };
+            let glyph = scene.children(paragraph)[0];
+            (
+                parent,
+                scene.layout_bounds(owner),
+                scene.layout_bounds(parent),
+                scene.layout_bounds(glyph),
+                scene.style(owner),
+                scene.style(glyph),
+                scene.kind(glyph).clone(),
+                scene.font(glyph).clone(),
+                scene.transform(owner),
+                scene.paint_transform(owner),
+                scene.paint_transform_origin(owner),
+                scene.projection_transform(owner),
+            )
+        };
+        let positioned = |bounds: crate::scene::Rect, x, y| crate::scene::Style {
+            absolute: true,
+            width: Some(bounds.width),
+            height: Some(bounds.height),
+            layout_options: Some(std::sync::Arc::new(crate::layout::LayoutOptions {
+                inset: crate::layout::EdgeLengths {
+                    left: Some(crate::layout::Length::Px(x)),
+                    top: Some(crate::layout::Length::Px(y)),
+                    ..Default::default()
+                },
+                ..Default::default()
+            })),
+            ..Default::default()
+        };
+        let mut style = positioned(
+            owner_bounds,
+            owner_bounds.x - parent_bounds.x,
+            owner_bounds.y - parent_bounds.y,
+        );
+        style.clip = owner_style.clip;
+        style.clip_insets = owner_style.clip_insets;
+        style.z_index = owner_style.z_index;
+        if let Some(options) = owner_style.layout_options {
+            let target = std::sync::Arc::make_mut(style.layout_options.as_mut().unwrap());
+            target.clip_x = options.clip_x;
+            target.clip_y = options.clip_y;
+        }
+        let ghost = ui.container(parent, Layout::Overlay, style);
+        let mut style = positioned(
+            glyph_bounds,
+            glyph_bounds.x - owner_bounds.x,
+            glyph_bounds.y - owner_bounds.y,
+        );
+        style.text_wrap = glyph_style.text_wrap;
+        style.text_options = glyph_style.text_options;
+        let text = ui.scene.borrow_mut().append(ghost, kind, style);
+        {
+            let mut scene = ui.scene.borrow_mut();
+            scene.set_font(text, font);
+            scene.set_transform(ghost, transform);
+            scene.set_paint_transform_origin(ghost, paint, origin);
+            scene.set_projection_transform(ghost, projection);
+        }
+        ui.input.set_pointer_transparent(ghost, true);
+        ui.input.set_pointer_transparent(text, true);
+        self.node.set(Some(ghost));
+    }
+}
+impl Drop for TextGhost {
+    fn drop(&mut self) {
+        self.clear();
+    }
+}
+
+fn content(
+    ui: &mut Ui,
+    cx: &mut Context,
+    view: &mut View,
+    timing: &CompiledMorphTiming,
+) -> ContentTrack {
     match &mut view.kind {
         kind @ (Kind::Text(_) | Kind::RichText(_)) => {
             let source = Rc::new(RefCell::new(text_source(kind)));
             let revision = cx.state(0u64);
             let timing = Rc::new(RefCell::new(timing.clone()));
-            let previous = cx.state(DisplayText::Plain(String::new()));
+            let owner = Rc::new(Cell::new(None));
+            let paragraph_node = Rc::new(Cell::new(None));
+            let ghost = Rc::new(TextGhost {
+                ui: ui.downgrade(),
+                node: cx.state(None),
+            });
             let enter = MotionValue::new(cx, 1.);
             let leave = MotionValue::new(cx, 1.);
+            let ghost_owner = ghost.clone();
+            let mounted_owner = owner.clone();
+            let paint_opacity = leave.clone();
+            view.mounted.push(Box::new(move |node| {
+                mounted_owner.set(Some(node));
+                let Some(mut ui) = ghost_owner.ui.upgrade() else {
+                    return;
+                };
+                let paint = ghost_owner.clone();
+                ui.bind(node, move || {
+                    let ghost_node = paint.node.get();
+                    let opacity = paint_opacity.get();
+                    if opacity >= 1. {
+                        paint.clear();
+                    } else if let Some(node) = ghost_node
+                        && let Some(ui) = paint.ui.upgrade()
+                    {
+                        let mut scene = ui.scene.borrow_mut();
+                        let mut effects = scene.effects(node);
+                        effects.opacity = 1. - opacity;
+                        scene.set_effects(node, effects);
+                    }
+                });
+                ui.retain(node, ghost_owner);
+            }));
             let read = source.clone();
             let changed = revision.clone();
             let options = timing.clone();
-            let old_write = previous.clone();
+            let old_owner = owner.clone();
+            let old_paragraph = paragraph_node.clone();
             let enter_write = enter.clone();
             let leave_write = leave.clone();
             let mut current = None;
@@ -484,8 +630,14 @@ fn content(cx: &mut Context, view: &mut View, timing: &CompiledMorphTiming) -> C
                 if let Some(old) = current.replace(next.clone())
                     && old != next
                 {
-                    old_write.set(old);
                     let timing = options.borrow();
+                    if timing.crossfade.is_zero() {
+                        ghost.clear();
+                    } else if let (Some(owner), Some(paragraph)) =
+                        (old_owner.get(), old_paragraph.get())
+                    {
+                        ghost.snapshot(owner, paragraph);
+                    }
                     leave_write.set(0.);
                     enter_write.set(0.);
                     leave_write.animate_to(
@@ -507,25 +659,13 @@ fn content(cx: &mut Context, view: &mut View, timing: &CompiledMorphTiming) -> C
                 next
             })))
             .h_full();
-            let old = previous.clone();
             let opacity = enter.clone();
-            let old_opacity = leave.clone();
             view.kind = Kind::Component(Box::new(move |_| {
-                overlay()
-                    .child(paragraph.reactive_style(move || Styles::new().opacity(opacity.get())))
-                    .child(
-                        View::new(Kind::DisplayText(Box::new(move || old.get())))
-                            .absolute()
-                            .left(0.)
-                            .top(0.)
-                            .h_full()
-                            .disabled(true)
-                            .reactive_style(move || {
-                                Styles::new()
-                                    .opacity(1. - old_opacity.get())
-                                    .when(old_opacity.get() >= 1., |s| s.hidden())
-                            }),
-                    )
+                overlay().child(
+                    paragraph
+                        .on_mount(move |node| paragraph_node.set(Some(node)))
+                        .reactive_style(move || Styles::new().opacity(opacity.get())),
+                )
             }));
             ContentTrack::Text(TextTrack {
                 source,
@@ -559,6 +699,7 @@ fn content(cx: &mut Context, view: &mut View, timing: &CompiledMorphTiming) -> C
         _ => ContentTrack::None,
     }
 }
+
 fn update_content(track: &ContentTrack, view: &mut View, timing: &CompiledMorphTiming) {
     match (track, &mut view.kind) {
         (ContentTrack::Text(track), kind @ (Kind::Text(_) | Kind::RichText(_))) => {
@@ -709,7 +850,7 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                     }
                     let mut cx = Context::new(runtime.clone(), environment.clone());
                     let style = StyleTrack::new(&mut cx, target.clone());
-                    let content = content(&mut cx, &mut spec.view, &options);
+                    let content = content(&mut ui, &mut cx, &mut spec.view, &options);
                     let draw = style.clone();
                     let mut own = spec.view.reactive_style.take();
                     spec.view.styles = Styles::default();
@@ -1360,13 +1501,9 @@ mod tests {
         ui.prepare_frame();
         ui.scene.borrow_mut().flush();
         let owner = root.find("copy").unwrap();
-        let (paragraph, outgoing) = {
+        let paragraph = {
             let scene = ui.scene.borrow();
-            let children = scene.children(owner);
-            (
-                scene.children(children[0])[0],
-                scene.children(children[1])[0],
-            )
+            scene.children(scene.children(owner)[0])[0]
         };
         let initial = ui.scene.borrow().layout_bounds(paragraph);
         assert!(matches!(
@@ -1388,7 +1525,7 @@ mod tests {
             let scene = ui.scene.borrow();
             let children = scene.children(owner);
             assert_eq!(scene.children(children[0])[0], paragraph);
-            assert_eq!(scene.children(children[1])[0], outgoing);
+            assert_eq!(children.len(), 1);
             let bounds = scene.layout_bounds(owner);
             assert_eq!(bounds.width, 160.);
             assert_eq!(bounds.height, if next == 4 { 30. } else { 20. });
@@ -2314,6 +2451,121 @@ mod tests {
         ui.prepare_frame();
         assert!((offset.get() - 88.).abs() < 0.01);
     }
+    #[test]
+    fn outgoing_text_keeps_old_paint_bounds_and_reanchors_on_retarget() {
+        use crate::{
+            frame::{Frame, FrameClock},
+            scene::Rect,
+            task::LocalExecutor,
+        };
+        use std::time::Instant;
+        let mut ui = Ui::new(800., 300.);
+        let executor = Rc::new(RefCell::new(LocalExecutor::new()));
+        let frames = FrameClock::new();
+        let selected = ui.signal(false);
+        let read = selected.clone();
+        let root = ui.mount(provide(
+            TaskRunner::from_executor(executor.clone()),
+            provide(
+                frames.clone(),
+                compiled_morph(
+                    move || read.get(),
+                    |short| {
+                        column()
+                            .id("parent")
+                            .w(600.)
+                            .h(100.)
+                            .p(10.)
+                            .overflow_hidden()
+                            .child(
+                                text(if short {
+                                    "Saved card"
+                                } else {
+                                    "No charge unless cancelled <24h"
+                                })
+                                .id("label")
+                                .w(if short { 90. } else { 360. })
+                                .h(20.)
+                                .text_size(24.)
+                                .text_wrap(false)
+                                .overflow_hidden(),
+                            )
+                    },
+                    || CompiledMorphTiming {
+                        source_layout_scale: Some(1.),
+                        duration: Duration::from_millis(400),
+                        crossfade: Duration::from_millis(140),
+                        color_duration: Duration::ZERO,
+                        curve: std::array::from_fn(|i| i as f32 / 48.),
+                    },
+                ),
+            ),
+        ));
+        ui.prepare_frame();
+        let owner = root.find("label").unwrap();
+        let parent = root.find("parent").unwrap();
+        let paragraph = ui.scene.borrow().children(owner)[0];
+        let glyph = ui.scene.borrow().children(paragraph)[0];
+        let original = ui.scene.borrow().bounds(owner);
+        assert_eq!(original, Rect::new(10., 10., 360., 20.));
+        let ghost = |ui: &Ui| {
+            ui.scene
+                .borrow()
+                .children(parent)
+                .iter()
+                .copied()
+                .find(|node| *node != owner)
+                .unwrap()
+        };
+        selected.set(true);
+        ui.prepare_frame();
+        let outgoing = ghost(&ui);
+        let outgoing_glyph = ui.scene.borrow().children(outgoing)[0];
+        let mut time = Instant::now();
+        let mut index = 0;
+        let mut advance = |ui: &Ui, millis| {
+            executor.borrow_mut().tick();
+            time += Duration::from_millis(millis);
+            index += 1;
+            frames.deliver(Frame {
+                index,
+                time,
+                interval: Duration::from_millis(16),
+            });
+            executor.borrow_mut().tick();
+            ui.prepare_frame();
+        };
+        advance(&ui, 50);
+        let interrupted = {
+            let scene = ui.scene.borrow();
+            assert_eq!(root.find("label"), Some(owner));
+            assert_eq!(scene.children(owner)[0], paragraph);
+            assert_eq!(scene.children(paragraph)[0], glyph);
+            assert!(scene.style(owner).clip && scene.style(outgoing).clip);
+            assert_eq!(scene.bounds(outgoing), original);
+            assert!(scene.bounds(owner).width < original.width);
+            let visible = scene.visible_bounds(outgoing_glyph).unwrap();
+            assert!(visible.x + visible.width > scene.bounds(owner).x + scene.bounds(owner).width);
+            assert!(scene.layout_bounds(glyph).width > 90.);
+            scene.bounds(owner)
+        };
+        selected.set(false);
+        ui.prepare_frame();
+        assert!(!ui.scene.borrow().contains(outgoing));
+        let returning_ghost = ghost(&ui);
+        assert_eq!(ui.scene.borrow().bounds(returning_ghost), interrupted);
+        let returning_glyph = ui.scene.borrow().children(returning_ghost)[0];
+        assert!(
+            matches!(ui.scene.borrow().kind(returning_glyph), NodeKind::Text { text, .. } if text.as_ref() == "Saved card")
+        );
+        advance(&ui, 50);
+        assert_eq!(ui.scene.borrow().bounds(returning_ghost), interrupted);
+        root.unmount();
+        assert!(!ui.scene.borrow().contains(returning_ghost));
+        executor.borrow_mut().tick();
+        assert!(!frames.wants_frame());
+    }
+
     #[test]
     fn image_sources_remain_reactive_and_rebind_on_variant_changes() {
         use crate::{frame::FrameClock, task::LocalExecutor};

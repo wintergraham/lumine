@@ -192,7 +192,7 @@ impl From<Slot> for View {
 }
 type Builder = Box<dyn FnOnce(&mut Context) -> View>;
 type RegionBuilder = Box<dyn FnOnce(&mut Ui, NodeId, Environment)>;
-type VirtualBuilder = Box<dyn FnOnce(&mut Ui, NodeId, Environment, bool, bool)>;
+type VirtualBuilder = Box<dyn FnOnce(&mut Ui, NodeId, Environment, ScrollbarStyle, bool)>;
 #[derive(Clone, PartialEq)]
 enum DisplayText {
     Plain(String),
@@ -283,6 +283,16 @@ pub struct PopupMotion {
     pub origin: [f32; 2],
 }
 
+/// Scrollbar presentation; all visible styles share the same retained input control.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ScrollbarStyle {
+    Hidden,
+    #[default]
+    Overlay,
+    /// Persistent 15 px track. Content gutters remain the caller's layout choice.
+    Classic,
+}
+
 /// A mount description, consumed into owned retained nodes and subscriptions.
 /// `.child`/`.children` compose views; `.style` and fluent methods apply to their root.
 pub struct View {
@@ -304,7 +314,7 @@ pub struct View {
     pub(crate) drag_preview: Option<crate::compose_drag::PreviewBuilder>,
     focusable: Option<bool>,
     id: Option<String>,
-    scrollbar: Option<bool>,
+    scrollbar: Option<ScrollbarStyle>,
     scroll_fit_cross_axis: Option<bool>,
     horizontal_wheel: Option<bool>,
     slider_chrome: Option<bool>,
@@ -431,7 +441,16 @@ impl View {
     }
     /// Overlay scrollbars are enabled by default; pass false to hide one.
     pub fn scrollbar(mut self, visible: bool) -> Self {
-        self.scrollbar = Some(visible);
+        self.scrollbar = Some(if visible {
+            ScrollbarStyle::Overlay
+        } else {
+            ScrollbarStyle::Hidden
+        });
+        self
+    }
+    /// Select persistent classic chrome or the default fading overlay.
+    pub fn scrollbar_style(mut self, style: ScrollbarStyle) -> Self {
+        self.scrollbar = Some(style);
         self
     }
     /// Keep slider input and semantics while the caller supplies its paint.
@@ -1278,7 +1297,7 @@ pub fn virtual_list<K: Eq + std::hash::Hash + Clone + 'static>(
                     }
                 }
             });
-            if scrollbar {
+            if scrollbar != ScrollbarStyle::Hidden {
                 mount_scrollbar(
                     ui,
                     &environment,
@@ -1287,6 +1306,7 @@ pub fn virtual_list<K: Eq + std::hash::Hash + Clone + 'static>(
                     size.clone(),
                     extent.clone(),
                     false,
+                    scrollbar,
                 );
             }
             let weak = ui.downgrade();
@@ -1833,7 +1853,7 @@ fn mount_element(
         view.scrollbar.is_none() || matches!(kind, Kind::Scroll { .. } | Kind::VirtualList(_)),
         "scrollbar is only supported on scroll, scroll_x, and virtual_list views"
     );
-    let scrollbar = view.scrollbar.unwrap_or(true);
+    let scrollbar = view.scrollbar.unwrap_or_default();
     // Decorated/padded text gets an actual layout box. Plain text stays a single
     // node, keeping common reactive labels small. Dynamic/state styles may add
     // decoration later, so reserve that box at mount rather than remount on hover.
@@ -2642,7 +2662,7 @@ fn mount_scroll(
     content: NodeId,
     offset: Signal<f32>,
     horizontal: bool,
-    scrollbar: bool,
+    scrollbar: ScrollbarStyle,
     progress: Option<Signal<f32>>,
     fade_band: Option<(f32, Rc<dyn Fn() -> std::time::Duration>)>,
     fit_cross_axis: bool,
@@ -2665,7 +2685,7 @@ fn mount_scroll(
     let ready = |size: (f32, f32), extent: (f32, f32)| {
         [size.0, size.1, extent.0, extent.1].into_iter().all(f32::is_finite)
     };
-    if scrollbar {
+    if scrollbar != ScrollbarStyle::Hidden {
         let main_extent = ui.signal(f32::NAN);
         let read_size = size.clone();
         let read_extent = extent.clone();
@@ -2685,6 +2705,7 @@ fn mount_scroll(
             size.clone(),
             main_extent,
             horizontal,
+            scrollbar,
         );
     }
     let fades = fade_band.map(|(band, duration)| {
@@ -2823,8 +2844,11 @@ fn mount_scroll(
             }
         }
     });
+    // Padding can move this box without changing the allocated content size.
+    let viewport_bounds = ui.observe_layout_bounds(viewport);
     let scene = ui.scene.clone();
     ui.bind(root, move || {
+        let _ = viewport_bounds.get();
         let (width, height) = size.get();
         let extent = extent.get();
         if !ready((width, height), extent) {
@@ -2844,12 +2868,21 @@ fn mount_scroll(
             progress.set(if limit > 0. { position / limit } else { 0. });
         }
         let mut scene = scene.borrow_mut();
+        let padding = scene.padding(root);
+        let padded = padding != crate::scene::Insets::default();
         scene.set_style(
             viewport,
             Style {
                 width: (!fit_cross_axis || horizontal).then_some(width),
                 height: (!fit_cross_axis || !horizontal).then_some(height),
-                clip: true,
+                // A bounded mask includes authored padding without changing layout or ranges.
+                clip: !padded,
+                clip_insets: padded.then_some(crate::scene::Insets {
+                    left: -padding.left,
+                    right: -padding.right,
+                    top: -padding.top,
+                    bottom: -padding.bottom,
+                }),
                 fade_edges: fades.as_ref().map_or([0.;2], |(a,b)| {let bands=[a.get(),b.get()]; if horizontal {bands.map(|v|-v)} else {bands}}),
                 ..Default::default()
             },
@@ -3390,7 +3423,7 @@ impl Ui {
 /// Common imports for component application code.
 pub mod prelude {
     pub use super::{
-        CompiledMorphAnimation, CompiledMorphEffect, CompiledMorphTiming, compiled_morph, Context, Slot, VariableHeights, View, button, checkbox, column, component, div, image,
+        CompiledMorphAnimation, CompiledMorphEffect, CompiledMorphTiming, compiled_morph, Context, ScrollbarStyle, Slot, VariableHeights, View, button, checkbox, column, component, div, image,
         image_signal, keyed, measured_rows, measured_virtual_list, menu, menu_item, modal, overlay,
         popover, progress, provide, provide_with, row, scroll, scroll_x, slider, submenu, submenu_with_anchor, switch,
         text, text_area, text_input, text_signal, variable_virtual_list, virtual_list,
@@ -3884,9 +3917,12 @@ fn mount_scrollbar(
     size: Signal<(f32, f32)>,
     extent: Signal<f32>,
     horizontal: bool,
+    style: ScrollbarStyle,
 ) {
     let mut cx = Context::new(ui.runtime.clone(), environment.clone());
-    crate::compose_scrollbar::mount(ui, &mut cx, owner, offset, size, extent, horizontal);
+    crate::compose_scrollbar::mount_with_style(
+        ui, &mut cx, owner, offset, size, extent, horizontal, style,
+    );
     cx.finish(ui, owner);
 }
 

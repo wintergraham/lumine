@@ -398,3 +398,172 @@ fn idle_fade_hover_growth_and_drag_hold_follow_the_display_clock() {
     executor.borrow_mut().tick();
     assert!(!frames.wants_frame());
 }
+
+#[test]
+fn classic_scrollbar_persists_without_idle_frames_and_reuses_input() {
+    use lumine::{
+        frame::{Frame, FrameClock},
+        scene::{Color, NodeKind},
+        task::LocalExecutor,
+    };
+    use std::{
+        cell::RefCell,
+        rc::Rc,
+        time::{Duration, Instant},
+    };
+    for horizontal in [false, true] {
+        let executor = Rc::new(RefCell::new(LocalExecutor::new()));
+        let frames = FrameClock::new();
+        let mut ui = Ui::new(500., 300.);
+        let offset = ui.signal(0.);
+        let overflowing = ui.signal(true);
+        let read = overflowing.clone();
+        let view = if horizontal {
+            scroll_x(offset.clone())
+        } else {
+            scroll(offset.clone())
+        };
+        let view = ui.mount(provide(
+            TaskRunner::from_executor(executor.clone()),
+            provide(
+                frames.clone(),
+                view.size(200., 100.)
+                    .scrollbar_style(ScrollbarStyle::Classic)
+                    .child(div().id("content").reactive_style(move || {
+                        let length = if read.get() { 800. } else { 50. };
+                        if horizontal {
+                            Styles::new().w(length).h(50.)
+                        } else {
+                            Styles::new().w_full().h(length)
+                        }
+                    })),
+            ),
+        ));
+        ui.prepare_frame();
+        let track = bar(&ui);
+        let thumb = ui.scene.borrow().children(track)[0];
+        let sample = |ui: &Ui| {
+            let scene = ui.scene.borrow();
+            let NodeKind::Panel {
+                quad: track_paint, ..
+            } = scene.kind(track)
+            else {
+                panic!("classic track")
+            };
+            let NodeKind::Quad(paint) = scene.kind(thumb) else {
+                panic!("classic thumb")
+            };
+            (
+                track_paint.fill,
+                paint.fill,
+                paint.border_color,
+                scene.bounds(track),
+                scene.bounds(thumb),
+            )
+        };
+        let (track_color, thumb_color, edge_color, track_bounds, thumb_bounds) = sample(&ui);
+        assert_eq!(track_color, Color(44, 44, 44, 255));
+        assert_eq!(thumb_color, Color(107, 107, 107, 255));
+        assert_eq!(edge_color, Color(81, 81, 81, 255));
+        assert_eq!(
+            if horizontal {
+                track_bounds.height
+            } else {
+                track_bounds.width
+            },
+            15.
+        );
+        assert_eq!(
+            if horizontal {
+                thumb_bounds.height
+            } else {
+                thumb_bounds.width
+            },
+            8.
+        );
+        if !horizontal {
+            assert_eq!(
+                ui.scene
+                    .borrow()
+                    .bounds(view.find("content").unwrap())
+                    .width,
+                200.
+            );
+        }
+        offset.set(100.);
+        ui.prepare_frame();
+        executor.borrow_mut().tick();
+        assert!(!frames.wants_frame());
+        frames.deliver(Frame {
+            index: 1,
+            time: Instant::now() + Duration::from_secs(2),
+            interval: Duration::from_millis(16),
+        });
+        executor.borrow_mut().tick();
+        ui.prepare_frame();
+        assert_eq!(sample(&ui).1, thumb_color);
+        assert!(!frames.wants_frame());
+        let (_, _, _, _, thumb_bounds) = sample(&ui);
+        down(&mut ui, thumb_bounds.x + 4., thumb_bounds.y + 4.);
+        assert_eq!(ui.input.captured(), Some(track));
+        ui.dispatch(InputEvent::PointerMove { x: 400., y: 250. });
+        assert!(offset.get() > 100.);
+        ui.dispatch(InputEvent::PointerCancel);
+        ui.input
+            .dispatch_to(&ui.scene, track, InputEvent::SetNumericValue(f64::MAX));
+        assert_eq!(offset.get(), if horizontal { 600. } else { 700. });
+        overflowing.set(false);
+        ui.prepare_frame();
+        assert_eq!(offset.get(), 0.);
+        assert!(ui.semantics.borrow().get(track).is_none());
+        assert_eq!(ui.scene.borrow().bounds(track).width, 0.);
+        view.unmount();
+        executor.borrow_mut().tick();
+        assert!(!frames.wants_frame());
+    }
+}
+
+#[test]
+fn scrollbar_style_survives_component_refinement_and_virtual_list_mount() {
+    for variable in [false, true] {
+        let mut ui = Ui::new(500., 300.);
+        let offset = ui.signal(0.);
+        ui.mount(
+            component(move |cx| {
+                if variable {
+                    variable_virtual_list(
+                        offset,
+                        VariableHeights::new(&cx.runtime(), 100, 20.),
+                        1,
+                        |n| n,
+                        |_, n, _| text(n.to_string()),
+                    )
+                } else {
+                    virtual_list(offset, 20., 1, || 100, |n| n, |_, n, _| text(n.to_string()))
+                }
+            })
+            .size(200., 100.)
+            .scrollbar_style(ScrollbarStyle::Classic),
+        );
+        ui.prepare_frame();
+        assert_eq!(ui.scene.borrow().bounds(bar(&ui)).width, 15.);
+    }
+    for view_style in [ScrollbarStyle::Hidden, ScrollbarStyle::Classic] {
+        let mut ui = Ui::new(500., 300.);
+        let offset = ui.signal(0.);
+        ui.mount(
+            scroll(offset)
+                .size(200., 100.)
+                .scrollbar_style(view_style)
+                .scrollbar(false)
+                .child(div().h(600.)),
+        );
+        ui.prepare_frame();
+        assert!(
+            !ui.semantics
+                .borrow()
+                .iter()
+                .any(|(_, node)| node.role == Role::ScrollBar)
+        );
+    }
+}

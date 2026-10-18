@@ -1,6 +1,6 @@
-//! Shared retained overlay controls for ordinary and virtual viewports.
+//! Shared retained scrollbar controls for ordinary and virtual viewports.
 use crate::{
-    compose::Context,
+    compose::{Context, ScrollbarStyle},
     input::{EventPhase, InputEvent, Key, PointerButton},
     motion::{Easing, Keyframe, Keyframes, MotionValue, Playback, Transition},
     reactive::Signal,
@@ -18,9 +18,48 @@ pub(crate) fn mount(
     extent: Signal<f32>,
     horizontal: bool,
 ) {
+    mount_with_style(
+        ui,
+        context,
+        owner,
+        offset,
+        size,
+        extent,
+        horizontal,
+        ScrollbarStyle::Overlay,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn mount_with_style(
+    ui: &mut Ui,
+    context: &mut Context,
+    owner: NodeId,
+    offset: Signal<f32>,
+    size: Signal<(f32, f32)>,
+    extent: Signal<f32>,
+    horizontal: bool,
+    style: ScrollbarStyle,
+) {
+    if style == ScrollbarStyle::Hidden {
+        return;
+    }
+    let classic = style == ScrollbarStyle::Classic;
     let overlay = ui.container(owner, Layout::Overlay, Style::default());
     let track = ui.container(overlay, Layout::Overlay, Style::default());
-    // Components · Scrollbar: a trackless pill inside a 12 px overlay hit area.
+    if classic {
+        ui.scene.borrow_mut().set_kind(
+            track,
+            NodeKind::Panel {
+                layout: Layout::Overlay,
+                quad: QuadStyle {
+                    fill: Color(44, 44, 44, 255),
+                    ..Default::default()
+                },
+            },
+        );
+    }
+    // Overlay keeps its trackless pill; Classic uses the same track and input.
     let thumb = ui.scene.borrow_mut().append(
         track,
         NodeKind::Quad(QuadStyle::default()),
@@ -181,49 +220,51 @@ pub(crate) fn mount(
     let paint_alpha = alpha.clone();
     let paint_thickness = thickness.clone();
     let mut previous = (offset.with_untracked(|v| *v), false, false, false);
-    ui.bind(overlay, move || {
-        let current = (
-            read_offset.get(),
-            read_hover.get(),
-            read_drag.get(),
-            read_focus.get(),
-        );
-        if current == previous {
-            return;
-        }
-        let engaged = current.1 || current.2 || current.3;
-        previous = current;
-        paint_thickness.animate_to(
-            if current.1 || current.2 { 6. } else { 4. },
-            Transition::tween(std::time::Duration::from_millis(140), Easing::EaseOut),
-        );
-        if engaged {
-            paint_alpha.animate_to(
-                if current.2 {
-                    128.
-                } else if current.1 {
-                    89.
-                } else {
-                    51.
-                },
-                Transition::tween(std::time::Duration::from_millis(90), Easing::Linear),
+    if !classic {
+        ui.bind(overlay, move || {
+            let current = (
+                read_offset.get(),
+                read_hover.get(),
+                read_drag.get(),
+                read_focus.get(),
             );
-        } else {
-            // A finite timeline holds until 800 ms idle, then fades for 200 ms.
-            // Retargeting cancels the old timeline; resting scrollbars request no frames.
-            paint_alpha.animate_keyframes(
-                Keyframes::new([
-                    Keyframe::new(0., paint_alpha.signal().with_untracked(|v| *v)),
-                    Keyframe::new(0.09, 51.),
-                    Keyframe::new(0.8, 51.),
-                    Keyframe::new(1., 0.),
-                ])
-                .unwrap(),
-                std::time::Duration::from_millis(1000),
-                Playback::default(),
+            if current == previous {
+                return;
+            }
+            let engaged = current.1 || current.2 || current.3;
+            previous = current;
+            paint_thickness.animate_to(
+                if current.1 || current.2 { 6. } else { 4. },
+                Transition::tween(std::time::Duration::from_millis(140), Easing::EaseOut),
             );
-        }
-    });
+            if engaged {
+                paint_alpha.animate_to(
+                    if current.2 {
+                        128.
+                    } else if current.1 {
+                        89.
+                    } else {
+                        51.
+                    },
+                    Transition::tween(std::time::Duration::from_millis(90), Easing::Linear),
+                );
+            } else {
+                // A finite timeline holds until 800 ms idle, then fades for 200 ms.
+                // Retargeting cancels the old timeline; resting scrollbars request no frames.
+                paint_alpha.animate_keyframes(
+                    Keyframes::new([
+                        Keyframe::new(0., paint_alpha.signal().with_untracked(|v| *v)),
+                        Keyframe::new(0.09, 51.),
+                        Keyframe::new(0.8, 51.),
+                        Keyframe::new(1., 0.),
+                    ])
+                    .unwrap(),
+                    std::time::Duration::from_millis(1000),
+                    Playback::default(),
+                );
+            }
+        });
+    }
     let weak = ui.downgrade();
     ui.bind(overlay, move || {
         let Some(mut ui) = weak.upgrade() else {
@@ -261,7 +302,8 @@ pub(crate) fn mount(
                 ..fixed(0., 0.)
             },
         );
-        let hit_width = if horizontal { height } else { width }.min(12.);
+        let hit_width =
+            if horizontal { height } else { width }.min(if classic { 15. } else { 12. });
         let track_size = if !visible {
             (0., 0.)
         } else if horizontal {
@@ -291,7 +333,16 @@ pub(crate) fn mount(
         } else {
             0.
         };
-        let pill_width = thickness.get().min((hit_width - 3.).max(0.));
+        let pill_width = if classic {
+            8_f32.min(hit_width)
+        } else {
+            thickness.get().min((hit_width - 3.).max(0.))
+        };
+        let cross_position = if classic {
+            (hit_width - pill_width) * 0.5
+        } else {
+            hit_width - 3. - pill_width
+        };
         let thumb_size = if horizontal {
             (thumb_length, pill_width)
         } else {
@@ -301,8 +352,18 @@ pub(crate) fn mount(
         scene.set_kind(
             thumb,
             NodeKind::Quad(QuadStyle {
-                fill: Color(255, 255, 255, alpha.get().round() as u8),
-                radius: pill_width / 2.,
+                fill: if classic {
+                    Color(107, 107, 107, 255)
+                } else {
+                    Color(255, 255, 255, alpha.get().round() as u8)
+                },
+                radius: if classic { 0. } else { pill_width / 2. },
+                border_width: if classic { 1. } else { 0. },
+                border_color: if classic {
+                    Color(81, 81, 81, 255)
+                } else {
+                    Color(0, 0, 0, 0)
+                },
                 ..Default::default()
             }),
         );
@@ -322,11 +383,11 @@ pub(crate) fn mount(
             if horizontal {
                 Transform {
                     x: 2. + position,
-                    y: hit_width - 3. - pill_width,
+                    y: cross_position,
                 }
             } else {
                 Transform {
-                    x: hit_width - 3. - pill_width,
+                    x: cross_position,
                     y: 2. + position,
                 }
             },
