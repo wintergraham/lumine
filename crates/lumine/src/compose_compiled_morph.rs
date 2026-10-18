@@ -1235,7 +1235,8 @@ mod tests {
             assert_eq!(scene.style(paragraph).text_wrap, value);
             let height = scene.layout_bounds(owner).height;
             if value {
-                assert!(height > 20., "{height}");
+                assert!(height > 20., "owner={:?}, paragraph={:?}",
+                    scene.layout_bounds(owner), scene.layout_bounds(paragraph));
             } else {
                 assert_eq!(height, 20.);
             }
