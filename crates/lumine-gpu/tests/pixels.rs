@@ -4876,6 +4876,55 @@ fn fade_edges_mask_descendants_with_a_quadratic_ramp() {
     assert_eq!(at(30), 255);
 }
 
+#[test]
+fn repeated_scroll_flushes_are_consumed_once_per_renderer() {
+    let _gpu_fixture = gpu_fixture();
+    use lumine::{compose::prelude::*, widgets::Ui};
+    let mut gpu = GpuRenderer::new(80, 60).unwrap();
+    let mut second = GpuRenderer::new_with_context(80, 60, &gpu.context()).unwrap();
+    let mut ui = Ui::new(80., 60.);
+    let offset = ui.signal(0_f32);
+    ui.mount(
+        overlay().size(80., 60.).bg(rgb(0x102030)).child(
+            scroll(offset.clone()).size(80., 60.).scrollbar(false).child(
+                column().w_full().children((0..8).map(|index| {
+                    div().w_full().h(20.).bg(if index % 2 == 0 { rgb(0x224466) } else { rgb(0x6688aa) })
+                })),
+            ),
+        ),
+    );
+    ui.prepare_frame();
+    let initial = ui.scene.borrow_mut().flush();
+    gpu.render(&ui.scene.borrow(), &initial.damage).unwrap();
+    second.render(&ui.scene.borrow(), &initial.damage).unwrap();
+    offset.set(14.);
+    ui.prepare_frame();
+    let moved = ui.scene.borrow_mut().flush();
+    assert!(!ui.scene.borrow().scroll_moves().is_empty());
+    let serial = ui.scene.borrow().flush_serial();
+    let stats = gpu.render(&ui.scene.borrow(), &moved.damage).unwrap();
+    assert!(stats.damaged_pixels > 0);
+    let expected = gpu.readback().unwrap();
+    for _ in 0..3 {
+        let idle = ui.scene.borrow_mut().flush();
+        assert!(idle.is_idle());
+        assert_eq!(ui.scene.borrow().flush_serial(), serial);
+        let stats = gpu.render(&ui.scene.borrow(), &idle.damage).unwrap();
+        assert_eq!(stats.scroll_copies, 0);
+        assert_eq!(stats.damaged_pixels, 0);
+        assert_eq!(stats.draw_calls, 0);
+        assert_eq!(stats.render_passes, 0);
+        assert_eq!(gpu.readback().unwrap(), expected);
+    }
+    // Another retained target must still consume the same scene move itself.
+    let stats = second.render(&ui.scene.borrow(), &moved.damage).unwrap();
+    assert!(stats.damaged_pixels > 0);
+    assert_eq!(second.readback().unwrap(), expected);
+    let mut fresh = GpuRenderer::new_with_context(80, 60, &gpu.context()).unwrap();
+    fresh.render(&ui.scene.borrow(), &[Rect::new(0., 0., 80., 60.)]).unwrap();
+    assert_eq!(fresh.readback().unwrap(), expected);
+}
+
 /// Whole-pixel scrolls shift the retained pixels and draw only the exposed
 /// strip; the result matches a fresh renderer exactly. Content that fades at
 /// the edges, a sibling painting over the list, or a fractional shift make a

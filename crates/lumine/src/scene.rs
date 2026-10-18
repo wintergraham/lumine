@@ -10,6 +10,21 @@ static NEXT_SCENE_ID: AtomicU64 = AtomicU64::new(1);
 /// not inflate into their mostly-clean bounding box. GPU callers may also
 /// merge nearby regions within `near_area` to reduce draw overhead.
 pub fn merge_damage(regions: &mut Vec<Rect>, rect: Rect, near_area: Option<f32>) {
+    let contains = |outer: Rect, inner: Rect| {
+        outer.x <= inner.x && outer.y <= inner.y
+            && outer.x + outer.width >= inner.x + inner.width
+            && outer.y + outer.height >= inner.y + inner.height
+    };
+    // Layout can damage a containing surface before reporting its descendants.
+    // Covered writes add no pixels and need neither subtraction nor merging.
+    if regions.iter().any(|existing| contains(*existing, rect)) {
+        return;
+    }
+    if !regions.is_empty() && regions.iter().all(|existing| contains(rect, *existing)) {
+        regions.clear();
+        regions.push(rect);
+        return;
+    }
     let area = |r: Rect| r.width * r.height;
     // Subtract first, merge second. Interleaving them can repeatedly split
     // and regrow the same L shape without making progress.
@@ -396,6 +411,7 @@ struct Constraints {
 }
 struct Measurement {
     constraints: Constraints,
+    key: Constraints,
     size: (f32, f32),
     children: Vec<(NodeId, Rect)>,
     /// The constraints each child was last measured with for this result. A
@@ -412,6 +428,18 @@ const MEASUREMENT_ALTERNATES: usize = 3;
 // Nested flex/grid probes include intrinsic, definite and percentage bases.
 // Store only sizes here so retaining more probes does not multiply child geometry.
 const INTRINSIC_MEASUREMENTS: usize = 64;
+fn cache_intrinsic_size(node: &mut Node, key: Constraints, revision: u64, size: (f32, f32)) {
+    let sizes = &mut node.intrinsic_sizes;
+    if let Some(index) = sizes.iter().position(|(cached, at, _)| *cached == key && *at == revision) {
+        if index == 0 {
+            sizes[0].2 = size;
+            return;
+        }
+        sizes.remove(index);
+    }
+    sizes.truncate(INTRINSIC_MEASUREMENTS - 1);
+    sizes.insert(0, (key, revision, size));
+}
 fn dimension(value: f32, min: Option<f32>, max: Option<f32>) -> f32 {
     value
         .max(0.0)
@@ -924,7 +952,7 @@ impl Scene {
     /// Front-to-back hit targets, including containers; call after flushing layout.
     pub fn hit_test_all(&self, x: f32, y: f32) -> Vec<NodeId> {
         let mut hits = Vec::new();
-        for item in self.paint_items() {
+        for item in self.paint_iter(Some((x, y))) {
             if item.effects.opacity <= 0.
                 || item.clip.is_some_and(|clip| !contains_point(clip, x, y))
                 || item.clip_regions.iter().any(|clip| !clip.contains(x, y))
@@ -1440,15 +1468,26 @@ impl Scene {
         if self.node(id).style == style {
             return;
         }
+        // Reveal clips alter painted/hit geometry, never the retained layout.
+        // Keep all other style changes on the normal layout invalidation path.
+        let clip_only = {
+            let mut previous = self.node(id).style.clone();
+            previous.clip_insets = style.clip_insets;
+            previous == style
+        };
         self.damage_subtree(id);
         if own_visible(&self.node(id).style) != own_visible(&style) {
             self.visibility_revision = self.visibility_revision.wrapping_add(1);
+            self.geometry_revision = self.geometry_revision.wrapping_add(1);
+        } else if clip_only {
             self.geometry_revision = self.geometry_revision.wrapping_add(1);
         }
         self.node_mut(id).style = style;
         self.damage_subtree(id);
         self.invalidate(id, PAINT);
-        self.invalidate_layout(id);
+        if !clip_only {
+            self.invalidate_layout(id);
+        }
     }
     /// Change sibling paint/hit order without invalidating layout or changing IDs.
     pub fn set_z_index(&mut self, id: NodeId, z_index: i32) {
@@ -1754,6 +1793,11 @@ impl Scene {
         parent_clip: Option<Rect>,
         isolated: bool,
     ) {
+        // Overflow-visible descendants and their filters still inherit this
+        // clip. Test it before resolving text ink or descending any farther.
+        if parent_clip.is_some_and(|clip| clip.width <= 0. || clip.height <= 0.) {
+            return;
+        }
         let node = self.node(id);
         // Not laid out since it was appended, so never painted: nothing to
         // repaint yet (a mounting row styles each node before its first
@@ -1784,6 +1828,11 @@ impl Scene {
         }
         if self.node(id).effects.blur_radius > 0. {
             self.add_damage(bounds);
+        }
+        // An outer shadow uses the parent clip above, so process this node's
+        // own ink before dropping children clipped by its allocation/reveal.
+        if clip.is_some_and(|clip| clip.width <= 0. || clip.height <= 0.) {
+            return;
         }
         for index in 0..self.node(id).children.len() {
             let child = self.node(id).children[index];
@@ -2055,11 +2104,12 @@ impl Scene {
     fn measure_intrinsic(&mut self, id: NodeId, constraints: Constraints) -> (f32, f32) {
         let _span = self.profiler.span("intrinsic", Some(id));
         let revision = self.text_shaper_revision;
+        let key = self.measurement_key(id, constraints);
         if let Some(index) = self
             .node(id)
             .intrinsic_sizes
             .iter()
-            .position(|(cached, shaper, _)| *cached == constraints && *shaper == revision)
+            .position(|(cached, shaper, _)| *cached == key && *shaper == revision)
         {
             let sizes = &mut self.node_mut(id).intrinsic_sizes;
             let hit = sizes.remove(index);
@@ -2068,10 +2118,16 @@ impl Scene {
             self.trace_layout(id, "intrinsic.hit", Some(constraints), Some(size));
             return size;
         }
-        let size = self.measure(id, constraints);
-        let sizes = &mut self.node_mut(id).intrinsic_sizes;
-        sizes.truncate(INTRINSIC_MEASUREMENTS - 1);
-        sizes.insert(0, (constraints, revision, size));
+        let size = if !key.hidden
+            && let NodeKind::Container(layout) | NodeKind::Panel { layout, .. } = self.node(id).kind
+            && self.uses_advanced_layout(id)
+        {
+            self.profiler.layout_query(id, false);
+            self.measure_advanced(id, layout, constraints, true)
+        } else {
+            self.measure(id, constraints)
+        };
+        cache_intrinsic_size(self.node_mut(id), key, revision, size);
         size
     }
     fn measure(&mut self, id: NodeId, mut constraints: Constraints) -> (f32, f32) {
@@ -2083,14 +2139,16 @@ impl Scene {
         let node = self.node(id);
         constraints.hidden |= node.style.layout_options.as_deref()
             .is_some_and(|options| options.display == Some(crate::layout::Display::None));
+        let key = self.measurement_key(id, constraints);
         let usable = |m: &Measurement| {
-            m.constraints == constraints
+            m.key == key
                 && m.revision == (node.measure_revision, self.text_shaper_revision)
         };
         if let Some(current) = &node.measurement
             && usable(current)
         {
             let size = current.size;
+            self.node_mut(id).measurement.as_mut().unwrap().constraints = constraints;
             self.profiler.layout_query(id, true);
             self.trace_layout(id, "measure.current", Some(constraints), Some(size));
             return size;
@@ -2098,7 +2156,8 @@ impl Scene {
         if let Some(index) = node.alternates.iter().position(usable) {
             // Promote it: `arrange` places children from the current result.
             let node = self.node_mut(id);
-            let hit = node.alternates.remove(index);
+            let mut hit = node.alternates.remove(index);
+            hit.constraints = constraints;
             let size = hit.size;
             if let Some(previous) = node.measurement.replace(hit) {
                 node.alternates.insert(0, previous);
@@ -2116,7 +2175,7 @@ impl Scene {
         if let NodeKind::Container(layout) | NodeKind::Panel { layout, .. } = node.kind
             && self.uses_advanced_layout(id)
         {
-            return self.measure_advanced(id, layout, constraints);
+            return self.measure_advanced(id, layout, constraints, false);
         }
         self.node_mut(id).advanced_layout = None;
         let style = self.resolved_leaf_style(id, constraints);
@@ -2596,6 +2655,7 @@ impl Scene {
             })
             .collect();
         let shaper_revision = self.text_shaper_revision;
+        let key = self.measurement_key(id, constraints);
         let node = self.node_mut(id);
         let revision = (node.measure_revision, shaper_revision);
         if let Some(previous) = node.measurement.take() {
@@ -2603,16 +2663,20 @@ impl Scene {
         }
         // Results from before a node changed are stale.
         node.alternates
-            .retain(|m| m.constraints != constraints && m.revision == revision);
+            .retain(|m| m.key != key && m.revision == revision);
         node.alternates.truncate(MEASUREMENT_ALTERNATES);
         node.arrange_dirty = true;
         node.measurement = Some(Measurement {
             constraints,
+            key,
             size,
             children,
             child_constraints,
             revision,
         });
+        // A complete layout also answers a later size-only probe, even after
+        // its more expensive child geometry falls out of the small cache.
+        cache_intrinsic_size(node, key, shaper_revision, size);
         self.trace_layout(id, "measure.store", Some(constraints), Some(size));
     }
     /// `covered`: an ancestor moved and already damaged this whole subtree at
@@ -3196,8 +3260,12 @@ impl Scene {
     /// Back-to-front sibling subtrees, ordered by z-index then retained child order.
     /// Every parent's own paint precedes its children, including negative indices.
     pub fn paint_items(&self) -> impl Iterator<Item = PaintItem<'_>> {
+        self.paint_iter(None)
+    }
+    fn paint_iter(&self, hit_point: Option<(f32, f32)>) -> PaintIter<'_> {
         PaintIter {
             scene: self,
+            hit_point,
             stack: vec![(
                 self.root,
                 Affine::IDENTITY,
@@ -3277,13 +3345,29 @@ type PaintState = (
 );
 struct PaintIter<'a> {
     scene: &'a Scene,
+    hit_point: Option<(f32, f32)>,
     stack: Vec<PaintState>,
 }
 impl<'a> Iterator for PaintIter<'a> {
     type Item = PaintItem<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        let (id, parent_transform, parent_opacity, parent_clip, mask, regions, fade_transform) =
-            self.stack.pop()?;
+        let (id, parent_transform, parent_opacity, parent_clip, mask, regions, fade_transform) = loop {
+            let state = self.stack.pop()?;
+            if let Some((x, y)) = self.hit_point {
+                let node = self.scene.node(state.0);
+                // These are inherited constraints: no descendant can escape them.
+                // Do not cull against the node's own bounds; overflow and shadow
+                // targets retain their existing paint and hit semantics.
+                if !own_visible(&node.style)
+                    || node.effects.opacity * state.2 <= 0.
+                    || !contains_point(state.3, x, y)
+                    || state.5.iter().any(|clip| !clip.contains(x, y))
+                {
+                    continue;
+                }
+            }
+            break state;
+        };
         let node = self.scene.node(id);
         let matrix = self.scene.node_matrix(id).then(parent_transform);
         let (bounds, transform) = primitive_coordinates(node.bounds, matrix);
@@ -3989,6 +4073,99 @@ mod tests {
         assert!(!report.damage.is_empty());
     }
     #[test]
+    fn contained_damage_preserves_regions_and_covering_damage_replaces_them() {
+        let mut regions = vec![Rect::new(0., 0., 10., 10.), Rect::new(30., 0., 10., 10.)];
+        let previous = regions.clone();
+        for rect in [Rect::new(1., 1., 2., 2.), Rect::new(30., 0., 10., 10.)] {
+            merge_damage(&mut regions, rect, None);
+            assert_eq!(regions, previous);
+        }
+        let covering = Rect::new(-1., -1., 42., 12.);
+        merge_damage(&mut regions, covering, None);
+        assert_eq!(regions, [covering]);
+    }
+
+    #[test]
+    fn empty_inherited_clip_skips_text_ink_and_filtered_overflow() {
+        use std::{cell::Cell, rc::Rc};
+
+        for clipped in [false, true] {
+            let mut scene = Scene::new(100., 100.);
+            let measurements = Rc::new(Cell::new(0));
+            let measured = measurements.clone();
+            scene.set_font_text_measurer(move |_, _, _, _| {
+                measured.set(measured.get() + 1);
+                (200., 20.)
+            });
+            let parent = scene.append(
+                scene.root(),
+                NodeKind::Container(Layout::Overlay),
+                Style {
+                    width: Some(20.),
+                    height: Some(20.),
+                    clip: clipped,
+                    ..Default::default()
+                },
+            );
+            let text = scene.append(
+                parent,
+                NodeKind::Text {
+                    text: "overflowing label".into(),
+                    font_size: 16.,
+                    color: Color(255, 255, 255, 255),
+                },
+                Style {
+                    width: Some(20.),
+                    height: Some(20.),
+                    ..Default::default()
+                },
+            );
+            scene.set_transform(parent, Transform { x: 200., y: 0. });
+            // The child reaches the viewport only when its ancestor allows overflow.
+            scene.set_transform(text, Transform { x: -200., y: 0. });
+            scene.set_effects(text, Effects { blur_radius: 3., ..Default::default() });
+            scene.flush();
+            scene.damage.clear();
+            measurements.set(0);
+            scene.damage_subtree(parent);
+            assert_eq!(scene.damage.is_empty(), clipped);
+            assert_eq!(measurements.get() == 0, clipped);
+        }
+    }
+
+    #[test]
+    fn empty_child_clip_preserves_outer_shadow_damage() {
+        let mut scene = Scene::new(100., 100.);
+        let panel = scene.append(
+            scene.root(),
+            NodeKind::Panel {
+                layout: Layout::Overlay,
+                quad: QuadStyle {
+                    fill: Color(255, 255, 255, 255),
+                    shadow: Some(BoxShadow {
+                        color: Color(0, 0, 0, 128),
+                        offset: Transform { x: -30., y: 0. },
+                        blur_radius: 2.,
+                        spread: 0.,
+                    }),
+                    ..Default::default()
+                },
+            },
+            Style {
+                width: Some(20.),
+                height: Some(20.),
+                clip: true,
+                ..Default::default()
+            },
+        );
+        scene.set_transform(panel, Transform { x: 110., y: 0. });
+        scene.flush();
+        scene.damage.clear();
+        scene.damage_subtree(panel);
+        assert!(scene.damage.iter().any(|rect| contains_point(*rect, 85., 10.)));
+    }
+
+    #[test]
     fn damage_keeps_thin_strips_disjoint_without_inflating_the_viewport() {
         let mut regions = Vec::new();
         merge_damage(&mut regions, Rect::new(0., 0., 1000., 8.), None);
@@ -4406,6 +4583,96 @@ mod tests {
         assert_eq!(scene.bounds(b), Rect::new(0.0, 77.0, 100.0, 23.0));
     }
     #[test]
+    fn hit_testing_prunes_retained_hidden_and_clipped_subtrees() {
+        let mut scene = Scene::new(200., 200.);
+        scene.set_kind(scene.root(), NodeKind::Container(Layout::Overlay));
+        let visible = scene.append(scene.root(), text("visible"), Style::default());
+        let hidden = scene.append(scene.root(), NodeKind::Container(Layout::Overlay), Style {
+            width: Some(20.), height: Some(20.),
+            layout_options: Some(Arc::new(crate::layout::LayoutOptions {
+                display: Some(crate::layout::Display::None), ..Default::default()
+            })), ..Default::default()
+        });
+        let transparent = scene.append(scene.root(), NodeKind::Container(Layout::Overlay), Style::default());
+        scene.set_effects(transparent, Effects { opacity: 0., ..Default::default() });
+        let clipped = scene.append(scene.root(), NodeKind::Container(Layout::Overlay), Style {
+            width: Some(20.), height: Some(20.), clip: true, ..Default::default()
+        });
+        scene.set_transform(clipped, Transform { x: 100., y: 100. });
+        for parent in [hidden, transparent, clipped] {
+            for _ in 0..128 { scene.append(parent, text("retained"), Style::default()); }
+        }
+        scene.flush();
+        assert_eq!(scene.hit_test(5., 5.), Some(visible));
+        // The public paint iterator retains its full traversal contract.
+        assert_eq!(scene.paint_items().count(), 389);
+        assert_eq!(scene.paint_iter(Some((5., 5.))).count(), 3);
+        let mut style = scene.style(hidden);
+        style.layout_options = None;
+        scene.set_style(hidden, style);
+        scene.flush();
+        assert!(scene.hit_test_all(5., 5.).iter().any(|id| scene.parent(*id) == Some(hidden)));
+    }
+
+    #[test]
+    fn hit_testing_pruning_preserves_overflow_transforms_shadows_and_hit_order() {
+        let mut scene = Scene::new(200., 200.);
+        scene.set_kind(scene.root(), NodeKind::Container(Layout::Overlay));
+        let parent = scene.append(scene.root(), NodeKind::Panel {
+            layout: Layout::Overlay,
+            quad: QuadStyle {
+                radius: 15., shadow: Some(BoxShadow {
+                    color: Color(0, 0, 0, 128), offset: Transform { x: -20., y: 0. },
+                    blur_radius: 3., spread: 0.,
+                }), ..Default::default()
+            },
+        }, Style { width: Some(60.), height: Some(60.), clip: true, ..Default::default() });
+        let child = scene.append(parent, text("overflow target"), Style {
+            width: Some(140.), height: Some(100.), flex_shrink: 0., ..Default::default()
+        });
+        scene.set_transform(parent, Transform { x: 70., y: 50. });
+        scene.set_transform(child, Transform { x: -40., y: 0. });
+        scene.append(scene.root(), text("front"), Style { z_index: 1, ..Default::default() });
+        scene.flush();
+        for axes in [[true, true], [true, false], [false, false]] {
+            let mut style = scene.style(parent);
+            style.layout_options = Some(Arc::new(crate::layout::LayoutOptions {
+                clip_x: Some(axes[0]), clip_y: Some(axes[1]), ..Default::default()
+            }));
+            scene.set_style(parent, style);
+            for angle in [0., std::f32::consts::FRAC_PI_4] {
+                scene.set_paint_transform(parent, Affine::rotation(angle));
+                for opacity in [0., 0.5, 1.] {
+                    scene.set_effects(parent, Effects { opacity, ..Default::default() });
+                    scene.flush();
+                    for x in (0..200).step_by(17) {
+                        for y in (0..200).step_by(23) {
+                            let (x, y) = (x as f32, y as f32);
+                            // The full paint traversal is the pre-pruning hit-test oracle.
+                            let mut expected = Vec::new();
+                            for item in scene.paint_items() {
+                                if item.effects.opacity <= 0.
+                                    || item.clip.is_some_and(|clip| !contains_point(clip, x, y))
+                                    || item.clip_regions.iter().any(|clip| !clip.contains(x, y)) { continue; }
+                                let primitive = match item.kind {
+                                    NodeKind::Image(image) => image.paint_transform(item.bounds),
+                                    NodeKind::Svg(svg) => svg.paint_transform(item.bounds),
+                                    _ => Affine::IDENTITY,
+                                }.then(item.transform);
+                                if primitive.inverse().is_some_and(|inverse| {
+                                    let (x, y) = inverse.point(x, y); contains_point(item.bounds, x, y)
+                                }) { expected.push(item.id); }
+                            }
+                            expected.reverse();
+                            assert_eq!(scene.hit_test_all(x, y), expected, "axes={axes:?} angle={angle} opacity={opacity} point={x},{y}");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn hit_testing_respects_stacking_clip_transform_and_opacity() {
         let mut scene = Scene::new(100.0, 100.0);
         scene.set_kind(scene.root(), NodeKind::Container(Layout::Overlay));
@@ -4819,6 +5086,49 @@ mod tests {
 #[cfg(test)]
 mod paint_geometry_tests {
     use super::*;
+    #[test]
+    fn reveal_clips_preserve_layout_cache_and_update_hit_geometry() {
+        let mut scene = Scene::new(100., 100.);
+        let parent = scene.append(
+            scene.root(), NodeKind::Container(Layout::Overlay),
+            Style { width: Some(80.), height: Some(80.), ..Default::default() },
+        );
+        let child = scene.append(
+            parent, NodeKind::Rect(Color(255, 255, 255, 255)),
+            Style { width: Some(80.), height: Some(80.), ..Default::default() },
+        );
+        scene.flush();
+        let profiler = scene.profiler();
+        profiler.set_enabled(true);
+        let layout_revision = scene.layout_revision();
+        let measurement_revision = scene.node(parent).measure_revision;
+        let bounds = scene.layout_bounds(child);
+        for insets in [Some(Insets { left: 40., ..Default::default() }), None] {
+            profiler.reset();
+            let geometry_revision = scene.interaction_revision();
+            let mut style = scene.style(parent);
+            style.clip_insets = insets;
+            scene.set_style(parent, style);
+            let report = scene.flush();
+            assert_eq!(report.layout_nodes, 0);
+            assert_eq!(scene.layout_revision(), layout_revision);
+            assert_eq!(scene.node(parent).measure_revision, measurement_revision);
+            assert!(profiler.nodes().iter().all(|(_, stats)| stats.layout_queries == 0));
+            assert_eq!(scene.layout_bounds(child), bounds);
+            assert_ne!(scene.interaction_revision(), geometry_revision);
+            assert_eq!(scene.hit_test(10., 10.) == Some(child), insets.is_none());
+            assert_eq!(scene.hit_test(50., 10.), Some(child));
+            // Hiding and revealing both repair the old and new visible pixels.
+            assert!(report.damage.iter().any(|rect| contains_point(*rect, 10., 10.)));
+            assert!(report.damage.iter().any(|rect| contains_point(*rect, 50., 10.)));
+        }
+        let mut style = scene.style(parent);
+        style.width = Some(60.);
+        style.clip_insets = Some(Insets { left: 10., ..Default::default() });
+        scene.set_style(parent, style);
+        assert!(scene.flush().layout_nodes > 0, "layout changes retain normal invalidation");
+    }
+
     #[test]
     fn overlay_alignment_centers_each_layer_independently_in_both_layout_paths() {
         for advanced in [false, true] {

@@ -3540,6 +3540,11 @@ impl GpuRenderer {
         known: Option<&ScrollState>,
     ) -> (Vec<ScrollCopy>, Vec<Rect>) {
         let serial = scene.flush_serial();
+        // A no-op scene flush retains its last moves and serial. Each renderer
+        // consumes those moves once; replaying them would repaint a clean clip.
+        if !self.fresh && self.rendered_serial == Some(serial) {
+            return (Vec::new(), Vec::new());
+        }
         let mut copies = Vec::new();
         let mut repaint = Vec::new();
         // On Apple GPUs a process's first texture blit makes the driver hold
@@ -3593,7 +3598,8 @@ impl GpuRenderer {
         (copies, repaint)
     }
     fn scroll_state_for(&self, scene: &Scene, damage: &[Rect]) -> Option<ScrollState> {
-        if !self.scroll_phase_cache || scene.scroll_moves().len() != 1 || scene.has_backdrop_blur()
+        if (!self.fresh && self.rendered_serial == Some(scene.flush_serial()))
+            || !self.scroll_phase_cache || scene.scroll_moves().len() != 1 || scene.has_backdrop_blur()
         {
             return None;
         }
