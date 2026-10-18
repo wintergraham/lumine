@@ -339,7 +339,14 @@ fn footprint(
         leaving.scale = Some([1.; 2]);
     }
     track.footprint.set(Some(Footprint {
-        from: if enter { shut.clone() } else { leaving },
+        from: if enter {
+            shut.clone()
+        } else if timing.source_layout_scale.is_some() {
+            // Source starts a new exit effect over the current flow margins.
+            open.clone()
+        } else {
+            leaving
+        },
         to: if enter { open } else { shut },
         restore: enter.then_some(original),
     }));
@@ -589,6 +596,7 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
         let weak = ui.downgrade();
         let runtime = ui.runtime.clone();
         let mounted = Rc::new(RefCell::new(HashMap::<String, Mounted>::new()));
+        let retiring = Rc::new(RefCell::new(HashSet::<NodeId>::new()));
         let mut previous = None;
         ui.bind(root, move || {
             let key = selected();
@@ -617,6 +625,31 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
             let first = previous.is_none();
             runtime.untracked(|| {
                 let mut live = mounted.borrow_mut();
+                retiring
+                    .borrow_mut()
+                    .retain(|node| ui.scene.borrow().contains(*node));
+                if options.source_layout_scale.is_some() {
+                    // Source reconcile excludes m-exit nodes and mounts a new copy on reentry.
+                    let returning: Vec<_> = live
+                        .iter()
+                        .filter(|(id, entry)| ids.contains(*id) && entry.style.exiting.get())
+                        .map(|(_, entry)| entry.node)
+                        .collect();
+                    for node in returning {
+                        retiring.borrow_mut().insert(node);
+                        let scene = ui.scene.borrow();
+                        live.retain(|id, entry| {
+                            if entry.node != node && !scene.ancestors(entry.node).any(|p| p == node)
+                            {
+                                return true;
+                            }
+                            if let Some(nodes) = environment.registry.borrow_mut().get_mut(id) {
+                                nodes.retain(|n| *n != entry.node);
+                            }
+                            false
+                        });
+                    }
+                }
                 let existing: HashSet<_> = live.keys().cloned().collect();
                 let mut fresh_children = HashMap::<String, usize>::new();
                 for spec in &specs {
@@ -954,7 +987,8 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                     }
                     let weak = ui.downgrade();
                     let nodes = mounted.clone();
-                    let removed = id.clone();
+                    let retiring = retiring.clone();
+                    let node = old.node;
                     let exit = if animation.is_some() {
                         AnimationGroup::new([old.style.decoration_progress.animation()])
                     } else {
@@ -974,9 +1008,9 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                             return;
                         };
                         let mut live = nodes.borrow_mut();
-                        let Some(node) = live.get(&removed).map(|entry| entry.node) else {
+                        if !ui.scene.borrow().contains(node) {
                             return;
-                        };
+                        }
                         let subtree: Vec<_> = live
                             .iter()
                             .filter(|(_, entry)| {
@@ -986,6 +1020,7 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                             .map(|(id, _)| id.clone())
                             .collect();
                         ui.remove(node);
+                        retiring.borrow_mut().remove(&node);
                         for id in subtree {
                             live.remove(&id);
                         }
@@ -998,7 +1033,20 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                         .values()
                         .filter(|entry| ui.scene.borrow().parent(entry.node) == Some(parent))
                         .map(|entry| entry.node)
+                        .chain(
+                            retiring
+                                .borrow()
+                                .iter()
+                                .copied()
+                                .filter(|node| ui.scene.borrow().parent(*node) == Some(parent)),
+                        )
                         .collect();
+                    let is_exiting = |node| {
+                        retiring.borrow().contains(&node)
+                            || live
+                                .values()
+                                .any(|entry| entry.node == node && entry.style.exiting.get())
+                    };
                     let mut sorted: Vec<_> = current
                         .iter()
                         .copied()
@@ -1009,10 +1057,7 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                         if !managed.contains(&node) {
                             continue;
                         }
-                        if !live
-                            .values()
-                            .any(|entry| entry.node == node && entry.style.exiting.get())
-                        {
+                        if !is_exiting(node) {
                             break;
                         }
                         sorted.push(node);
@@ -1025,10 +1070,7 @@ pub fn compiled_morph<K: PartialEq + Clone + 'static>(
                                 if !managed.contains(&after) {
                                     continue;
                                 }
-                                if live
-                                    .values()
-                                    .any(|entry| entry.node == after && entry.style.exiting.get())
-                                {
+                                if is_exiting(after) {
                                     sorted.push(after);
                                 } else {
                                     break;
@@ -2019,6 +2061,103 @@ mod tests {
         advance(500);
         same_parts("reverse-settled", &initial_parts);
         assert_eq!(ui.scene.borrow().style(details).height, None);
+        root.unmount();
+        executor.borrow_mut().tick();
+    }
+
+    #[test]
+    fn source_flow_reversal_keeps_exiting_copy_until_completion() {
+        use crate::{
+            frame::{Frame, FrameClock},
+            task::LocalExecutor,
+        };
+        let mut ui = Ui::new(300., 200.);
+        let executor = Rc::new(RefCell::new(LocalExecutor::new()));
+        let frames = FrameClock::new();
+        let selected = ui.signal(false);
+        let choice = selected.clone();
+        let root = ui.mount(provide(
+            TaskRunner::from_executor(executor.clone()),
+            provide(
+                frames.clone(),
+                compiled_morph(
+                    move || choice.get(),
+                    |away| {
+                        let mut rows = column()
+                            .id("rows")
+                            .absolute()
+                            .left(0.)
+                            .top(0.)
+                            .w(300.)
+                            .gap(6.);
+                        if !away {
+                            rows = rows.child(
+                                column()
+                                    .id("returning")
+                                    .h(30.)
+                                    .child(div().id("returning-child").h(30.)),
+                            );
+                        }
+                        rows.child(div().id("survivor").h(30.))
+                    },
+                    || CompiledMorphTiming {
+                        source_layout_scale: Some(1.5),
+                        duration: Duration::from_millis(400),
+                        crossfade: Duration::from_millis(140),
+                        color_duration: Duration::from_millis(200),
+                        curve: std::array::from_fn(|i| i as f32 / 48.),
+                    },
+                )
+                .size(300., 200.),
+            ),
+        ));
+        ui.prepare_frame();
+        let rows = root.find("rows").unwrap();
+        let old = root.find("returning").unwrap();
+        let old_child = root.find("returning-child").unwrap();
+        let mut time = std::time::Instant::now();
+        let mut index = 0;
+        let mut advance = |ms: u64| {
+            executor.borrow_mut().tick();
+            index += 1;
+            time += Duration::from_millis(ms);
+            frames.deliver(Frame {
+                index,
+                time,
+                interval: Duration::from_millis(ms),
+            });
+            executor.borrow_mut().tick();
+            ui.prepare_frame();
+        };
+        selected.set(true);
+        ui.prepare_frame();
+        advance(0);
+        advance(50);
+        let before = ui.scene.borrow().layout_bounds(rows).height;
+        assert!((before - 61.5).abs() < 0.001);
+        selected.set(false);
+        ui.prepare_frame();
+        let fresh = root.find("returning").unwrap();
+        let fresh_child = root.find("returning-child").unwrap();
+        assert_ne!(fresh, old);
+        assert_ne!(fresh_child, old_child);
+        assert!(ui.scene.borrow().contains(old));
+        assert!((ui.scene.borrow().layout_bounds(rows).height - before).abs() < 0.001);
+        advance(0);
+        advance(50);
+        // The old copy has exited for 100ms, while the new copy has entered for 50ms.
+        // Their flow contributions are 36 * .75 and 36 * .125, plus the 30px survivor.
+        assert!((ui.scene.borrow().layout_bounds(rows).height - 61.5).abs() < 0.001);
+        assert_eq!(ui.scene.borrow().children(rows).len(), 3);
+        advance(300);
+        assert!(!ui.scene.borrow().contains(old));
+        assert!(!ui.scene.borrow().contains(old_child));
+        assert_eq!(root.find("returning"), Some(fresh));
+        assert_eq!(root.find("returning-child"), Some(fresh_child));
+        assert!(ui.scene.borrow().contains(fresh));
+        advance(50);
+        assert_eq!(ui.scene.borrow().children(rows).len(), 2);
+        assert!((ui.scene.borrow().layout_bounds(rows).height - 66.).abs() < 0.001);
         root.unmount();
         executor.borrow_mut().tick();
     }
