@@ -1233,6 +1233,7 @@ mod tests {
             };
             assert!(!ui.scene.borrow().style(paragraph).text_wrap);
             assert_eq!(ui.scene.borrow().layout_bounds(owner).height, 20.);
+            assert!(ui.scene.borrow().layout_bounds(paragraph).width > 60.);
             for value in [true, false, true] {
                 wrap.set(value);
                 ui.prepare_frame();
@@ -1250,6 +1251,7 @@ mod tests {
                     );
                 } else {
                     assert_eq!(height, 20.);
+                    assert!(scene.layout_bounds(paragraph).width > 60.);
                 }
             }
         }

@@ -1974,7 +1974,6 @@ fn mount_element(
                 root,
                 "",
                 crate::scene::Style {
-                    width_percent: Some(1.),
                     height_percent: Some(1.),
                     ..Default::default()
                 },
