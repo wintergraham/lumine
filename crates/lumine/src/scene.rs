@@ -2118,7 +2118,15 @@ impl Scene {
             self.trace_layout(id, "intrinsic.hit", Some(constraints), Some(size));
             return size;
         }
-        let size = self.measure(id, constraints);
+        let size = if !key.hidden
+            && let NodeKind::Container(layout) | NodeKind::Panel { layout, .. } = self.node(id).kind
+            && self.uses_advanced_layout(id)
+        {
+            self.profiler.layout_query(id, false);
+            self.measure_advanced(id, layout, constraints, true)
+        } else {
+            self.measure(id, constraints)
+        };
         cache_intrinsic_size(self.node_mut(id), key, revision, size);
         size
     }
@@ -2167,7 +2175,7 @@ impl Scene {
         if let NodeKind::Container(layout) | NodeKind::Panel { layout, .. } = node.kind
             && self.uses_advanced_layout(id)
         {
-            return self.measure_advanced(id, layout, constraints);
+            return self.measure_advanced(id, layout, constraints, false);
         }
         self.node_mut(id).advanced_layout = None;
         let style = self.resolved_leaf_style(id, constraints);

@@ -429,6 +429,7 @@ impl Scene {
         id: NodeId,
         layout: Layout,
         constraints: Constraints,
+        size_only: bool,
     ) -> (f32, f32) {
         let root_style = self.resolved_leaf_style(id, constraints);
         let root_options = root_style
@@ -854,6 +855,14 @@ impl Scene {
                 .expect("retained tree is structurally valid");
         }
         let root_layout = *cache.tree.layout(root).expect("computed root");
+        let size = (root_layout.size.width, root_layout.size.height);
+        if size_only {
+            // Intrinsic callbacks only consume the root size. Final child
+            // allocations and their restorable geometry belong to a complete
+            // measurement, which arrange requests later when needed.
+            self.node_mut(id).advanced_layout = Some(cache);
+            return size;
+        }
         let inner_width =
             (root_layout.size.width - root_layout.padding.left - root_layout.padding.right).max(0.);
         let inner_height =
@@ -890,7 +899,6 @@ impl Scene {
                 )
             })
             .collect();
-        let size = (root_layout.size.width, root_layout.size.height);
         self.store_measurement(id, constraints, size, positions);
         self.node_mut(id).advanced_layout = Some(cache);
         size
@@ -2414,9 +2422,81 @@ mod tests {
     }
 
     #[test]
+    fn advanced_intrinsic_grid_sizing_avoids_final_child_measurements() {
+        fn grid() -> (Scene, NodeId) {
+            let mut scene = Scene::new(448., 128.);
+            let grid = scene.append(scene.root(), NodeKind::Container(Layout::Column), Style {
+                width: Some(448.),
+                layout_options: Some(Arc::new(crate::layout::LayoutOptions {
+                    display: Some(ViewDisplay::Grid), columns: Some(28), rows: Some(8),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            });
+            for _ in 0..224 {
+                scene.append(grid, NodeKind::Rect(Color(255, 255, 255, 255)), Style {
+                    width: Some(8.), height: Some(8.), ..Default::default()
+                });
+            }
+            (scene, grid)
+        }
+        let (mut scene, root) = grid();
+        let profiler = scene.profiler();
+        profiler.set_enabled(true);
+        let size = scene.measure_intrinsic(root, Constraints::default());
+        let queries = || profiler.nodes().iter().map(|(_, stats)| stats.layout_queries).sum::<u64>();
+        let intrinsic_queries = queries();
+        assert!(scene.children(root).iter().all(|child| scene.layout_bounds(*child) == Rect::default()));
+        profiler.reset();
+        assert_eq!(scene.measure(root, Constraints::default()), size);
+        let complete_queries = queries();
+        assert!(intrinsic_queries * 4 < complete_queries,
+            "size-only grid used {intrinsic_queries} queries, complete layout used {complete_queries}");
+        scene.arrange(root, 0., 0., &mut FrameReport::default(), false);
+        let (mut cold, cold_root) = grid();
+        assert_eq!(cold.measure(cold_root, Constraints::default()), size);
+        cold.arrange(cold_root, 0., 0., &mut FrameReport::default(), false);
+        for (actual, expected) in scene.slots.iter().zip(&cold.slots) {
+            assert_eq!(actual.node.as_ref().unwrap().bounds, expected.node.as_ref().unwrap().bounds);
+        }
+    }
+
+    #[test]
+    fn interleaved_advanced_intrinsic_probes_preserve_arranged_deep_geometry() {
+        let (mut scene, containers, _, _, _) = deep_scene();
+        let root = containers[0];
+        for width in [96., 192., 256.] {
+            let allocation = Constraints { force_width: Some(width), ..Default::default() };
+            scene.measure(root, allocation);
+            scene.arrange(root, 7., 11., &mut FrameReport::default(), false);
+            let before: Vec<_> = scene.slots.iter().map(|slot| slot.node.as_ref().unwrap().bounds).collect();
+            for intrinsic_width in [80., 160., 320.] {
+                scene.measure_intrinsic(root, Constraints {
+                    force_width: Some(intrinsic_width), ..Default::default()
+                });
+                assert_eq!(scene.node(root).measurement.as_ref().unwrap().constraints, allocation);
+                for (actual, expected) in scene.slots.iter().zip(&before) {
+                    assert_eq!(actual.node.as_ref().unwrap().bounds, *expected);
+                }
+            }
+            scene.measure(root, allocation);
+            scene.arrange(root, 7., 11., &mut FrameReport::default(), false);
+            let (mut cold, cold_containers, _, _, _) = deep_scene();
+            cold.measure(cold_containers[0], allocation);
+            cold.arrange(cold_containers[0], 7., 11., &mut FrameReport::default(), false);
+            for (actual, expected) in scene.slots.iter().zip(&cold.slots) {
+                assert_eq!(actual.node.as_ref().unwrap().bounds, expected.node.as_ref().unwrap().bounds);
+            }
+        }
+    }
+
+    #[test]
     fn deep_mixed_layout_reuses_intrinsic_constraints_without_replacing_arrange_geometry() {
         let (mut scene, containers, _, _, calls) = deep_scene();
         let outer = containers[0];
+        // Intrinsic sizing preserves an existing allocation rather than
+        // constructing restorable child geometry as a side effect.
+        scene.flush();
         let probes: Vec<_> = [None, Some(96.), Some(128.), Some(160.), Some(192.), Some(256.)]
             .into_iter()
             .flat_map(|width| {
