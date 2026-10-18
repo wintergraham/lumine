@@ -1856,6 +1856,7 @@ mod tests {
                 interval: Duration::from_millis(ms),
             });
             executor.borrow_mut().tick();
+            executor.borrow_mut().tick();
             ui.prepare_frame();
         };
         advance(&mut ui, 200);
@@ -1875,9 +1876,16 @@ mod tests {
         selected.set(false);
         ui.prepare_frame();
         assert_eq!(ui.scene.borrow().style(root.find("root").unwrap()).gap, 12.);
+        let exit_start = ui.scene.borrow().style(entry).clone();
+        // Source footprint() restarts exit paint from open, retaining the current flow margin.
+        assert_eq!(
+            exit_start.clip_insets,
+            Some(crate::scene::Insets::all(-20.))
+        );
+        assert_eq!(exit_start.margin.bottom, before_exit.margin.bottom);
         advance(&mut ui, 80);
         let leaving = ui.scene.borrow().style(entry).clone();
-        let clip_before = before_exit.clip_insets.unwrap().bottom;
+        let clip_before = exit_start.clip_insets.unwrap().bottom;
         let exit_progress =
             (leaving.clip_insets.unwrap().bottom - clip_before) / (48. - clip_before);
         assert!(exit_progress > 0. && exit_progress < 1.);
@@ -1889,11 +1897,25 @@ mod tests {
         );
         selected.set(true);
         ui.prepare_frame();
-        assert_eq!(root.find("entry"), Some(entry));
+        // Source reconcile() excludes m-exit parts, so the old copy keeps leaving beside a fresh entry.
+        let fresh_entry = root.find("entry").unwrap();
+        let fresh_copy = root.find("copy").unwrap();
+        assert_ne!(fresh_entry, entry);
+        assert_ne!(fresh_copy, copy);
+        assert!(ui.scene.borrow().contains(entry));
+        let fresh_bounds = ui.scene.borrow().layout_bounds(fresh_copy);
+        assert_eq!(
+            (fresh_bounds.width, fresh_bounds.height),
+            (full_copy.width, full_copy.height)
+        );
         advance(&mut ui, 500);
-        assert_eq!(ui.scene.borrow().layout_bounds(entry).height, 48.);
+        assert!(!ui.scene.borrow().contains(entry));
+        assert!(!ui.scene.borrow().contains(copy));
+        assert_eq!(root.find("entry"), Some(fresh_entry));
+        assert_eq!(root.find("copy"), Some(fresh_copy));
+        assert_eq!(ui.scene.borrow().layout_bounds(fresh_entry).height, 48.);
         assert!((ui.scene.borrow().layout_bounds(after).y - initial_y - 78.).abs() < 0.01);
-        assert_eq!(ui.scene.borrow().style(entry).clip_insets, None);
+        assert_eq!(ui.scene.borrow().style(fresh_entry).clip_insets, None);
         root.unmount();
         executor.borrow_mut().tick();
     }
