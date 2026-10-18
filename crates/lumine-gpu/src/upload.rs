@@ -158,8 +158,8 @@ pub(crate) fn init_buffer(
 const STAGING_KEEP: usize = 256 * 1024;
 #[derive(Default)]
 pub(crate) struct TextureUploads {
-    /// Per target: its texture and `[x, y, width, height]`, `[offset, 0, 0, 0]` pairs.
-    targets: Vec<(wgpu::Texture, Vec<[u32; 4]>)>,
+    /// Per texture/mip: `[x, y, width, height]`, `[offset, 0, 0, 0]` pairs.
+    targets: Vec<(wgpu::Texture, u32, Vec<[u32; 4]>)>,
     pixels: Vec<u8>,
     pipeline: Option<wgpu::RenderPipeline>,
 }
@@ -172,18 +172,27 @@ impl TextureUploads {
         (x, y, width, height): (u32, u32, u32, u32),
         rgba: &[u8],
     ) {
+        self.push_level(target, 0, (x, y, width, height), rgba);
+    }
+    pub(crate) fn push_level(
+        &mut self,
+        target: &wgpu::Texture,
+        level: u32,
+        (x, y, width, height): (u32, u32, u32, u32),
+        rgba: &[u8],
+    ) {
         debug_assert_eq!(rgba.len(), (width * height * 4) as usize);
         let offset = (self.pixels.len() / 4) as u32;
         self.pixels.extend_from_slice(rgba);
         let rects = match self
             .targets
             .iter_mut()
-            .find(|(texture, _)| texture == target)
+            .find(|(texture, mip, _)| texture == target && *mip == level)
         {
-            Some((_, rects)) => rects,
+            Some((_, _, rects)) => rects,
             None => {
-                self.targets.push((target.clone(), Vec::new()));
-                &mut self.targets.last_mut().expect("just pushed").1
+                self.targets.push((target.clone(), level, Vec::new()));
+                &mut self.targets.last_mut().expect("just pushed").2
             }
         };
         rects.push([x, y, width, height]);
@@ -229,14 +238,19 @@ impl TextureUploads {
         let storage = wgpu::BufferUsages::STORAGE;
         let pixels = init_buffer(device, true, "texture upload pixels", &self.pixels, storage);
         let mut written = 0;
-        for (texture, rects) in self.targets.drain(..) {
+        for (texture, level, rects) in self.targets.drain(..) {
             debug_assert_eq!(texture.format(), format, "one upload pipeline format");
             let count = rects.len() / 2;
             written += count;
             // The shader maps texel rects to clip space with one size, so the
             // header carries both dimensions.
             let mut header = Vec::with_capacity(rects.len() + 1);
-            header.push([texture.width(), texture.height(), 0, 0]);
+            header.push([
+                (texture.width() >> level).max(1),
+                (texture.height() >> level).max(1),
+                0,
+                0,
+            ]);
             header.extend_from_slice(&rects);
             let rects = init_buffer(
                 device,
@@ -259,7 +273,11 @@ impl TextureUploads {
                     },
                 ],
             });
-            let view = texture.create_view(&Default::default());
+            let view = texture.create_view(&wgpu::TextureViewDescriptor {
+                base_mip_level: level,
+                mip_level_count: Some(1),
+                ..Default::default()
+            });
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("texture upload"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {

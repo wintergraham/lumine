@@ -12,6 +12,7 @@ mod blur_cache;
 mod dual_kawase;
 mod effect_chain;
 mod gaussian;
+mod image_mips;
 #[cfg(target_os = "macos")]
 mod native_surface;
 mod paint_geometry;
@@ -2827,8 +2828,12 @@ impl GpuRenderer {
                     {
                         continue;
                     }
-                    if !self.images.contains_key(&image.id()) {
-                        self.upload_image(image)?;
+                    let mipmapped = image_mips::needed(image, bounds, item.transform, self.scale);
+                    // Sampling variants share an ID; upgrade level-zero uploads on demand.
+                    if !self.images.contains_key(&image.id())
+                        || (mipmapped && self.image_textures[&image.id()].mip_level_count() == 1)
+                    {
+                        self.upload_image_levels(image, mipmapped)?;
                         stats.image_uploads += 1;
                     }
                     let transform = image.paint_transform(bounds);
@@ -4315,14 +4320,28 @@ impl GpuRenderer {
         Ok(found.id)
     }
     fn upload_image(&mut self, image: &lumine::image::ImageData) -> Result<(), GpuError> {
+        self.upload_image_levels(image, false)
+    }
+    fn upload_image_levels(
+        &mut self,
+        image: &lumine::image::ImageData,
+        mipmapped: bool,
+    ) -> Result<(), GpuError> {
         if image.width() > self.device.limits().max_texture_dimension_2d
             || image.height() > self.device.limits().max_texture_dimension_2d
         {
             return Err(GpuError("image exceeds GPU texture dimensions".into()));
         }
-        let bytes = image.width() as usize * image.height() as usize * 4;
+        let levels = if mipmapped {
+            image.width().max(image.height()).ilog2() + 1
+        } else {
+            1
+        };
+        let bytes = image_mips::bytes(image.width(), image.height(), levels);
+        let additional_bytes =
+            bytes.saturating_sub(self.images.get(&image.id()).map_or(0, |entry| entry.1));
         self.frame_image_ids.insert(image.id());
-        self.ensure_image_budget(bytes)?;
+        self.ensure_image_budget(additional_bytes)?;
         let mut display = None;
         let texture = if let Some(chain) = image.effect_chain() {
             if !self.image_textures.contains_key(&chain.input.id()) {
@@ -4384,7 +4403,8 @@ impl GpuRenderer {
             display = Some(bind);
             texture
         } else {
-            let texture = texture(&self.device, image.width(), image.height(), "image");
+            let texture =
+                texture_levels(&self.device, image.width(), image.height(), "image", levels);
             let mut pixels = image.pixels().to_vec();
             for pixel in pixels.as_chunks_mut::<4>().0 {
                 let alpha = u16::from(pixel[3]);
@@ -4392,25 +4412,40 @@ impl GpuRenderer {
                     *channel = ((u16::from(*channel) * alpha + 127) / 255) as u8;
                 }
             }
-            if self.mapped.is_some() {
-                self.texture_uploads
-                    .push(&texture, (0, 0, image.width(), image.height()), &pixels);
-            } else {
-                // Direct writes use the storage format; mapped uploads convert
-                // RGBA into BGRA through a render pass instead.
-                for pixel in pixels.as_chunks_mut::<4>().0 {
-                    pixel.swap(0, 2);
+            let (mut width, mut height) = (image.width(), image.height());
+            for level in 0..levels {
+                let next = (level + 1 < levels).then(|| image_mips::halve(&pixels, width, height));
+                if self.mapped.is_some() {
+                    self.texture_uploads
+                        .push_level(&texture, level, (0, 0, width, height), &pixels);
+                } else {
+                    // Direct writes use BGRA; mapped uploads convert RGBA in a render pass.
+                    for pixel in pixels.as_chunks_mut::<4>().0 {
+                        pixel.swap(0, 2);
+                    }
+                    self.queue.write_texture(
+                        wgpu::TexelCopyTextureInfo {
+                            mip_level: level,
+                            ..texture.as_image_copy()
+                        },
+                        &pixels,
+                        wgpu::TexelCopyBufferLayout {
+                            offset: 0,
+                            bytes_per_row: Some(width * 4),
+                            rows_per_image: None,
+                        },
+                        wgpu::Extent3d {
+                            width,
+                            height,
+                            depth_or_array_layers: 1,
+                        },
+                    );
                 }
-                self.queue.write_texture(
-                    texture.as_image_copy(),
-                    &pixels,
-                    wgpu::TexelCopyBufferLayout {
-                        offset: 0,
-                        bytes_per_row: Some(image.width() * 4),
-                        rows_per_image: None,
-                    },
-                    texture.size(),
-                );
+                if let Some(next) = next {
+                    pixels = next;
+                    width = (width / 2).max(1);
+                    height = (height / 2).max(1);
+                }
             }
             texture
         };
@@ -4431,6 +4466,7 @@ impl GpuRenderer {
                             &wgpu::SamplerDescriptor {
                                 mag_filter: wgpu::FilterMode::Linear,
                                 min_filter: wgpu::FilterMode::Linear,
+                                mipmap_filter: wgpu::MipmapFilterMode::Linear,
                                 ..Default::default()
                             },
                         )),
@@ -4981,6 +5017,15 @@ impl GpuRenderer {
     }
 }
 fn texture(device: &wgpu::Device, width: u32, height: u32, label: &str) -> wgpu::Texture {
+    texture_levels(device, width, height, label, 1)
+}
+fn texture_levels(
+    device: &wgpu::Device,
+    width: u32,
+    height: u32,
+    label: &str,
+    levels: u32,
+) -> wgpu::Texture {
     device.create_texture(&wgpu::TextureDescriptor {
         label: Some(label),
         size: wgpu::Extent3d {
@@ -4988,7 +5033,7 @@ fn texture(device: &wgpu::Device, width: u32, height: u32, label: &str) -> wgpu:
             height,
             depth_or_array_layers: 1,
         },
-        mip_level_count: 1,
+        mip_level_count: levels,
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: FORMAT,
