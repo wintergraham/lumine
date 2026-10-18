@@ -466,6 +466,7 @@ fn text_source(kind: &mut Kind) -> TextSource {
 struct TextGhost {
     ui: WeakUi,
     node: Signal<Option<NodeId>>,
+    base_opacity: Cell<f32>,
 }
 impl TextGhost {
     fn clear(&self) {
@@ -491,6 +492,9 @@ impl TextGhost {
             glyph_bounds,
             owner_style,
             glyph_style,
+            owner_effects,
+            paragraph_opacity,
+            mut glyph_effects,
             kind,
             font,
             transform,
@@ -510,6 +514,9 @@ impl TextGhost {
                 scene.layout_bounds(glyph),
                 scene.style(owner),
                 scene.style(glyph),
+                scene.effects(owner),
+                scene.effects(paragraph).opacity,
+                scene.effects(glyph),
                 scene.kind(glyph).clone(),
                 scene.font(glyph).clone(),
                 scene.transform(owner),
@@ -544,6 +551,8 @@ impl TextGhost {
             let target = std::sync::Arc::make_mut(style.layout_options.as_mut().unwrap());
             target.clip_x = options.clip_x;
             target.clip_y = options.clip_y;
+            target.visible = options.visible;
+            target.display = options.display;
         }
         let ghost = ui.container(parent, Layout::Overlay, style);
         let mut style = positioned(
@@ -557,12 +566,17 @@ impl TextGhost {
         {
             let mut scene = ui.scene.borrow_mut();
             scene.set_font(text, font);
+            scene.set_effects(ghost, owner_effects);
+            // The internal paragraph contributes enter opacity; keep nonlinear leaf effects local.
+            glyph_effects.opacity *= paragraph_opacity;
+            scene.set_effects(text, glyph_effects);
             scene.set_transform(ghost, transform);
             scene.set_paint_transform_origin(ghost, paint, origin);
             scene.set_projection_transform(ghost, projection);
         }
         ui.input.set_pointer_transparent(ghost, true);
         ui.input.set_pointer_transparent(text, true);
+        self.base_opacity.set(owner_effects.opacity);
         self.node.set(Some(ghost));
     }
 }
@@ -588,6 +602,7 @@ fn content(
             let ghost = Rc::new(TextGhost {
                 ui: ui.downgrade(),
                 node: cx.state(None),
+                base_opacity: Cell::new(1.),
             });
             let enter = MotionValue::new(cx, 1.);
             let leave = MotionValue::new(cx, 1.);
@@ -610,7 +625,7 @@ fn content(
                     {
                         let mut scene = ui.scene.borrow_mut();
                         let mut effects = scene.effects(node);
-                        effects.opacity = 1. - opacity;
+                        effects.opacity = paint.base_opacity.get() * (1. - opacity);
                         scene.set_effects(node, effects);
                     }
                 });
@@ -2564,6 +2579,173 @@ mod tests {
         assert!(!ui.scene.borrow().contains(returning_ghost));
         executor.borrow_mut().tick();
         assert!(!frames.wants_frame());
+    }
+
+    #[test]
+    fn outgoing_text_preserves_visibility_effects_and_interrupted_enter_opacity() {
+        use crate::{
+            frame::{Frame, FrameClock},
+            scene::Effects,
+            task::LocalExecutor,
+        };
+        use std::time::Instant;
+        for (base_opacity, visible, displayed, blur) in [
+            (0., true, true, 0.),
+            (0.4, true, true, 0.),
+            (1., false, true, 0.),
+            (1., true, false, 0.),
+            (0.6, true, true, 3.),
+        ] {
+            let mut ui = Ui::new(600., 200.);
+            let executor = Rc::new(RefCell::new(LocalExecutor::new()));
+            let frames = FrameClock::new();
+            let selected = ui.signal(false);
+            let read = selected.clone();
+            let root = ui.mount(provide(
+                TaskRunner::from_executor(executor.clone()),
+                provide(
+                    frames.clone(),
+                    compiled_morph(
+                        move || read.get(),
+                        move |changed| {
+                            let content = if changed { "Replacement" } else { "Original" };
+                            row()
+                                .id("root")
+                                .size(500., 100.)
+                                .child(
+                                    column().id("paint-parent").size(220., 50.).child(
+                                        text(content)
+                                            .id("label")
+                                            .size(180., 24.)
+                                            .opacity(base_opacity)
+                                            .blur(blur)
+                                            .when(!visible, |view| view.invisible())
+                                            .when(!displayed, |view| view.hidden()),
+                                    ),
+                                )
+                                .child(
+                                    column()
+                                        .id("reference-parent")
+                                        .size(220., 50.)
+                                        .child(text(content).id("reference").size(180., 24.)),
+                                )
+                        },
+                        || CompiledMorphTiming {
+                            source_layout_scale: Some(1.),
+                            duration: Duration::from_millis(400),
+                            crossfade: Duration::from_millis(140),
+                            color_duration: Duration::ZERO,
+                            curve: std::array::from_fn(|i| i as f32 / 48.),
+                        },
+                    ),
+                ),
+            ));
+            ui.prepare_frame();
+            let owner = root.find("label").unwrap();
+            let parent = root.find("paint-parent").unwrap();
+            let reference = root.find("reference").unwrap();
+            let reference_parent = root.find("reference-parent").unwrap();
+            let paragraph = ui.scene.borrow().children(owner)[0];
+            let glyph = ui.scene.borrow().children(paragraph)[0];
+            let leaf_effects = Effects {
+                opacity: 0.7,
+                blur_radius: 1.25,
+                edge_fade: 0.2,
+            };
+            ui.scene.borrow_mut().set_effects(glyph, leaf_effects);
+            let ghost = |ui: &Ui, parent, owner| {
+                ui.scene
+                    .borrow()
+                    .children(parent)
+                    .iter()
+                    .copied()
+                    .find(|node| *node != owner)
+                    .unwrap()
+            };
+            selected.set(true);
+            ui.prepare_frame();
+            let first_ghost = ghost(&ui, parent, owner);
+            let mut time = Instant::now();
+            let mut index = 0;
+            let mut advance = |ui: &Ui| {
+                executor.borrow_mut().tick();
+                time += Duration::from_millis(50);
+                index += 1;
+                frames.deliver(Frame {
+                    index,
+                    time,
+                    interval: Duration::from_millis(16),
+                });
+                executor.borrow_mut().tick();
+                ui.prepare_frame();
+            };
+            advance(&ui);
+            let entering_opacity = {
+                let scene = ui.scene.borrow();
+                let reference_ghost = ghost(&ui, reference_parent, reference);
+                let fade = scene.effects(reference_ghost).opacity;
+                assert!(fade > 0. && fade < 1.);
+                let actual = scene.effects(first_ghost);
+                assert!((actual.opacity - base_opacity * fade).abs() < 0.000001);
+                assert_eq!(actual.blur_radius, blur);
+                let ghost_glyph = scene.children(first_ghost)[0];
+                assert_eq!(scene.effects(ghost_glyph), leaf_effects);
+                let options = scene.style(first_ghost).layout_options.unwrap();
+                let original = scene.style(owner).layout_options;
+                assert_eq!(
+                    options.visible,
+                    original.as_deref().and_then(|options| options.visible)
+                );
+                assert_eq!(
+                    options.display,
+                    original.as_deref().and_then(|options| options.display)
+                );
+                if base_opacity == 0. || !visible || !displayed {
+                    assert!(scene.visible_bounds(ghost_glyph).is_none());
+                } else {
+                    assert!(scene.visible_bounds(ghost_glyph).is_some());
+                }
+                let entering = scene.effects(paragraph).opacity;
+                assert!(entering > 0. && entering < 1.);
+                entering
+            };
+            selected.set(false);
+            ui.prepare_frame();
+            assert!(!ui.scene.borrow().contains(first_ghost));
+            let next_ghost = ghost(&ui, parent, owner);
+            let next_glyph = ui.scene.borrow().children(next_ghost)[0];
+            {
+                let scene = ui.scene.borrow();
+                assert_eq!(root.find("label"), Some(owner));
+                assert_eq!(scene.children(owner)[0], paragraph);
+                assert_eq!(scene.children(paragraph)[0], glyph);
+                assert_eq!(scene.effects(next_ghost).opacity, base_opacity);
+                assert_eq!(scene.effects(next_ghost).blur_radius, blur);
+                let leaf = scene.effects(next_glyph);
+                assert!((leaf.opacity - leaf_effects.opacity * entering_opacity).abs() < 0.000001);
+                assert_eq!(leaf.blur_radius, leaf_effects.blur_radius);
+                assert_eq!(leaf.edge_fade, leaf_effects.edge_fade);
+            }
+            advance(&ui);
+            {
+                let scene = ui.scene.borrow();
+                let reference_ghost = ghost(&ui, reference_parent, reference);
+                let fade = scene.effects(reference_ghost).opacity;
+                assert!((scene.effects(next_ghost).opacity - base_opacity * fade).abs() < 0.000001);
+                assert_eq!(scene.effects(next_ghost).blur_radius, blur);
+                assert!(
+                    (scene.effects(next_glyph).opacity - leaf_effects.opacity * entering_opacity).abs()
+                        < 0.000001
+                );
+                if base_opacity == 0. || !visible || !displayed {
+                    assert!(scene.visible_bounds(next_glyph).is_none());
+                }
+            }
+            root.unmount();
+            assert!(!ui.scene.borrow().contains(next_ghost));
+            executor.borrow_mut().tick();
+            assert!(!frames.wants_frame());
+        }
     }
 
     #[test]
