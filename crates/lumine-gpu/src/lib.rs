@@ -2562,17 +2562,21 @@ impl GpuRenderer {
                             core.height,
                         );
                         let outer = core.expand(shadow.blur_radius.max(0.) * 3.);
+                        let corners =
+                            decoration::shadow_corners(style, bounds.width, bounds.height, 0.);
+                        // Outer shadows reuse untextured UVs for the original box,
+                        // shape.x/y/w and options.x for its four knockout radii.
                         quads.push(Quad {
                             rect: [outer.x, outer.y, outer.width, outer.height],
-                            uv: [0.; 4],
+                            uv: fade,
                             color: rgba(shadow.color, item.effects.opacity),
                             fade: [core.x, core.y, core.width, core.height],
-                            options: [0., 0., 0., 1.],
+                            options: [corners[3], 0., 0., 2.],
                             shape: [
-                                (style.radius + shadow.spread).max(0.),
-                                0.,
+                                corners[0],
+                                corners[1],
                                 shadow.blur_radius.max(0.001),
-                                0.,
+                                corners[2],
                             ],
                             border: decoration::shadow_corners(
                                 style,

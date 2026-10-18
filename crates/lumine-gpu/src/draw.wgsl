@@ -2,7 +2,7 @@ struct Vertex { @location(0) rect:vec4<f32>, @location(1) uv:vec4<f32>, @locatio
 // Only `uv` and `point` vary across a quad; the rest are per-quad constants.
 // Flat, they cost nothing per pixel (a software rasterizer interpolates every
 // smooth varying for every pixel it shades).
-struct Out { @builtin(position) position:vec4<f32>, @location(0) uv:vec2<f32>, @location(1) @interpolate(flat) color:vec4<f32>, @location(2) point:vec2<f32>, @location(3) @interpolate(flat) fade:vec4<f32>, @location(4) @interpolate(flat) options:vec4<f32>, @location(5) @interpolate(flat) shape:vec4<f32>, @location(6) @interpolate(flat) border:vec4<f32>, @location(7) @interpolate(flat) mask:vec4<f32>, @location(8) world:vec2<f32> }
+struct Out { @builtin(position) position:vec4<f32>, @location(0) uv:vec2<f32>, @location(1) @interpolate(flat) color:vec4<f32>, @location(2) point:vec2<f32>, @location(3) @interpolate(flat) fade:vec4<f32>, @location(4) @interpolate(flat) options:vec4<f32>, @location(5) @interpolate(flat) shape:vec4<f32>, @location(6) @interpolate(flat) border:vec4<f32>, @location(7) @interpolate(flat) mask:vec4<f32>, @location(8) world:vec2<f32>, @location(9) @interpolate(flat) knockout:vec4<f32> }
 // Group 1: one immutable buffer per viewport size, so layers never rewrite it.
 @group(1) @binding(0) var<uniform> viewport:vec4<f32>;
 @group(0) @binding(1) var atlas:texture_2d<f32>;
@@ -16,7 +16,7 @@ struct Out { @builtin(position) position:vec4<f32>, @location(0) uv:vec2<f32>, @
  var position=p;
  if v.options.z>0.5 {position=vec2(dot(v.shape.xy,p)+v.border.x,dot(v.shape.zw,p)+v.border.y);}
  position=paint_point(geometry.matrix,position);
- var o:Out; o.position=vec4(position.x/viewport.x*2.-1.,1.-position.y/viewport.y*2.,0.,1.);o.uv=v.uv.xy+corner*v.uv.zw;o.color=v.color;o.point=p;o.fade=v.fade;o.options=v.options;o.shape=v.shape;o.border=v.border;o.mask=v.mask;o.world=position;return o;
+ var o:Out; o.position=vec4(position.x/viewport.x*2.-1.,1.-position.y/viewport.y*2.,0.,1.);o.uv=v.uv.xy+corner*v.uv.zw;o.color=v.color;o.point=p;o.fade=v.fade;o.options=v.options;o.shape=v.shape;o.border=v.border;o.mask=v.mask;o.world=position;o.knockout=v.uv;return o;
 }
 // Coverage width follows physical pixels under subtree scale/rotation.
 fn shape_pixel_width(q:vec2<f32>,point:vec2<f32>)->f32 {
@@ -56,8 +56,23 @@ fn gaussian_shadow(point:vec2<f32>,rect:vec4<f32>,corners:vec4<f32>,sigma:f32)->
  }
  return clamp(sum*step/(sigma*2.5066282746),0.,1.);
 }
+fn corner_outside(q:vec2<f32>,radius:f32,point:vec2<f32>)->f32 {
+ let distance=length(max(q,vec2(0.)))+min(max(q.x,q.y),0.)-radius;
+ return clamp(0.5+distance/shape_pixel_width(q,point),0.,1.);
+}
+// Intersect all four corner constraints, including normalized radii larger
+// than half an edge. The knockout follows the unshifted, unspread border box.
+fn shadow_outside(point:vec2<f32>,rect:vec4<f32>,corners:vec4<f32>)->f32 {
+ let p=point-rect.xy;let end=rect.zw-p;
+ let tl=corner_outside(vec2(corners.x)-p,corners.x,point);
+ let tr=corner_outside(vec2(corners.y)-vec2(end.x,p.y),corners.y,point);
+ let br=corner_outside(vec2(corners.z)-end,corners.z,point);
+ let bl=corner_outside(vec2(corners.w)-vec2(p.x,end.y),corners.w,point);
+ return max(max(tl,tr),max(br,bl));
+}
 fn shade(v:Out)->vec4<f32> {
  var color=v.color;
+ let outer_shadow=v.shape.z>0. && v.options.w>1.5;
  if v.options.z<0.5 && (v.shape.w>0.5 || v.shape.z>0.) {
    var corner=v.shape.x;
    if v.options.w>0.5 {
@@ -75,6 +90,7 @@ fn shade(v:Out)->vec4<f32> {
    // after an odd-pixel retained scroll, including rounded corners.
    else {let aa=shape_pixel_width(q,v.point);let outer=clamp(0.5-distance/aa,0.,1.);let inner=clamp(0.5-(distance+v.shape.y)/aa,0.,1.);let alpha=color.a*inner+v.border.a*(outer-inner);let rgb=select(vec3(0.),(color.rgb*color.a*inner+v.border.rgb*v.border.a*(outer-inner))/max(alpha,0.00001),alpha>0.);color=vec4(rgb,alpha);}
  }
+ if outer_shadow {color.a*=shadow_outside(v.point,v.knockout,vec4(v.shape.x,v.shape.y,v.shape.w,v.options.x));}
 
  if v.options.y>0.5 {
    var tex=textureSample(atlas,tex_sampler,v.uv);
@@ -89,7 +105,7 @@ fn shade(v:Out)->vec4<f32> {
  }
  var edge_y=v.point.y;var edge_bounds=v.fade;
  if geometry.metadata.w==2u {edge_y=paint_point(geometry.inverse,v.world).y;edge_bounds=geometry.bounds;}
- if v.options.x>0. {let distance=min(edge_y-edge_bounds.y,edge_bounds.y+edge_bounds.w-edge_y); color.a*=clamp(distance/v.options.x,0.,1.);}
+ if v.options.x>0. && !outer_shadow {let distance=min(edge_y-edge_bounds.y,edge_bounds.y+edge_bounds.w-edge_y); color.a*=clamp(distance/v.options.x,0.,1.);}
  // Signed bands select vertical quadratic or horizontal linear alpha ramps.
  let horizontal=v.mask.z<0. || v.mask.w<0.;
  var mask_point=v.point;

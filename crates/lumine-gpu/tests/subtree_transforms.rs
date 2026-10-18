@@ -476,7 +476,7 @@ fn magnified_rounded_edges_and_zero_blur_shadows_keep_pixel_sized_coverage() {
                     color: Color(255, 255, 255, 255),
                     offset: Transform::default(),
                     blur_radius: 0.,
-                    spread: 0.,
+                    spread: 1.,
                 }),
                 ..Default::default()
             }),
@@ -490,13 +490,15 @@ fn magnified_rounded_edges_and_zero_blur_shadows_keep_pixel_sized_coverage() {
         let mut gpu = GpuRenderer::new(96, 80).unwrap();
         gpu.set_background(Color(0, 0, 0, 0));
         let pixels = render(&mut gpu, &mut scene);
+        // Sample the spread shadow's outer edge, outside the original box.
+        let edge_x = if shadow { 15 } else { 25 };
         assert_eq!(
-            pixel(&pixels, 26, 40)[3],
+            pixel(&pixels, edge_x + 1, 40)[3],
             255,
             "shadow={shadow}: one pixel inside must be opaque"
         );
         assert!(
-            pixel(&pixels, 25, 40)[3] >= 180,
+            pixel(&pixels, edge_x, 40)[3] >= 180,
             "shadow={shadow}: physical coverage must not scale to ten pixels"
         );
     }
