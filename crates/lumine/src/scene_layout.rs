@@ -706,52 +706,93 @@ impl Scene {
             }
             cache.measure_context = measure_context;
         }
+        let intrinsic_column_width = constraints.min_content_width
+            && constraints.force_width.is_none()
+            && cache
+                .tree
+                .style(root)
+                .expect("retained root style")
+                .size
+                .width
+                .is_auto()
+            && layout == Layout::Column
+            && root_options.display != Some(ViewDisplay::Grid);
+        let available_space = t::Size {
+            width: if constraints.min_content_width && constraints.force_width.is_none() {
+                t::AvailableSpace::MinContent
+            } else {
+                available(constraints.width)
+            },
+            height: available(constraints.height),
+        };
+        let mut measure = |known: t::Size<Option<f32>>,
+                           space: t::Size<t::AvailableSpace>,
+                           _: t::NodeId,
+                           context: Option<&mut NodeId>,
+                           _: &t::Style| {
+            let Some(context) = context else {
+                return t::Size::ZERO;
+            };
+            let child = *context;
+            let query = Constraints {
+                width: known.width.or_else(|| bound(space.width)),
+                min_content_width: known.width.is_none()
+                    && matches!(space.width, t::AvailableSpace::MinContent),
+                height: known.height.or_else(|| bound(space.height)),
+                percent_width: child_percent_width,
+                percent_height: child_percent_height,
+                force_width: known.width,
+                force_height: known.height,
+                hidden: false,
+            };
+            let size = self.measure_intrinsic(child, query);
+            self.trace_layout(
+                child,
+                match space.height {
+                    t::AvailableSpace::MinContent => "taffy.height.min-content",
+                    t::AvailableSpace::MaxContent => "taffy.height.max-content",
+                    t::AvailableSpace::Definite(_) => "taffy.height.definite",
+                },
+                Some(query),
+                Some(size),
+            );
+            t::Size {
+                width: size.0,
+                height: size.1,
+            }
+        };
         cache
             .tree
-            .compute_layout_with_measure(
-                root,
-                t::Size {
-                    width: if constraints.min_content_width && constraints.force_width.is_none() {
-                        t::AvailableSpace::MinContent
-                    } else {
-                        available(constraints.width)
-                    },
-                    height: available(constraints.height),
-                },
-                |known, space, _, context, _| {
-                    let Some(context) = context else {
-                        return t::Size::ZERO;
-                    };
-                    let child = *context;
-                    let query = Constraints {
-                        width: known.width.or_else(|| bound(space.width)),
-                        min_content_width: known.width.is_none()
-                            && matches!(space.width, t::AvailableSpace::MinContent),
-                        height: known.height.or_else(|| bound(space.height)),
-                        percent_width: child_percent_width,
-                        percent_height: child_percent_height,
-                        force_width: known.width,
-                        force_height: known.height,
-                        hidden: false,
-                    };
-                    let size = self.measure_intrinsic(child, query);
-                    self.trace_layout(
-                        child,
-                        match space.height {
-                            t::AvailableSpace::MinContent => "taffy.height.min-content",
-                            t::AvailableSpace::MaxContent => "taffy.height.max-content",
-                            t::AvailableSpace::Definite(_) => "taffy.height.definite",
-                        },
-                        Some(query),
-                        Some(size),
-                    );
-                    t::Size {
-                        width: size.0,
-                        height: size.1,
-                    }
-                },
-            )
+            .compute_layout_with_measure(root, available_space, &mut measure)
             .expect("retained tree is structurally valid");
+        if intrinsic_column_width {
+            // Select intrinsic width before reflowing cross-axis-dependent height.
+            // Keep the callback's original percentage bases, especially auto height.
+            let width = cache
+                .tree
+                .layout(root)
+                .expect("computed intrinsic width")
+                .size
+                .width;
+            let mut resolved = cache.tree.style(root).expect("retained root style").clone();
+            resolved.size.width = dim(Length::Px(width));
+            cache
+                .tree
+                .set_style(root, resolved)
+                .expect("resolved intrinsic width");
+            // A MinContent result can have this width while retaining height
+            // from a narrower probe. Reflow children under the selected width.
+            for child in &children {
+                cache
+                    .tree
+                    .mark_dirty(*child)
+                    .expect("intrinsic width reflow");
+            }
+            cache
+                .tree
+                .compute_layout_with_measure(root, available_space, &mut measure)
+                .expect("retained tree is structurally valid");
+        }
         let root_layout = *cache.tree.layout(root).expect("computed root");
         let inner_width =
             (root_layout.size.width - root_layout.padding.left - root_layout.padding.right).max(0.);
@@ -2189,6 +2230,144 @@ mod tests {
         assert!(scene.measure_intrinsic(text, constraints).0 > before.0);
         scene.set_font_text_measurer(|_, _, _, _| (5., 7.));
         assert_eq!(scene.measure_intrinsic(text, constraints), (5., 7.));
+    }
+
+    #[test]
+    fn intrinsic_column_reflow_preserves_width_height_and_percentage_contracts() {
+        use crate::layout::LayoutOptions;
+        use crate::text_layout::{FallbackTextLayout, FontStyle, LineHeight, WordWrap};
+
+        let value = "aa aa aa aa aa aa aa aa aa aa aa aa";
+        let font = FontStyle {
+            word_wrap: WordWrap::Word,
+            line_height: LineHeight::px(20.),
+            ..Default::default()
+        };
+        for advanced in [false, true] {
+            for wrap in [false, true] {
+                for (min_width, max_width) in [(None, None), (Some(160.), None), (None, Some(80.))]
+                {
+                    for fixed_height in [None, Some(200.)] {
+                        let mut scene = Scene::new(400., 1000.);
+                        scene.set_font_text_measurer(|text, size, width, font| {
+                            FallbackTextLayout::measure_with_font(text, size, width, font)
+                        });
+                        let column = scene.append(
+                            scene.root(),
+                            NodeKind::Container(Layout::Column),
+                            Style {
+                                width: Some(196.),
+                                height: fixed_height,
+                                min_width,
+                                max_width,
+                                align: Align::Stretch,
+                                layout_options: advanced.then(|| {
+                                    Arc::new(LayoutOptions {
+                                        gap_y: Some(Length::Px(0.)),
+                                        ..Default::default()
+                                    })
+                                }),
+                                ..Default::default()
+                            },
+                        );
+                        scene.append(
+                            column,
+                            NodeKind::Rect(Color(0, 0, 0, 0)),
+                            Style {
+                                width: Some(120.),
+                                height: Some(20.),
+                                ..Default::default()
+                            },
+                        );
+                        let text = scene.append(
+                            column,
+                            label(value),
+                            Style {
+                                text_wrap: wrap,
+                                ..Default::default()
+                            },
+                        );
+                        scene.set_font(text, font.clone());
+                        let percent = scene.append(
+                            column,
+                            NodeKind::Container(Layout::Column),
+                            Style {
+                                width_percent: Some(0.5),
+                                height_percent: Some(1.),
+                                ..Default::default()
+                            },
+                        );
+                        scene.append(
+                            percent,
+                            NodeKind::Rect(Color(0, 0, 0, 0)),
+                            Style {
+                                width: Some(10.),
+                                height: Some(7.),
+                                ..Default::default()
+                            },
+                        );
+                        let text_minimum = FallbackTextLayout::measure_with_font(
+                            value,
+                            16.,
+                            wrap.then_some(0.),
+                            &font,
+                        )
+                        .0;
+                        let minimum_width =
+                            dimension(120_f32.max(text_minimum), min_width, max_width);
+                        let minimum = Constraints {
+                            width: Some(0.),
+                            min_content_width: true,
+                            ..Default::default()
+                        };
+                        for (query, expected_width) in [
+                            (minimum, minimum_width),
+                            (
+                                Constraints {
+                                    width: Some(400.),
+                                    ..Default::default()
+                                },
+                                dimension(196., min_width, max_width),
+                            ),
+                            (
+                                Constraints {
+                                    width: Some(0.),
+                                    force_width: Some(0.),
+                                    ..Default::default()
+                                },
+                                dimension(0., min_width, max_width),
+                            ),
+                            (minimum, minimum_width),
+                        ] {
+                            let size = scene.measure(column, query);
+                            assert!(
+                                (size.0 - expected_width).abs() < 0.001,
+                                "advanced={advanced} wrap={wrap} query={query:?} size={size:?}, expected width {expected_width}"
+                            );
+                            if fixed_height.is_none() {
+                                let text_height = FallbackTextLayout::measure_with_font(
+                                    value,
+                                    16.,
+                                    wrap.then_some(expected_width),
+                                    &font,
+                                )
+                                .1;
+                                assert!(
+                                    (size.1 - 20. - text_height - 7.).abs() < 0.001,
+                                    "advanced={advanced} wrap={wrap} query={query:?} size={size:?}, text height {text_height}"
+                                );
+                            } else {
+                                assert_eq!(size.1, 200.);
+                            }
+                            scene.arrange(column, 0., 0., &mut FrameReport::default(), false);
+                            if fixed_height.is_none() {
+                                assert_eq!(scene.layout_bounds(percent).height, 7.);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     #[test]

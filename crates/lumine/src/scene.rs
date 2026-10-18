@@ -2402,6 +2402,41 @@ impl Scene {
                     style.min_width,
                     style.max_width,
                 ) - horizontal_padding;
+                if layout == Layout::Column && style.align == Align::Stretch && explicit_h.is_none()
+                {
+                    // Width reflow must precede auto-height sizing. The initial
+                    // narrow content probe does not allocate a child's height.
+                    for (i, child) in ids.iter().enumerate() {
+                        let child_style = &self.node(*child).style;
+                        if child_style.width.is_none()
+                            && percentage(child_style.width_percent, percent_width).is_none()
+                        {
+                            let margin = child_style.margin;
+                            sizes[i] = self.measure(
+                                *child,
+                                Constraints {
+                                    width: available_w,
+                                    height: available_h,
+                                    percent_width,
+                                    percent_height,
+                                    force_width: Some(
+                                        (inner_w - margin.left - margin.right).max(0.),
+                                    ),
+                                    ..Default::default()
+                                },
+                            );
+                        }
+                    }
+                    natural_h = sizes
+                        .iter()
+                        .enumerate()
+                        .map(|(i, size)| {
+                            let margin = self.node(ids[i]).style.margin;
+                            size.1 + margin.top + margin.bottom
+                        })
+                        .sum::<f32>()
+                        + gaps;
+                }
                 let inner_h = dimension(
                     explicit_h.unwrap_or(natural_h + vertical_padding),
                     style.min_height,
