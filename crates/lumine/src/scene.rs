@@ -411,6 +411,7 @@ struct Constraints {
 }
 struct Measurement {
     constraints: Constraints,
+    key: Constraints,
     size: (f32, f32),
     children: Vec<(NodeId, Rect)>,
     /// The constraints each child was last measured with for this result. A
@@ -427,6 +428,18 @@ const MEASUREMENT_ALTERNATES: usize = 3;
 // Nested flex/grid probes include intrinsic, definite and percentage bases.
 // Store only sizes here so retaining more probes does not multiply child geometry.
 const INTRINSIC_MEASUREMENTS: usize = 64;
+fn cache_intrinsic_size(node: &mut Node, key: Constraints, revision: u64, size: (f32, f32)) {
+    let sizes = &mut node.intrinsic_sizes;
+    if let Some(index) = sizes.iter().position(|(cached, at, _)| *cached == key && *at == revision) {
+        if index == 0 {
+            sizes[0].2 = size;
+            return;
+        }
+        sizes.remove(index);
+    }
+    sizes.truncate(INTRINSIC_MEASUREMENTS - 1);
+    sizes.insert(0, (key, revision, size));
+}
 fn dimension(value: f32, min: Option<f32>, max: Option<f32>) -> f32 {
     value
         .max(0.0)
@@ -2091,11 +2104,12 @@ impl Scene {
     fn measure_intrinsic(&mut self, id: NodeId, constraints: Constraints) -> (f32, f32) {
         let _span = self.profiler.span("intrinsic", Some(id));
         let revision = self.text_shaper_revision;
+        let key = self.measurement_key(id, constraints);
         if let Some(index) = self
             .node(id)
             .intrinsic_sizes
             .iter()
-            .position(|(cached, shaper, _)| *cached == constraints && *shaper == revision)
+            .position(|(cached, shaper, _)| *cached == key && *shaper == revision)
         {
             let sizes = &mut self.node_mut(id).intrinsic_sizes;
             let hit = sizes.remove(index);
@@ -2105,9 +2119,7 @@ impl Scene {
             return size;
         }
         let size = self.measure(id, constraints);
-        let sizes = &mut self.node_mut(id).intrinsic_sizes;
-        sizes.truncate(INTRINSIC_MEASUREMENTS - 1);
-        sizes.insert(0, (constraints, revision, size));
+        cache_intrinsic_size(self.node_mut(id), key, revision, size);
         size
     }
     fn measure(&mut self, id: NodeId, mut constraints: Constraints) -> (f32, f32) {
@@ -2119,14 +2131,16 @@ impl Scene {
         let node = self.node(id);
         constraints.hidden |= node.style.layout_options.as_deref()
             .is_some_and(|options| options.display == Some(crate::layout::Display::None));
+        let key = self.measurement_key(id, constraints);
         let usable = |m: &Measurement| {
-            m.constraints == constraints
+            m.key == key
                 && m.revision == (node.measure_revision, self.text_shaper_revision)
         };
         if let Some(current) = &node.measurement
             && usable(current)
         {
             let size = current.size;
+            self.node_mut(id).measurement.as_mut().unwrap().constraints = constraints;
             self.profiler.layout_query(id, true);
             self.trace_layout(id, "measure.current", Some(constraints), Some(size));
             return size;
@@ -2134,7 +2148,8 @@ impl Scene {
         if let Some(index) = node.alternates.iter().position(usable) {
             // Promote it: `arrange` places children from the current result.
             let node = self.node_mut(id);
-            let hit = node.alternates.remove(index);
+            let mut hit = node.alternates.remove(index);
+            hit.constraints = constraints;
             let size = hit.size;
             if let Some(previous) = node.measurement.replace(hit) {
                 node.alternates.insert(0, previous);
@@ -2632,6 +2647,7 @@ impl Scene {
             })
             .collect();
         let shaper_revision = self.text_shaper_revision;
+        let key = self.measurement_key(id, constraints);
         let node = self.node_mut(id);
         let revision = (node.measure_revision, shaper_revision);
         if let Some(previous) = node.measurement.take() {
@@ -2639,16 +2655,20 @@ impl Scene {
         }
         // Results from before a node changed are stale.
         node.alternates
-            .retain(|m| m.constraints != constraints && m.revision == revision);
+            .retain(|m| m.key != key && m.revision == revision);
         node.alternates.truncate(MEASUREMENT_ALTERNATES);
         node.arrange_dirty = true;
         node.measurement = Some(Measurement {
             constraints,
+            key,
             size,
             children,
             child_constraints,
             revision,
         });
+        // A complete layout also answers a later size-only probe, even after
+        // its more expensive child geometry falls out of the small cache.
+        cache_intrinsic_size(node, key, shaper_revision, size);
         self.trace_layout(id, "measure.store", Some(constraints), Some(size));
     }
     /// `covered`: an ancestor moved and already damaged this whole subtree at

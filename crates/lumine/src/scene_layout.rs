@@ -241,6 +241,41 @@ fn content_dimension(value: t::Dimension, basis: f32) -> t::Dimension {
     }
 }
 impl Scene {
+    /// Only discard ancestor inputs that this node's own measurement cannot
+    /// consume. Keep the original query separately for arrangement and padding.
+    pub(super) fn measurement_key(&self, id: NodeId, mut query: Constraints) -> Constraints {
+        let style = &self.node(id).style;
+        let options = style.layout_options.as_deref();
+        query.hidden |= options.is_some_and(|options| options.display == Some(ViewDisplay::None));
+        let definite_width = query.force_width.is_some()
+            || (!query.min_content_width && style.width.is_some());
+        let definite_height = query.force_height.is_some() || style.height.is_some();
+        if definite_width {
+            query.width = None;
+        }
+        if definite_height {
+            query.height = None;
+        }
+        let percent = |value| matches!(value, Some(Length::Percent(_)));
+        // Percentage padding on either axis uses the parent's width. Min/max
+        // percentages remain relevant even when the preferred size is fixed.
+        let width_basis = (!definite_width && style.width_percent.is_some())
+            || options.is_some_and(|options| {
+                percent(options.min_width) || percent(options.max_width)
+                    || percent(options.padding.left) || percent(options.padding.right)
+                    || percent(options.padding.top) || percent(options.padding.bottom)
+            });
+        let height_basis = (!definite_height && style.height_percent.is_some())
+            || options.is_some_and(|options| percent(options.min_height) || percent(options.max_height));
+        if !width_basis {
+            query.percent_width = None;
+        }
+        if !height_basis {
+            query.percent_height = None;
+        }
+        query
+    }
+
     /// Resolved padding from the most recent layout, including percentages.
     pub fn padding(&self, id: NodeId) -> Insets {
         let constraints = self
@@ -2274,6 +2309,108 @@ mod tests {
         );
         scene.append(hidden, label("hidden descendant"), Style::default());
         (scene, containers, text, hidden, calls)
+    }
+
+    #[test]
+    fn fixed_deep_layout_reuses_irrelevant_ancestor_constraints() {
+        let (mut scene, containers, _, _, _) = deep_scene();
+        let outer = containers[0];
+        let base = Constraints { force_width: Some(160.), force_height: Some(700.), ..Default::default() };
+        let expected = scene.measure(outer, base);
+        scene.arrange(outer, 0., 0., &mut FrameReport::default(), false);
+        let before = scene.measure_calls;
+        for step in 1..=32 {
+            let query = Constraints {
+                width: Some(step as f32 * 17.), height: Some(step as f32 * 23.),
+                percent_width: Some(step as f32 * 31.), percent_height: Some(step as f32 * 37.),
+                ..base
+            };
+            assert_eq!(scene.measure(outer, query), expected);
+            scene.arrange(outer, 0., 0., &mut FrameReport::default(), false);
+        }
+        assert_eq!(scene.measure_calls - before, 32, "equivalent probes must not descend the tree");
+    }
+
+    #[test]
+    fn complete_layout_sizes_survive_geometry_cache_eviction() {
+        let (mut scene, containers, _, _, _) = deep_scene();
+        let outer = containers[0];
+        let probes: Vec<_> = [96., 128., 160., 192., 256., 320.].into_iter().map(|width| Constraints {
+            force_width: Some(width), ..Default::default()
+        }).collect();
+        let sizes: Vec<_> = probes.iter().map(|query| scene.measure(outer, *query)).collect();
+        let before = scene.measure_calls;
+        let arranged_from = scene.node(outer).measurement.as_ref().unwrap().constraints;
+        for (query, expected) in probes.iter().zip(sizes) {
+            assert_eq!(scene.measure_intrinsic(outer, *query), expected);
+        }
+        assert_eq!(scene.measure_calls, before, "size probes must reuse evicted complete layouts");
+        assert_eq!(scene.node(outer).measurement.as_ref().unwrap().constraints, arranged_from);
+    }
+
+    #[test]
+    fn normalized_constraints_preserve_percentage_bounds_padding_and_min_content() {
+        fn build(style: Style) -> (Scene, NodeId) {
+            let mut scene = Scene::new(400., 300.);
+            scene.set_font_text_measurer(|text, size, width, font| {
+                crate::text_layout::FallbackTextLayout::measure_with_font(text, size, width, font)
+            });
+            let parent = scene.append(scene.root(), NodeKind::Container(Layout::Column), style);
+            scene.append(parent, label("a paragraph that wraps at the allocated width"), Style {
+                text_wrap: true, ..Default::default()
+            });
+            scene.append(parent, NodeKind::Rect(Color(0, 0, 0, 255)), Style {
+                width_percent: Some(0.5), height_percent: Some(0.5), ..Default::default()
+            });
+            (scene, parent)
+        }
+        for advanced in [false, true] {
+            for case in 0..4 {
+                let mut style = Style { width: Some(80.), height: Some(60.), ..Default::default() };
+                let mut options = crate::layout::LayoutOptions::default();
+                if case == 1 || case == 3 {
+                    style.width = None;
+                    style.height = None;
+                    style.width_percent = Some(0.5);
+                    style.height_percent = Some(0.5);
+                }
+                if case >= 2 {
+                    options.min_width = Some(Length::Percent(0.3));
+                    options.max_width = Some(Length::Percent(0.9));
+                    options.min_height = Some(Length::Percent(0.2));
+                    options.max_height = Some(Length::Percent(0.8));
+                    options.padding = crate::layout::EdgeLengths::all(Length::Percent(0.05));
+                }
+                if advanced {
+                    options.display = Some(ViewDisplay::Grid);
+                    options.columns = Some(1);
+                    options.wrap = Some(ViewWrap::NoWrap);
+                }
+                style.layout_options = (!options.is_empty()).then(|| Arc::new(options));
+                let (mut warm, parent) = build(style.clone());
+                for step in 0..81 {
+                    let values = [None, Some(90.), Some(240.)];
+                    let query = Constraints {
+                        width: values[step % 3], height: values[(step / 3) % 3],
+                        percent_width: values[(step / 9) % 3], percent_height: values[(step / 27) % 3],
+                        force_width: (step % 7 == 0).then_some(80.),
+                        force_height: (step % 11 == 0).then_some(60.),
+                        min_content_width: step % 5 == 0,
+                        ..Default::default()
+                    };
+                    let size = warm.measure(parent, query);
+                    warm.arrange(parent, 0., 0., &mut FrameReport::default(), false);
+                    let (mut cold, cold_parent) = build(style.clone());
+                    assert_eq!(size, cold.measure(cold_parent, query), "advanced={advanced}, case={case}, step={step}");
+                    cold.arrange(cold_parent, 0., 0., &mut FrameReport::default(), false);
+                    assert_eq!(warm.padding(parent), cold.padding(cold_parent));
+                    for (actual, expected) in warm.slots.iter().zip(&cold.slots) {
+                        assert_eq!(actual.node.as_ref().unwrap().bounds, expected.node.as_ref().unwrap().bounds,
+                            "advanced={advanced}, case={case}, step={step}");
+                    }
+                }
+            }
+        }
     }
 
     #[test]
