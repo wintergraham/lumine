@@ -1197,18 +1197,19 @@ mod tests {
 
     #[test]
     fn compiled_text_applies_wrapping_only_changes_without_replacing_paragraphs() {
+        for limit_only in [false, true] {
         let mut ui = Ui::new(400., 200.);
         let wrap = ui.signal(false);
         let selected = wrap.clone();
         let root = ui.mount(compiled_morph(
             move || selected.get(),
             move |wrap| {
-                text("Alpha beta gamma delta")
+                let view = text("Alpha beta gamma delta")
                     .id("copy")
-                    .w(60.)
                     .text_size(10.)
                     .line_height(20.)
-                    .text_wrap(wrap)
+                    .text_wrap(wrap);
+                if limit_only { view.max_w(60.) } else { view.w(60.) }
             },
             || CompiledMorphTiming {
                 source_layout_scale: None,
@@ -1240,6 +1241,7 @@ mod tests {
             } else {
                 assert_eq!(height, 20.);
             }
+        }
         }
     }
 

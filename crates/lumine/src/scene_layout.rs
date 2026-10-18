@@ -452,11 +452,17 @@ impl Scene {
         {
             let padding = self.resolved_padding(id, constraints);
             let known_width = constraints.force_width.or(root_style.width)
-                .or_else(|| percentage(root_style.width_percent, constraints.percent_width));
+                .or_else(|| percentage(root_style.width_percent, constraints.percent_width))
+                .map(|width| dimension(width, root_style.min_width, root_style.max_width));
             let known_height = constraints.force_height.or(root_style.height)
-                .or_else(|| percentage(root_style.height_percent, constraints.percent_height));
+                .or_else(|| percentage(root_style.height_percent, constraints.percent_height))
+                .map(|height| dimension(height, root_style.min_height, root_style.max_height));
             let inner_width = known_width.map(|width| (width - padding.left - padding.right).max(0.));
             let inner_height = known_height.map(|height| (height - padding.top - padding.bottom).max(0.));
+            let available_width = known_width.or_else(|| constraints.width.map(|width| width.min(root_style.max_width.unwrap_or(f32::INFINITY))))
+                .or(root_style.max_width).map(|width| (width - padding.left - padding.right).max(0.));
+            let available_height = known_height.or_else(|| constraints.height.map(|height| height.min(root_style.max_height.unwrap_or(f32::INFINITY))))
+                .or(root_style.max_height).map(|height| (height - padding.top - padding.bottom).max(0.));
             let mut natural = (0_f32, 0_f32);
             for child in &ids {
                 let child_style = self.node(*child).style.clone();
@@ -468,8 +474,8 @@ impl Scene {
                     Constraints {
                         // Wrapped intrinsic height uses this overlay's content box,
                         // rather than its ancestor's wider available allocation.
-                        width: inner_width.or_else(|| constraints.width.map(|width| (width - padding.left - padding.right).max(0.))),
-                        height: inner_height.or_else(|| constraints.height.map(|height| (height - padding.top - padding.bottom).max(0.))),
+                        width: available_width,
+                        height: available_height,
                         percent_width: inner_width,
                         percent_height: inner_height,
                         min_content_width: self.child_min_content_width(*child, constraints, inner_width),
