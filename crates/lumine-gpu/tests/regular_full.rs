@@ -62,7 +62,7 @@ fn regular_full_matches_original_with_nested_clips_nearest_masks_and_mixed_shado
             2,
             vec![
                 255, 40, 20, 255, 20, 255, 40, 128, 40, 20, 255, 255, 255, 255, 20, 255, 20, 255,
-                255, 192, 255, 20, 255, 255,
+                255, 1, 255, 20, 255, 0,
             ],
         )
         .unwrap()
@@ -142,8 +142,9 @@ fn regular_full_matches_original_with_nested_clips_nearest_masks_and_mixed_shado
     drop(items);
 
     let mut original = GpuRenderer::new(320, 240).unwrap();
+    let mut regular = GpuRenderer::new_with_context(320, 240, &original.context()).unwrap();
     let mut specialized = GpuRenderer::new_with_context(320, 240, &original.context()).unwrap();
-    for gpu in [&mut original, &mut specialized] {
+    for gpu in [&mut original, &mut regular, &mut specialized] {
         gpu.set_scale_factor(2.);
         gpu.set_background(Color(12, 24, 40, 255));
         // Keep this experiment independent of opaque-interior decomposition.
@@ -151,11 +152,14 @@ fn regular_full_matches_original_with_nested_clips_nearest_masks_and_mixed_shado
     }
     original.debug_split_shading(true);
     original.debug_regular_full_shader(false);
+    regular.debug_split_shading(true);
+    regular.debug_nearest_image_shader(false);
     specialized.debug_split_shading(true);
     let damage = [Rect::new(0., 0., 160., 120.)];
     for single_pass in [false, true] {
         if single_pass {
             original.debug_enable_single_pass();
+            regular.debug_enable_single_pass();
             specialized.debug_enable_single_pass();
         }
         let mut with_shadow = None;
@@ -171,13 +175,23 @@ fn regular_full_matches_original_with_nested_clips_nearest_masks_and_mixed_shado
             scene.set_kind(mixed, NodeKind::Quad(style.clone()));
             scene.set_kind(ordinary, NodeKind::Quad(style));
             scene.flush();
-            original.render(&scene, &damage).unwrap();
-            specialized.render(&scene, &damage).unwrap();
+            let original_stats = original.render(&scene, &damage).unwrap();
+            let regular_stats = regular.render(&scene, &damage).unwrap();
+            let specialized_stats = specialized.render(&scene, &damage).unwrap();
+            assert_eq!(original_stats.draw_calls, specialized_stats.draw_calls);
+            assert_eq!(regular_stats.draw_calls, specialized_stats.draw_calls);
             // Present before readback, which would otherwise flush deferred draws.
             let expected_presented = original.debug_present_offscreen().unwrap();
+            let regular_presented = regular.debug_present_offscreen().unwrap();
             let actual_presented = specialized.debug_present_offscreen().unwrap();
             let expected = original.readback().unwrap();
+            let regular_pixels = regular.readback().unwrap();
             let actual = specialized.readback().unwrap();
+            assert_eq!(regular_pixels, expected, "RegularFull reference pixels");
+            assert_eq!(
+                regular_presented, expected_presented,
+                "RegularFull presentation"
+            );
             let mismatch = actual
                 .chunks_exact(4)
                 .zip(expected.chunks_exact(4))
@@ -205,6 +219,89 @@ fn regular_full_matches_original_with_nested_clips_nearest_masks_and_mixed_shado
                     &actual,
                     "Gaussian shadows must contribute visible pixels to the comparison"
                 );
+            }
+        }
+    }
+}
+
+#[test]
+fn nearest_image_specialization_preserves_boundary_ties_alpha_and_affine_sampling() {
+    // Each source texel lands on a physical pixel boundary at DPR 2. The
+    // half-pixel origins expose interpolated UV ties, including the last cell.
+    let mut pixels = Vec::new();
+    for y in 0..13u8 {
+        for x in 0..13u8 {
+            let alpha = [0, 1, 127, 255][(x as usize + y as usize) % 4];
+            pixels.extend([x * 17, y * 17, 255 - x * 17, alpha]);
+        }
+    }
+    let data = ImageData::new(13, 13, pixels).unwrap();
+    let mut reference = GpuRenderer::new(80, 80).unwrap();
+    let mut specialized = GpuRenderer::new_with_context(80, 80, &reference.context()).unwrap();
+    for gpu in [&mut reference, &mut specialized] {
+        gpu.set_scale_factor(2.);
+        gpu.set_background(Color(31, 47, 67, 255));
+        gpu.debug_split_shading(true);
+        gpu.debug_opaque_interiors(false);
+    }
+    reference.debug_nearest_image_shader(false);
+    let mut scene = Scene::new(40., 40.);
+    scene.set_kind(scene.root(), NodeKind::Container(Layout::Overlay));
+    let node = scene.append(
+        scene.root(),
+        NodeKind::Image(Arc::new(data.sampled(ImageSampling::Nearest))),
+        fixed(6.5, 6.5),
+    );
+    scene.set_effects(
+        node,
+        Effects {
+            opacity: 0.73,
+            ..Default::default()
+        },
+    );
+    for single_pass in [false, true] {
+        if single_pass {
+            reference.debug_enable_single_pass();
+            specialized.debug_enable_single_pass();
+        }
+        for matrix in [
+            Affine::IDENTITY,
+            Affine::scale(-1., 1.),
+            Affine::rotation(0.31),
+            Affine {
+                c: 0.4,
+                ..Affine::IDENTITY
+            },
+        ] {
+            // Switching to linear on the same texture must leave the nearest
+            // pipeline and keep the original filtered sampling semantics.
+            for sampling in [ImageSampling::Nearest, ImageSampling::Linear] {
+                scene.set_kind(
+                    node,
+                    NodeKind::Image(Arc::new(data.sampled(sampling).transformed(matrix))),
+                );
+                for origin in [0.25, 1.75, 7.25] {
+                    scene.set_transform(
+                        node,
+                        Transform {
+                            x: origin,
+                            y: origin,
+                        },
+                    );
+                    scene.flush();
+                    let damage = [Rect::new(0., 0., 40., 40.)];
+                    let expected_stats = reference.render(&scene, &damage).unwrap();
+                    let actual_stats = specialized.render(&scene, &damage).unwrap();
+                    assert_eq!(actual_stats.draw_calls, expected_stats.draw_calls);
+                    let expected_presented = reference.debug_present_offscreen().unwrap();
+                    let actual_presented = specialized.debug_present_offscreen().unwrap();
+                    assert_eq!(
+                        specialized.readback().unwrap(),
+                        reference.readback().unwrap(),
+                        "matrix={matrix:?}, sampling={sampling:?}, origin={origin}, single_pass={single_pass}"
+                    );
+                    assert_eq!(actual_presented, expected_presented);
+                }
             }
         }
     }

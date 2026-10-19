@@ -173,14 +173,36 @@ enum Shading {
     Full,
     /// All full-shader features except Gaussian shadows.
     RegularFull,
+    /// Nearest premultiplied images, retaining transforms, fades and all clips.
+    NearestImage,
     /// Colour, or colour times a texture sample: `basic`.
     Basic,
     /// An opaque flat colour: `basic` without blending, which reads every
     /// pixel it writes. Same pixels.
     Opaque,
 }
-fn selected_shading(shading: Shading, regular_full: bool) -> Shading {
-    if !regular_full && shading == Shading::RegularFull { Shading::Full } else { shading }
+fn selected_shading(shading: Shading, regular_full: bool, nearest_image: bool) -> Shading {
+    match shading {
+        Shading::RegularFull | Shading::NearestImage if !regular_full => Shading::Full,
+        Shading::NearestImage if !nearest_image => Shading::RegularFull,
+        _ => shading,
+    }
+}
+fn nearest_image(quad: &Quad) -> bool {
+    // These lanes also encode shape corners/shadows. Only specialize when
+    // the original shader cannot enter either shape or outer-shadow coverage.
+    quad.options[1] == 2.
+        && quad.options[3] == 1.
+        && (quad.options[2] >= 0.5 || (quad.shape[2] <= 0. && quad.shape[3] <= 0.5))
+}
+fn full_shading(quads: &[Quad]) -> Shading {
+    if quads.iter().any(gaussian_shadow) {
+        Shading::Full
+    } else if quads.iter().all(nearest_image) {
+        Shading::NearestImage
+    } else {
+        Shading::RegularFull
+    }
 }
 fn gaussian_shadow(quad: &Quad) -> bool {
     quad.options[2] < 0.5 && quad.shape[2] >= 0.01
@@ -221,6 +243,7 @@ struct QuadPipelines {
     layout: wgpu::PipelineLayout,
     full: std::cell::OnceCell<wgpu::RenderPipeline>,
     regular_full: std::cell::OnceCell<wgpu::RenderPipeline>,
+    nearest_image: std::cell::OnceCell<wgpu::RenderPipeline>,
     full_clear: std::cell::OnceCell<wgpu::RenderPipeline>,
     basic: std::cell::OnceCell<wgpu::RenderPipeline>,
     basic_clear: std::cell::OnceCell<wgpu::RenderPipeline>,
@@ -232,6 +255,7 @@ impl QuadPipelines {
         let (cell, blend) = match shading {
             Shading::Full => (&self.full, true),
             Shading::RegularFull => (&self.regular_full, true),
+            Shading::NearestImage => (&self.nearest_image, true),
             Shading::Basic => (&self.basic, true),
             Shading::Opaque => (&self.basic_clear, false),
         };
@@ -350,14 +374,7 @@ fn push_draw(draws: &mut Vec<Draw>, quads: &[Quad], draw: Draw, split: bool, sca
     }
     if draw.geometry_offset != 0 || draw.blur.is_some() || draw.layer.is_some() {
         // Preserve retained world bounds and bindings; Basic cannot read geometry.
-        let shading = if quads[draw.start as usize..draw.end as usize]
-            .iter()
-            .any(gaussian_shadow)
-        {
-            Shading::Full
-        } else {
-            Shading::RegularFull
-        };
+        let shading = full_shading(&quads[draw.start as usize..draw.end as usize]);
         draws.push(Draw { shading, ..draw });
         return;
     }
@@ -372,7 +389,12 @@ fn push_draw(draws: &mut Vec<Draw>, quads: &[Quad], draw: Draw, split: bool, sca
             start,
             end,
             bounds: quad_bounds(&quads[start as usize..end as usize]),
-            shading: kind,
+            // Classify the existing run without introducing new boundaries.
+            shading: if kind == Shading::RegularFull {
+                full_shading(&quads[start as usize..end as usize])
+            } else {
+                kind
+            },
             ..draw.clone()
         });
         start = end;
@@ -1186,6 +1208,7 @@ impl GpuContext {
             layout: quad_layout.clone(),
             full: Default::default(),
             regular_full: Default::default(),
+            nearest_image: Default::default(),
             full_clear: Default::default(),
             basic: Default::default(),
             basic_clear: Default::default(),
@@ -1299,6 +1322,7 @@ pub struct GpuRenderer {
     /// Quads use the shader their features need (see `push_draw`).
     split_shading: bool,
     regular_full_shader: bool,
+    nearest_image_shader: bool,
     /// Texts shaped since the word cache last started over, and the
     /// prepared text cache's count when last read.
     shaped_since_reset: u64,
@@ -1546,6 +1570,7 @@ impl GpuRenderer {
             view,
             split_shading,
             regular_full_shader: true,
+            nearest_image_shader: true,
             shaped_since_reset: 0,
             cache_shaped: 0,
             bind,
@@ -3516,7 +3541,13 @@ impl GpuRenderer {
                     }
                     self.encode_draws(
                         &mut pass,
-                        &|shading| quads.get(selected_shading(shading, self.regular_full_shader)),
+                        &|shading| {
+                            quads.get(selected_shading(
+                                shading,
+                                self.regular_full_shader,
+                                self.nearest_image_shader,
+                            ))
+                        },
                         *region,
                         &draws[from..end],
                         first,
@@ -3741,7 +3772,13 @@ impl GpuRenderer {
         pass.set_bind_group(2, &frame.geometry, &[0]);
         let clear = pipelines.clear(self.split_shading);
         let quads = pipelines.get(Shading::Full);
-        let pick = |shading| pipelines.get(selected_shading(shading, self.regular_full_shader));
+        let pick = |shading| {
+            pipelines.get(selected_shading(
+                shading,
+                self.regular_full_shader,
+                self.nearest_image_shader,
+            ))
+        };
         let first = |index: usize| frame.first.get(index).copied().unwrap_or(0);
         if !frame.clear {
             pass.set_pipeline(quads);
@@ -3836,6 +3873,7 @@ impl GpuRenderer {
                     layout: inner.quad_layout.clone(),
                     full: Default::default(),
                     regular_full: Default::default(),
+                    nearest_image: Default::default(),
                     full_clear: Default::default(),
                     basic: Default::default(),
                     basic_clear: Default::default(),
@@ -4842,6 +4880,11 @@ impl GpuRenderer {
     pub fn debug_regular_full_shader(&mut self, enabled: bool) {
         self.regular_full_shader = enabled;
     }
+    /// Compare nearest-image specialization with RegularFull using identical batches.
+    /// Disabling regular-full specialization also disables this specialization.
+    pub fn debug_nearest_image_shader(&mut self, enabled: bool) {
+        self.nearest_image_shader = enabled;
+    }
     /// Ablate opaque-fill decomposition while retaining the same shader selection.
     pub fn debug_opaque_interiors(&mut self, enabled: bool) {
         self.opaque_interiors = enabled;
@@ -5143,13 +5186,15 @@ fn quad_pipeline(
             entry_point: Some(match (shading, drawable.is_some()) {
                 (Shading::Basic | Shading::Opaque, true) => "fs_basic_both",
                 (Shading::Basic | Shading::Opaque, false) => "fs_basic",
-                (Shading::RegularFull, true) => "fs_regular_both",
-                (Shading::RegularFull, false) => "fs_regular",
+                (Shading::RegularFull | Shading::NearestImage, true) => "fs_regular_both",
+                (Shading::RegularFull | Shading::NearestImage, false) => "fs_regular",
                 (Shading::Full, true) => "fs_both",
                 (Shading::Full, false) => "fs",
             }),
             compilation_options: wgpu::PipelineCompilationOptions {
-                constants: if shading == Shading::RegularFull {
+                constants: if shading == Shading::NearestImage {
+                    &[("gaussian_shadows", 0.), ("nearest_images", 1.)]
+                } else if shading == Shading::RegularFull {
                     &[("gaussian_shadows", 0.)]
                 } else {
                     &[]

@@ -246,9 +246,14 @@ impl GpuRenderer {
         DrawBatch {
             instances: batch.start..batch.end,
             geometry_offset: batch.geometry_offset,
-            shading: match selected_shading(batch.shading, self.regular_full_shader) {
+            shading: match selected_shading(
+                batch.shading,
+                self.regular_full_shader,
+                self.nearest_image_shader,
+            ) {
                 Shading::Full => "full",
                 Shading::RegularFull => "regular_full",
+                Shading::NearestImage => "nearest_image",
                 Shading::Basic => "basic",
                 Shading::Opaque => "opaque",
             },
@@ -402,7 +407,13 @@ impl GpuRenderer {
                 pass.set_vertex_buffer(0, vertices.slice(..));
                 pass.set_bind_group(1, self.viewport_bind.as_ref(), &[]);
                 let mut current = None;
-                let pipelines = |s| self.context.inner.quads.get(s);
+                let pipelines = |s| {
+                    self.context.inner.quads.get(selected_shading(
+                        s,
+                        self.regular_full_shader,
+                        self.nearest_image_shader,
+                    ))
+                };
                 self.encode_batch(&mut pass, &pipelines, &mut current, batch, stats);
                 let mut end = ordinal + 1;
                 if !selected {
@@ -460,6 +471,38 @@ mod tests {
             shape: [4., 0., 0.01, 0.],
             ..plain
         };
+        // Nearest images may repurpose shape lanes for affine coefficients.
+        // A shape-bearing textured quad and a mixed run must keep full shading.
+        let nearest = Quad {
+            options: [3., 2., 0., 1.],
+            mask: [0., 10., -2., -2.],
+            ..plain
+        };
+        let textured_shape = Quad {
+            shape: [4., 1., 0., 1.],
+            ..nearest
+        };
+        for (quads, expected) in [
+            ([nearest, transformed], Shading::NearestImage),
+            ([nearest, textured_shape], Shading::RegularFull),
+        ] {
+            for retained in [false, true] {
+                let mut source = draw(0, 2);
+                source.geometry_offset = if retained { 256 } else { 0 };
+                let mut actual = Vec::new();
+                push_draw(&mut actual, &quads, source, true, 2.);
+                assert_eq!(actual.len(), 1, "specialization must preserve the run");
+                assert_eq!(actual[0].shading, expected);
+                assert_eq!(
+                    selected_shading(actual[0].shading, true, false),
+                    Shading::RegularFull
+                );
+                assert_eq!(
+                    selected_shading(actual[0].shading, false, true),
+                    Shading::Full
+                );
+            }
+        }
         let quads = [plain, transformed, sharp, gaussian, plain];
         for split in [false, true] {
             for end in [3, 5] {

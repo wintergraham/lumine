@@ -73,10 +73,18 @@ fn shadow_outside(point:vec2<f32>,rect:vec4<f32>,corners:vec4<f32>)->f32 {
 // Pipeline specialization removes the Gaussian loop from regular full draws.
 // The original entry points keep the default for reference and mixed batches.
 override gaussian_shadows:bool=true;
+// Only homogeneous nearest-image runs with no shape/shadow coverage select this.
+override nearest_images:bool=false;
+fn nearest_texel(uv:vec2<f32>)->vec4<f32> {
+ let size=vec2<i32>(textureDimensions(atlas));
+ // Preserve the original boundary tie bias and atlas-edge clamping exactly.
+ let cell=clamp(vec2<i32>(floor(uv*vec2<f32>(size)+vec2(0.00001))),vec2<i32>(0),size-vec2<i32>(1));
+ return textureLoad(atlas,cell,0);
+}
 fn shade(v:Out)->vec4<f32> {
  var color=v.color;
- let outer_shadow=v.shape.z>0. && v.options.w>1.5;
- if v.options.z<0.5 && (v.shape.w>0.5 || v.shape.z>0.) {
+ let outer_shadow=!nearest_images && v.shape.z>0. && v.options.w>1.5;
+ if !nearest_images && v.options.z<0.5 && (v.shape.w>0.5 || v.shape.z>0.) {
    var corner=v.shape.x;
    if v.options.w>0.5 {
      let right=v.point.x>v.fade.x+v.fade.z*0.5; let bottom=v.point.y>v.fade.y+v.fade.w*0.5;
@@ -95,16 +103,14 @@ fn shade(v:Out)->vec4<f32> {
  }
  if outer_shadow {color.a*=shadow_outside(v.point,v.knockout,vec4(v.shape.x,v.shape.y,v.shape.w,v.options.x));}
 
- if v.options.y>0.5 {
-   var tex=textureSample(atlas,tex_sampler,v.uv);
-   if v.options.y>1.5 && v.options.w>0.5 {
-     let size=vec2<i32>(textureDimensions(atlas));
-     // Interpolated UVs can undershoot exact texel boundaries at half-pixel
-     // origins. Keep adjacent ordered cells stable across those roundoff ties.
-     let cell=clamp(vec2<i32>(floor(v.uv*vec2<f32>(size)+vec2(0.00001))),vec2<i32>(0),size-vec2<i32>(1));
-     tex=textureLoad(atlas,cell,0);
+ if nearest_images || v.options.y>0.5 {
+   var tex:vec4<f32>;
+   if nearest_images {tex=nearest_texel(v.uv);}
+   else {
+     tex=textureSample(atlas,tex_sampler,v.uv);
+     if v.options.y>1.5 && v.options.w>0.5 {tex=nearest_texel(v.uv);}
    }
-   let rgb=select(tex.rgb,tex.rgb/max(tex.a,0.00001),v.options.y>1.5);color=vec4(color.rgb*rgb,color.a*tex.a);
+   let rgb=select(tex.rgb,tex.rgb/max(tex.a,0.00001),nearest_images || v.options.y>1.5);color=vec4(color.rgb*rgb,color.a*tex.a);
  }
  var edge_y=v.point.y;var edge_bounds=v.fade;
  if geometry.metadata.w==2u {edge_y=paint_point(geometry.inverse,v.world).y;edge_bounds=geometry.bounds;}
