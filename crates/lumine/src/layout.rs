@@ -101,7 +101,7 @@ pub struct LayoutOptions {
     pub max_width: Option<Length>,
     pub min_height: Option<Length>,
     pub max_height: Option<Length>,
-    /// Round text's intrinsic width upward by this logical-pixel quantum.
+    /// Round text or its logical wrapper's intrinsic width upward by this quantum.
     /// Glyph positions and explicit/flex allocations retain their own precision.
     pub text_width_quantum: Option<f32>,
 }

@@ -869,6 +869,31 @@ mod tests {
         );
     }
     #[test]
+    fn composed_text_quantizes_intrinsics_and_preserves_definite_allocations() {
+        use crate::{compose::{DisplayText, display_text_signal, row}, style::Styled};
+        let mut ui = Ui::new(300., 200.);
+        ui.scene.borrow_mut().set_text_measurer(|_: &str, _: f32, _: Option<f32>| (57.235496, 15.));
+        let quantum = ui.signal(1. / 128.);
+        let read = quantum.clone();
+        let view = ui.mount(row().child(
+            display_text_signal(|| DisplayText::Plain("Connected".into()))
+                .id("label")
+                .reactive_style(move || Styles::new().text_width_quantum(read.get())),
+        ).child(display_text_signal(|| DisplayText::Plain("Fixed".into()))
+            .id("fixed").w(31.234).text_width_quantum(1. / 128.)));
+        let label = view.find("label").unwrap();
+        let fixed = view.find("fixed").unwrap();
+        ui.scene.borrow_mut().flush();
+        assert_eq!(ui.scene.borrow().bounds(label).width, 57.2421875);
+        assert_eq!(ui.scene.borrow().bounds(fixed).width, 31.234);
+        let paragraph = ui.scene.borrow().children(label)[0];
+        quantum.set(1. / 64.);
+        ui.scene.borrow_mut().flush();
+        assert_eq!(ui.scene.borrow().bounds(label).width, 57.25);
+        assert_eq!(ui.scene.borrow().bounds(fixed).width, 31.234);
+        assert_eq!(ui.scene.borrow().children(label), &[paragraph]);
+    }
+    #[test]
     fn boxed_text_reactive_wrapping_reflows_without_remounting() {
         use crate::{compose::text, style::Styled};
         let mut ui = Ui::new(300., 200.);
