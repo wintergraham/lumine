@@ -91,10 +91,14 @@ const NUM_SHAPE_PLANS: usize = 6;
 pub struct ShapeBuffer {
     /// Cache for harfrust shape plans. Stores up to [`NUM_SHAPE_PLANS`] plans at once. Inserting a new one past that
     /// will remove the one that was least recently added (not least recently used).
-    shape_plan_cache: VecDeque<(fontdb::ID, harfrust::ShapePlan)>,
+    shape_plan_cache: VecDeque<(
+        fontdb::ID,
+        Vec<harfrust::font::NormalizedCoord>,
+        harfrust::ShapePlan,
+    )>,
 
     /// Buffer for holding unicode text.
-    harfrust_buffer: Option<harfrust::UnicodeBuffer>,
+    harfrust_buffer: Option<harfrust::Buffer>,
 
     /// Temporary buffers for scripts.
     scripts: Vec<Script>,
@@ -135,6 +139,12 @@ fn shape_fallback(
     let ascent = font.metrics().ascent / font_scale;
     let descent = -font.metrics().descent / font_scale;
 
+    // Keep cached runs in EMs while preserving fractional HVAR/GPOS font units.
+    let shaping_scale = i32::from(font.metrics().units_per_em) * 1024;
+    let mut shaper = font.shaper();
+    shaper.set_scale(shaping_scale);
+    let position_scale = shaping_scale as f32;
+
     let mut buffer = scratch.harfrust_buffer.take().unwrap_or_default();
     buffer.set_direction(if span_rtl {
         harfrust::Direction::RightToLeft
@@ -144,8 +154,8 @@ fn shape_fallback(
     if run.contains('\t') {
         // Push string to buffer, replacing tabs with spaces
         //TODO: Find a way to do this with minimal allocating, calling
-        // UnicodeBuffer::push_str multiple times causes issues and
-        // UnicodeBuffer::add resizes the buffer with every character
+        // Buffer::push_str multiple times causes issues and
+        // Buffer::push resizes the buffer with every character
         buffer.push_str(&run.replace('\t', " "));
     } else {
         buffer.push_str(run);
@@ -168,42 +178,54 @@ fn shape_fallback(
     }
 
     let language = buffer.language();
-    let key = harfrust::ShapePlanKey::new(Some(buffer.script()), buffer.direction())
+    let key = harfrust::ShapePlanKey::new(font.shaping_font(), buffer.script(), buffer.direction())
         .features(&rb_font_features)
-        .instance(Some(font.shaper_instance()))
-        .language(language.as_ref());
+        .language(language);
 
-    let shape_plan = match scratch
-        .shape_plan_cache
-        .iter()
-        .find(|(id, plan)| *id == font.id() && key.matches(plan))
-    {
-        Some((_font_id, plan)) => plan,
+    let shape_plan = match scratch.shape_plan_cache.iter().find(|(id, coords, plan)| {
+        *id == font.id()
+            && coords.as_slice() == font.shaping_font().normalized_coords()
+            && key.matches(plan)
+    }) {
+        Some((_font_id, _coords, plan)) => plan,
         None => {
             let plan = harfrust::ShapePlan::new(
-                font.shaper(),
+                font.shaping_font(),
                 buffer.direction(),
-                Some(buffer.script()),
-                buffer.language().as_ref(),
+                buffer.script(),
+                buffer.language(),
                 &rb_font_features,
             );
             if scratch.shape_plan_cache.len() >= NUM_SHAPE_PLANS {
                 scratch.shape_plan_cache.pop_front();
             }
-            scratch.shape_plan_cache.push_back((font.id(), plan));
+            scratch.shape_plan_cache.push_back((
+                font.id(),
+                font.shaping_font().normalized_coords().to_vec(),
+                plan,
+            ));
             &scratch
                 .shape_plan_cache
                 .back()
                 .expect("we just pushed the shape plan")
-                .1
+                .2
         }
     };
 
-    let glyph_buffer = font
-        .shaper()
-        .shape_with_plan(shape_plan, buffer, &rb_font_features);
-    let glyph_infos = glyph_buffer.glyph_infos();
-    let glyph_positions = glyph_buffer.glyph_positions();
+    harfrust::shape(
+        &shaper,
+        &mut buffer,
+        harfrust::ShapeOptions::new()
+            .plan(Some(shape_plan))
+            .features(&rb_font_features),
+    )
+    .expect("shape plan must match the buffer properties");
+    assert!(
+        buffer.allocation_successful(),
+        "shaping exceeded buffer limits"
+    );
+    let glyph_infos = buffer.glyph_infos();
+    let glyph_positions = buffer.glyph_positions();
 
     let mut missing = Vec::new();
     glyphs.reserve(glyph_infos.len());
@@ -216,11 +238,11 @@ fn shape_fallback(
         }
 
         let attrs = attrs_list.get_span(start_glyph);
-        let x_advance = pos.x_advance as f32 / font_scale
+        let x_advance = pos.x_advance as f32 / position_scale
             + attrs.letter_spacing_opt.map_or(0.0, |spacing| spacing.0);
-        let y_advance = pos.y_advance as f32 / font_scale;
-        let x_offset = pos.x_offset as f32 / font_scale;
-        let y_offset = pos.y_offset as f32 / font_scale;
+        let y_advance = pos.y_advance as f32 / position_scale;
+        let x_offset = pos.x_offset as f32 / position_scale;
+        let y_offset = pos.y_offset as f32 / position_scale;
 
         glyphs.push(ShapeGlyph {
             start: start_glyph,
@@ -269,7 +291,8 @@ fn shape_fallback(
     }
 
     // Restore the buffer to save an allocation.
-    scratch.harfrust_buffer = Some(glyph_buffer.clear());
+    buffer.clear();
+    scratch.harfrust_buffer = Some(buffer);
 
     missing
 }

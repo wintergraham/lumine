@@ -45,6 +45,7 @@ no_std = [
     "hashbrown",
     "dep:libm",
     "skrifa/libm",
+    "harfrust/libm",
     "core_maths",
     "swash?/libm",
 ]
@@ -88,7 +89,7 @@ version = "0.23"
 default-features = false
 
 [dependencies.harfrust]
-version = "0.5.0"
+version = "=0.14.0"
 default-features = false
 
 [dependencies.hashbrown]
@@ -117,9 +118,6 @@ version = "1.7.1"
 [dependencies.rustc-hash]
 version = "2.1.1"
 default-features = false
-
-[dependencies.self_cell]
-version = "1.2.2"
 
 [dependencies.skrifa]
 version = "0.40.0"
