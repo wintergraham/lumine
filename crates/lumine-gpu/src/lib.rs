@@ -3310,6 +3310,20 @@ impl GpuRenderer {
                 quads.truncate(kept);
                 draw_clip = viewport;
             }
+            // Draw.clip also defines backdrop filter outputs: never narrow a filter ROI.
+            if item.effects.blur_radius <= 0. {
+                if let NodeKind::Image(image) = item.kind {
+                    if let Some(support) =
+                        image_paint_support(image, bounds, item.transform, self.scale)
+                    {
+                        let Some(support_clip) = draw_clip.intersection(support) else {
+                            quads.truncate(start as usize);
+                            continue;
+                        };
+                        draw_clip = support_clip;
+                    }
+                }
+            }
             if quads.len() as u32 > start || item.effects.blur_radius > 0. {
                 let draw = Draw {
                     diagnostic_source: diagnose.then(|| draw_diagnostics::Source::new(
@@ -5001,6 +5015,35 @@ impl GpuRenderer {
         self.single_pass_format = Some(wgpu::TextureFormat::Bgra8Unorm);
         self.present_unpremultiplies = !cfg!(target_os = "macos");
     }
+    /// Test hook: physical scissors the normal batching iterator will submit
+    /// for this image in the pending single-pass frame. Read before presentation.
+    /// This measures draw support, not shader invocations or completed redraw time.
+    pub fn debug_pending_image_scissors(&self, image: u64) -> Vec<[u32; 4]> {
+        let pending = self.deferred.borrow();
+        let Some(frame) = pending.as_ref() else {
+            return Vec::new();
+        };
+        frame
+            .regions
+            .iter()
+            .zip(&frame.first)
+            .flat_map(|((region, _), first)| {
+                let unblended =
+                    region.width * region.height * self.scale * self.scale >= SPLIT_PIXELS;
+                draw_diagnostics::batches(
+                    &frame.draws,
+                    *region,
+                    *first,
+                    unblended,
+                    self.geometry_batching == GeometryBatching::IndexedMerged,
+                )
+                .filter(|batch| batch.source.0 == Some(image))
+                .filter_map(|batch| scissor(batch.rect, self.scale, self.width, self.height))
+                .map(|(x, y, w, h)| [x, y, w, h])
+                .collect::<Vec<_>>()
+            })
+            .collect()
+    }
     /// Test hook: present into a fresh offscreen drawable configured like a
     /// window (`Bgra8UnormSrgb`, non-opaque) and return its
     /// bytes in RGBA order. Single-pass renderers draw the pending frame
@@ -5388,6 +5431,77 @@ fn snap_out(r: Rect, scale: f32) -> Rect {
     let right = ((r.x + r.width) * scale).ceil() / scale;
     let bottom = ((r.y + r.height) * scale).ceil() / scale;
     Rect::new(x, y, right - x, bottom - y)
+}
+/// Paint-only support. Keep the original image quad, UVs, masks and damage.
+fn image_paint_support(
+    image: &lumine::image::ImageData,
+    bounds: Rect,
+    item_transform: lumine::affine::Affine,
+    scale: f32,
+) -> Option<Rect> {
+    if image.sampling() != lumine::image::ImageSampling::Nearest
+        || image.effect_chain().is_some()
+        || !scale.is_finite()
+        || scale <= 0.
+    {
+        return None;
+    }
+    let support = image.paint_support()?;
+    let own = image.paint_transform(bounds);
+    let transform = own.then(item_transform);
+    if !transform.is_finite() {
+        return None;
+    }
+    // One source texel includes nearest ties and interpolation roundoff.
+    let x = bounds.x as f64;
+    let y = bounds.y as f64;
+    let w = bounds.width as f64;
+    let h = bounds.height as f64;
+    let left = x + (support.x as f64 - 1. / image.width() as f64) * w;
+    let top = y + (support.y as f64 - 1. / image.height() as f64) * h;
+    let right = x + (support.x as f64 + support.width as f64 + 1. / image.width() as f64) * w;
+    let bottom = y + (support.y as f64 + support.height as f64 + 1. / image.height() as f64) * h;
+    let mut low = [f64::INFINITY; 2];
+    let mut high = [f64::NEG_INFINITY; 2];
+    let mut magnitude = 1_f64;
+    for (x, y) in [(left, top), (right, top), (left, bottom), (right, bottom)] {
+        let px = transform.a as f64 * x + transform.c as f64 * y + transform.tx as f64;
+        let py = transform.b as f64 * x + transform.d as f64 * y + transform.ty as f64;
+        low[0] = low[0].min(px);
+        low[1] = low[1].min(py);
+        high[0] = high[0].max(px);
+        high[1] = high[1].max(py);
+        // Bound rounding in both shader transforms, including cancellation.
+        let mx = (own.a as f64 * x).abs() + (own.c as f64 * y).abs() + (own.tx as f64).abs();
+        let my = (own.b as f64 * x).abs() + (own.d as f64 * y).abs() + (own.ty as f64).abs();
+        magnitude = magnitude
+            .max(
+                (item_transform.a as f64).abs() * mx
+                    + (item_transform.c as f64).abs() * my
+                    + (item_transform.tx as f64).abs(),
+            )
+            .max(
+                (item_transform.b as f64).abs() * mx
+                    + (item_transform.d as f64).abs() * my
+                    + (item_transform.ty as f64).abs(),
+            );
+    }
+    let halo = 1. / scale as f64 + 64. * f32::EPSILON as f64 * magnitude;
+    let left = ((low[0] - halo) as f32).next_down();
+    let top = ((low[1] - halo) as f32).next_down();
+    let right = ((high[0] + halo) as f32).next_up();
+    let bottom = ((high[1] + halo) as f32).next_up();
+    let width = (right - left).next_up();
+    let height = (bottom - top).next_up();
+    if ![left, top, right, bottom, width, height]
+        .iter()
+        .all(|v| v.is_finite())
+    {
+        return None;
+    }
+    let support = snap_out(Rect::new(left, top, width, height), scale);
+    [support.x, support.y, support.x + support.width, support.y + support.height]
+        .iter().all(|v| v.is_finite()).then_some(support)
 }
 /// Whether `quad` lies entirely within `clip`.
 fn inside(quad: &Quad, clip: Rect) -> bool {

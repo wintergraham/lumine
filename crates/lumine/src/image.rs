@@ -29,6 +29,7 @@ pub struct ImageData {
     chain: Option<Arc<FilteredImage>>,
     transform: crate::affine::Affine,
     sampling: ImageSampling,
+    paint_support: Option<crate::scene::Rect>,
 }
 /// A compute shader producing premultiplied RGBA8, with a lazy straight-alpha
 /// fallback for software consumers. Binding 0 is a read-only f32 storage buffer;
@@ -70,6 +71,7 @@ impl ImageData {
             chain: None,
             transform: crate::affine::Affine::IDENTITY,
             sampling: ImageSampling::default(),
+            paint_support: None,
         })
     }
     pub fn id(&self) -> u64 {
@@ -122,6 +124,7 @@ impl ImageData {
             chain: None,
             transform: crate::affine::Affine::IDENTITY,
             sampling: ImageSampling::default(),
+            paint_support: None,
         })
     }
     /// Share decoded pixels and GPU upload identity with a different paint
@@ -137,6 +140,7 @@ impl ImageData {
             procedural: self.procedural.clone(),
             chain: self.chain.clone(),
             sampling: self.sampling,
+            paint_support: self.paint_support,
             transform: if transform.is_finite() {
                 transform
             } else {
@@ -154,6 +158,37 @@ impl ImageData {
     pub fn sampled(&self, sampling: ImageSampling) -> Self {
         Self {
             sampling,
+            ..self.clone()
+        }
+    }
+    /// Conservative normalized texture region containing all nontransparent paint.
+    /// None means the full texture. This never changes layout or hit testing.
+    pub fn paint_support(&self) -> Option<crate::scene::Rect> {
+        self.paint_support
+    }
+    /// Attach a caller-proven support region without changing pixels or upload identity.
+    /// Finite, nonnegative rectangles are clamped to the unit viewport; invalid
+    /// metadata resets to full support. Filters must prove their own expanded support.
+    pub fn with_paint_support(&self, support: Option<crate::scene::Rect>) -> Self {
+        let paint_support = support.and_then(|r| {
+            let right = r.x + r.width;
+            let bottom = r.y + r.height;
+            if r.width < 0.
+                || r.height < 0.
+                || ![r.x, r.y, right, bottom].iter().all(|v| v.is_finite())
+            {
+                return None;
+            }
+            let (x, y) = (r.x.clamp(0., 1.), r.y.clamp(0., 1.));
+            Some(crate::scene::Rect::new(
+                x,
+                y,
+                right.clamp(0., 1.) - x,
+                bottom.clamp(0., 1.) - y,
+            ))
+        });
+        Self {
+            paint_support,
             ..self.clone()
         }
     }
@@ -178,7 +213,10 @@ impl ImageData {
 }
 impl PartialEq for ImageData {
     fn eq(&self, other: &Self) -> bool {
-        self.id == other.id && self.transform == other.transform && self.sampling == other.sampling
+        self.id == other.id
+            && self.transform == other.transform
+            && self.sampling == other.sampling
+            && self.paint_support == other.paint_support
     }
 }
 impl Eq for ImageData {}
@@ -252,5 +290,61 @@ impl ShaderInstance {
         let image = Arc::new(image);
         self.last = Some(image.clone());
         Ok(image)
+    }
+}
+
+#[cfg(test)]
+mod paint_support_tests {
+    use super::*;
+    use crate::{affine::Affine, scene::Rect};
+
+    #[test]
+    fn support_is_validated_and_preserves_pixels_identity_and_paint_variants() {
+        let full = ImageData::new(2, 1, vec![0, 0, 0, 0, 90, 80, 70, 128]).unwrap();
+        assert_eq!(full.paint_support(), None);
+        let support = full.with_paint_support(Some(Rect::new(0.5, -1., 4., 3.)));
+        assert_eq!(support.paint_support(), Some(Rect::new(0.5, 0., 0.5, 1.)));
+        assert_eq!(support.id(), full.id());
+        assert_eq!(support.pixels().as_ptr(), full.pixels().as_ptr());
+        assert_ne!(support, full);
+        let variant = support
+            .sampled(ImageSampling::Nearest)
+            .transformed(Affine::rotation(0.7));
+        assert_eq!(variant.paint_support(), support.paint_support());
+        assert_eq!(variant.id(), full.id());
+        for rect in [
+            Rect::new(f32::NAN, 0., 1., 1.),
+            Rect::new(0., 0., -1., 1.),
+            Rect::new(f32::MAX, 0., f32::MAX, 1.),
+        ] {
+            assert_eq!(support.with_paint_support(Some(rect)).paint_support(), None);
+        }
+        assert_eq!(support.with_paint_support(None), full);
+    }
+
+    #[test]
+    fn filters_drop_support_instead_of_clipping_blur_or_reusing_stale_metadata() {
+        let input = Arc::new(
+            ImageData::new(4, 4, vec![255; 64])
+                .unwrap()
+                .with_paint_support(Some(Rect::new(0.25, 0.25, 0.5, 0.5))),
+        );
+        let mut chain = EffectChain::new();
+        assert_eq!(
+            chain.render(input.clone(), &[]).unwrap().paint_support(),
+            input.paint_support()
+        );
+        for stage in [
+            EffectStage::Blur { radius: 2. },
+            EffectStage::Dither {
+                levels: 3,
+                cell_size: 2,
+            },
+        ] {
+            let filtered = chain.render(input.clone(), &[stage]).unwrap();
+            assert_eq!(filtered.paint_support(), None);
+            let changed = Arc::new(input.with_paint_support(None));
+            assert_ne!(chain.render(changed, &[stage]).unwrap().id(), filtered.id());
+        }
     }
 }

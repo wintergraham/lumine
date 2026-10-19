@@ -87,6 +87,7 @@ impl EffectChain {
             procedural: None,
             transform: input.transform,
             sampling: input.sampling,
+            paint_support: None,
             chain: Some(Arc::new(FilteredImage {
                 instance: self.id,
                 input,
