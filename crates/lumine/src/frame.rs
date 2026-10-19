@@ -55,6 +55,7 @@ struct Inner {
     waiters: RefCell<BTreeMap<u64, Waiter>>,
     next_id: Cell<u64>,
     last: Cell<Option<Frame>>,
+    delivered_at: Cell<Option<Instant>>,
     max_rate: Cell<Option<f64>>,
     /// Last refresh index delivered to each refresh divisor. Requests with the
     /// same divisor tick together and stay evenly spaced.
@@ -125,6 +126,16 @@ impl FrameClock {
     pub fn last(&self) -> Option<Frame> {
         self.0.last.get()
     }
+    /// Current time in the presentation clock's domain, including parked intervals.
+    /// `last()` remains the timestamp of the last delivered refresh.
+    pub fn now(&self) -> Instant {
+        self.now_at(Instant::now())
+    }
+    fn now_at(&self, wall: Instant) -> Instant {
+        self.0.last.get().zip(self.0.delivered_at.get()).map_or(wall, |(frame, delivered)| {
+            frame.time + wall.saturating_duration_since(delivered)
+        })
+    }
     /// Upper bound on the rate delivered to every request, in hertz. `None`,
     /// zero, negative and non-finite values remove the cap.
     pub fn set_max_rate(&self, hz: Option<f64>) {
@@ -156,6 +167,7 @@ impl FrameClock {
     pub fn deliver(&self, frame: Frame) -> usize {
         self.0.unpaced.set(false);
         self.0.last.set(Some(frame));
+        self.0.delivered_at.set(Some(Instant::now()));
         let refresh = frame.refresh_rate();
         let mut wakers = Vec::new();
         {
@@ -199,6 +211,7 @@ impl FrameClock {
     pub fn deliver_unpaced(&self, frame: Frame) -> usize {
         self.0.unpaced.set(true);
         self.0.last.set(Some(frame));
+        self.0.delivered_at.set(Some(Instant::now()));
         let mut wakers = Vec::new();
         {
             let mut waiters = self.0.waiters.borrow_mut();
@@ -360,6 +373,18 @@ mod tests {
             }
         }
         received
+    }
+
+    #[test]
+    fn current_time_advances_while_frame_delivery_is_parked() {
+        let clock = FrameClock::new();
+        let wall = Instant::now();
+        let presentation = wall + Duration::from_secs(100);
+        clock.deliver(Frame { index: 1, time: presentation, interval: Duration::from_millis(8) });
+        clock.0.delivered_at.set(Some(wall));
+        assert_eq!(clock.now_at(wall + Duration::from_secs(6)), presentation + Duration::from_secs(6));
+        assert_eq!(clock.last().unwrap().time, presentation);
+        assert!(!clock.wants_frame(), "reading time must not wake a parked renderer");
     }
 
     #[test]
