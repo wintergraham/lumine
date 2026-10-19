@@ -2768,21 +2768,11 @@ impl GpuRenderer {
                         continue;
                     }
                     let before = self.svgs.rasterizations();
-                    let (image, raster_bounds) = if svg.transform()
-                        == lumine::affine::Affine::IDENTITY
-                    {
-                        self.svgs.get_at(item.id, svg, bounds, self.scale)?
-                    } else {
-                        (
-                            self.svgs
-                                .get(item.id, svg, bounds.width, bounds.height, self.scale)?,
-                            bounds,
-                        )
-                    };
+                    let (image, raster_bounds) = self.svgs.get_at(item.id, svg, bounds, self.scale)?;
                     stats.svg_rasterizations += (self.svgs.rasterizations() - before) as usize;
                     // Nodes share SVG rasters: `prune` releases their textures
                     // once no node shows them (a new source prunes).
-                    let transform = image.paint_transform(bounds);
+                    let transform = image.paint_transform(raster_bounds);
                     let transformed = image.transform() != lumine::affine::Affine::IDENTITY;
                     // Icon-sized rasters live in the glyph atlas and batch with
                     // text; larger ones keep a texture of their own.

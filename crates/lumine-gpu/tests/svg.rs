@@ -5,6 +5,65 @@ fn data() -> Arc<SvgData> {
     Arc::new(SvgData::new(&br##"<svg xmlns="http://www.w3.org/2000/svg" width="2" height="1"><rect width="1" height="1" fill="red"/><rect x="1" width="1" height="1" fill="green"/></svg>"##[..]).unwrap())
 }
 #[test]
+fn svg_visible_overflow_preserves_viewport_hits_parent_clips_and_transforms() {
+    let bytes = &br#"<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="10 20 10 10"><path d="M6 17H26V35H6Z" fill="red" stroke="blue" stroke-width="2"/></svg>"#[..];
+    let hidden = Arc::new(SvgData::new(bytes).unwrap());
+    let visible = Arc::new(lumine_gpu::assets::svg_with_overflow(bytes, [true; 2]).unwrap());
+    assert_eq!(visible.raster_bounds(Rect::new(0., 0., 10., 10.)), Rect::new(-5., -4., 22., 20.));
+    for clipped in [false, true] {
+        for rotated in [false, true] {
+            let mut scene = Scene::new(80., 80.);
+            scene.set_kind(scene.root(), NodeKind::Container(Layout::Overlay));
+            let parent = scene.append(scene.root(), NodeKind::Container(Layout::Overlay), Style {
+                width: Some(14.), height: Some(14.), clip: clipped, ..Default::default()
+            });
+            scene.set_transform(parent, Transform { x: 40., y: 30. });
+            if rotated {
+                scene.set_paint_transform_origin(parent, Affine::rotation(std::f32::consts::FRAC_PI_2), [0.5; 2]);
+            }
+            let node = scene.append(parent, NodeKind::Svg(hidden.clone()), Style {
+                width: Some(10.), height: Some(10.), ..Default::default()
+            });
+            let mut gpu = GpuRenderer::new(80, 80).unwrap();
+            gpu.set_background(Color(0, 0, 0, 0));
+            let damage = scene.flush().damage;
+            let intrinsic = scene.layout_bounds(node);
+            let pixel = |pixels: &[u8], local_x, local_y| {
+                let (x, y) = scene.local_to_world(node, local_x, local_y);
+                let offset = (y.floor() as usize * 80 + x.floor() as usize) * 4;
+                <[u8; 4]>::try_from(&pixels[offset..offset + 4]).unwrap()
+            };
+            // Sample positions stay fixed as the resource changes.
+            let outside = scene.local_to_world(node, 12.5, 5.5);
+            gpu.render(&scene, &damage).unwrap();
+            assert_eq!(pixel(&gpu.readback().unwrap(), 12.5, 5.5), [0; 4]);
+            scene.set_kind(node, NodeKind::Svg(visible.clone()));
+            let damage = scene.flush().damage;
+            assert_eq!(scene.layout_bounds(node), intrinsic);
+            assert!(!scene.hit_test_all(outside.0, outside.1).contains(&node));
+            gpu.render(&scene, &damage).unwrap();
+            let shown = gpu.readback().unwrap();
+            let pixel = |local_x, local_y| {
+                let (x, y) = scene.local_to_world(node, local_x, local_y);
+                let offset = (y.floor() as usize * 80 + x.floor() as usize) * 4;
+                <[u8; 4]>::try_from(&shown[offset..offset + 4]).unwrap()
+            };
+            assert_eq!(pixel(12.5, 5.5), [255, 0, 0, 255], "clip={clipped}, rotated={rotated}");
+            assert_eq!(pixel(15.5, 5.5)[3], if clipped { 0 } else { 255 });
+            assert_eq!(pixel(-4.5, 5.5)[3], if clipped { 0 } else { 255 });
+            let mut fresh = GpuRenderer::new(80, 80).unwrap();
+            fresh.set_background(Color(0, 0, 0, 0));
+            fresh.render(&scene, &[Rect::new(0., 0., 80., 80.)]).unwrap();
+            assert_eq!(shown, fresh.readback().unwrap());
+            scene.set_kind(node, NodeKind::Svg(hidden.clone()));
+            let damage = scene.flush().damage;
+            gpu.render(&scene, &damage).unwrap();
+            fresh.render(&scene, &[Rect::new(0., 0., 80., 80.)]).unwrap();
+            assert_eq!(gpu.readback().unwrap(), fresh.readback().unwrap(), "old overflow must be cleared");
+        }
+    }
+}
+#[test]
 fn svg_resizes_at_device_scale_tints_and_transforms_without_reupload() {
     let mut scene = Scene::new(140., 120.);
     scene.set_kind(scene.root(), NodeKind::Container(Layout::Overlay));
@@ -182,4 +241,18 @@ fn atlas_icons_survive_the_atlas_filling_up() {
             panic!("step {step}: {count} pixels differ, e.g. {diffs:?}");
         }
     }
+}
+
+#[test]
+fn raw_svg_overflow_uses_svg_root_defaults_and_axis_cascade() {
+    let policy = |attributes: &str| lumine_gpu::assets::svg_root_overflow(
+        format!("<svg xmlns='http://www.w3.org/2000/svg' {attributes}><path d='M-4-3H16V15H-4Z'/></svg>").as_bytes()).unwrap();
+    assert_eq!(policy(""), [false; 2]);
+    assert_eq!(policy("overflow='visible'"), [true; 2]);
+    assert_eq!(policy("overflow='hidden' style='overflow: visible'"), [true; 2]);
+    assert_eq!(policy("style='overflow-x: hidden; overflow: visible'"), [true; 2]);
+    assert_eq!(policy("style='overflow: visible; overflow-y: hidden'"), [false; 2]);
+    assert_eq!(policy("style='overflow: visible clip'"), [true, false]);
+    assert!(lumine_gpu::assets::svg_root_overflow(b"<svg style='overflow: inherit'/>").is_err());
+    assert!(lumine_gpu::assets::svg_root_overflow(b"<svg><style>svg{overflow:visible}</style></svg>").is_err());
 }

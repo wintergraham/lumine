@@ -43,7 +43,57 @@ pub fn decode_image(bytes: &[u8]) -> Result<Arc<ImageData>, GpuError> {
 /// Rasterize an SVG at the requested physical size. External resources are disabled.
 /// SVG text needs conversion to outlines; the lightweight SVG dependency disables fonts.
 pub fn decode_svg(bytes: &[u8], width: u32, height: u32) -> Result<Arc<ImageData>, GpuError> {
-    decode_svg_at(bytes, width, height, [width as f32, height as f32, 0., 0.])
+    decode_svg_at(bytes, width, height, [width as f32, height as f32, 0., 0.], [false; 2])
+}
+/// Overflow on a collapsed raw SVG belongs to its SVG root, not its HTML holder.
+/// Raw style sheets require source-side expansion before native import.
+pub fn svg_root_overflow(bytes: &[u8]) -> Result<[bool; 2], GpuError> {
+    if bytes.len() > 4 * 1024 * 1024 { return Err(GpuError("SVG source exceeds limit".into())); }
+    let text = std::str::from_utf8(bytes).map_err(|e| GpuError(e.to_string()))?;
+    let document = resvg::usvg::roxmltree::Document::parse(text).map_err(|e| GpuError(e.to_string()))?;
+    let root = document.root_element();
+    if document.descendants().any(|node| node.has_tag_name("style")) {
+        return Err(GpuError("Expand raw SVG style sheets before native import".into()));
+    }
+    let mut shorthand = root.attribute("overflow").unwrap_or("hidden");
+    let mut axes = [None; 2];
+    for declaration in root.attribute("style").unwrap_or("").split(';') {
+        let Some((key, value)) = declaration.split_once(':') else { continue; };
+        match key.trim().to_ascii_lowercase().as_str() {
+            "overflow" => { shorthand = value.trim(); axes = [None; 2]; },
+            "overflow-x" => axes[0] = Some(value.trim()),
+            "overflow-y" => axes[1] = Some(value.trim()),
+            _ => {},
+        }
+    }
+    let mut values = shorthand.split_whitespace();
+    let x = values.next().unwrap_or("hidden");
+    let y = values.next().unwrap_or(x);
+    if values.next().is_some() { return Err(GpuError("Unsupported raw SVG overflow value".into())); }
+    let axes = [axes[0].unwrap_or(x), axes[1].unwrap_or(y)];
+    if axes.iter().any(|axis| !matches!(*axis, "visible" | "hidden" | "clip" | "scroll" | "auto")) {
+        return Err(GpuError("Resolve raw SVG overflow values before native import".into()));
+    }
+    Ok([axes[0] == "visible" && matches!(axes[1], "visible" | "clip"),
+        axes[1] == "visible" && matches!(axes[0], "visible" | "clip")])
+}
+/// Inline SVG paint bounds in its original viewport, including strokes and filters.
+/// Root overflow is supplied by the host's computed CSS; ancestor clips stay in Scene.
+pub fn svg_with_overflow(
+    bytes: impl Into<Arc<[u8]>>,
+    overflow: [bool; 2],
+) -> Result<lumine::svg::SvgData, GpuError> {
+    let source = lumine::svg::SvgData::new(bytes).map_err(|e| GpuError(e.into()))?;
+    let mut options = resvg::usvg::Options::default();
+    options.image_href_resolver.resolve_string = Box::new(|_, _| None);
+    let tree = resvg::usvg::Tree::from_data(source.bytes(), &options)
+        .map_err(|e| GpuError(e.to_string()))?;
+    let ink = tree.root().abs_layer_bounding_box();
+    let size = tree.size();
+    source.with_overflow(lumine::scene::Rect::new(
+        ink.x() / size.width(), ink.y() / size.height(),
+        ink.width() / size.width(), ink.height() / size.height(),
+    ), overflow).map_err(|e| GpuError(e.into()))
 }
 /// Decode an uploaded SVG at its intrinsic aspect ratio with the same bounds.
 pub fn decode_svg_natural(bytes: &[u8]) -> Result<Arc<ImageData>, GpuError> {
@@ -73,6 +123,7 @@ pub(crate) fn decode_svg_at(
     width: u32,
     height: u32,
     geometry: [f32; 4],
+    overflow: [bool; 2],
 ) -> Result<Arc<ImageData>, GpuError> {
     if bytes.len() > 4 * 1024 * 1024
         || width == 0
@@ -98,6 +149,21 @@ pub(crate) fn decode_svg_at(
         geometry[3],
     );
     resvg::render(&tree, transform, &mut pixmap.as_mut());
+    // Device-grid padding must not expose ink on a clipped viewport axis.
+    if overflow != [true; 2] {
+        for (index, pixel) in pixmap.data_mut().chunks_exact_mut(4).enumerate() {
+            let x = (index % width as usize) as f32;
+            let y = (index / width as usize) as f32;
+            let coverage = |position: f32, origin: f32, extent: f32| {
+                ((position + 1.).min(origin + extent) - position.max(origin)).clamp(0., 1.)
+            };
+            let alpha = if overflow[0] { 1. } else { coverage(x, geometry[2], geometry[0]) }
+                * if overflow[1] { 1. } else { coverage(y, geometry[3], geometry[1]) };
+            for channel in pixel {
+                *channel = (f32::from(*channel) * alpha).round() as u8;
+            }
+        }
+    }
     let mut pixels = pixmap.take();
     for p in pixels.as_chunks_mut::<4>().0 {
         let alpha = p[3] as u32;

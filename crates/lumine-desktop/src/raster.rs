@@ -202,15 +202,14 @@ impl Raster {
                     NodeKind::Svg(svg) => {
                         if item.bounds.width > 0.
                             && item.bounds.height > 0.
-                            && let Ok(image) = self.svgs.get(
+                            && let Ok((image, raster_bounds)) = self.svgs.get_at(
                                 item.id,
                                 svg,
-                                item.bounds.width,
-                                item.bounds.height,
+                                item.bounds,
                                 1.,
                             )
                         {
-                            self.image(item.bounds, clip, &image, item.effects);
+                            self.image(raster_bounds, clip, &image, item.effects);
                         }
                     }
                     NodeKind::Image(image) => self.image(item.bounds, clip, image, item.effects),

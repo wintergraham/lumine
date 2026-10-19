@@ -24,12 +24,13 @@ struct Key {
     width: u32,
     height: u32,
     geometry: [u32; 4],
+    overflow: [bool; 2],
 }
 impl Hash for Key {
     fn hash<H: Hasher>(&self, state: &mut H) {
         // Equality also compares the bytes, so a fingerprint collision cannot
         // make different SVG sources share pixels.
-        (self.source_hash, self.tint, self.width, self.height, self.geometry).hash(state);
+        (self.source_hash, self.tint, self.width, self.height, self.geometry, self.overflow).hash(state);
     }
 }
 struct Entry {
@@ -122,15 +123,20 @@ impl SvgCache {
     }
     /// Keep resting icons exact on the device grid. During animation, bounded
     /// quarter-pixel phases avoid a new raster for every float position.
-    pub(crate) fn get_at(
+    pub fn get_at(
         &mut self,
         node: NodeId,
         source: &Arc<SvgData>,
         bounds: Rect,
         scale: f32,
     ) -> Result<(Arc<ImageData>, Rect), GpuError> {
+        if ![bounds.x, bounds.y, bounds.width, bounds.height, scale].iter().all(|v| v.is_finite())
+            || bounds.width <= 0. || bounds.height <= 0. || scale <= 0.
+        {
+            return Err(GpuError("invalid SVG size".into()));
+        }
         let phase = |position: f32| {
-            if self.animating {
+            if self.animating && source.transform() == lumine::affine::Affine::IDENTITY {
                 (position * scale * 4.).round() / 4.
             } else {
                 position * scale
@@ -138,24 +144,25 @@ impl SvgCache {
         };
         let x = phase(bounds.x);
         let y = phase(bounds.y);
+        let ink = source.raster_bounds(Rect::new(0., 0., bounds.width * scale, bounds.height * scale));
+        let left = (x + ink.x).floor();
+        let top = (y + ink.y).floor();
         let geometry = [
             bounds.width * scale,
             bounds.height * scale,
-            x - x.floor(),
-            y - y.floor(),
+            x - left,
+            y - top,
         ];
-        let width = (geometry[0] + geometry[2]).ceil() as u32;
-        let height = (geometry[1] + geometry[3]).ceil() as u32;
-        let image = self.get_raster(node, source, width, height, geometry)?;
-        Ok((
-            image,
-            Rect::new(
-                x.floor() / scale,
-                y.floor() / scale,
-                width as f32 / scale,
-                height as f32 / scale,
-            ),
-        ))
+        let width = ((x + ink.x + ink.width).ceil() - left) as u32;
+        let height = ((y + ink.y + ink.height).ceil() - top) as u32;
+        let raster = Rect::new(left / scale, top / scale, width as f32 / scale, height as f32 / scale);
+        // The primitive still rotates around its intrinsic viewport, even when
+        // asymmetric overflow changes the raster's centre.
+        let transform = source.paint_transform(bounds).around(
+            -(raster.x + raster.width * 0.5), -(raster.y + raster.height * 0.5));
+        let source = Arc::new(source.transformed(transform));
+        let image = self.get_raster(node, &source, width, height, geometry)?;
+        Ok((image, raster))
     }
     fn get_raster(
         &mut self,
@@ -190,6 +197,7 @@ impl SvgCache {
             width,
             height,
             geometry: geometry.map(f32::to_bits),
+            overflow: source.overflow(),
         };
         if let Some(shown) = self.nodes.get_mut(&node)
             && shown.key == key
@@ -259,7 +267,7 @@ impl SvgCache {
         height: u32,
         geometry: [f32; 4],
     ) -> Result<Arc<ImageData>, GpuError> {
-        let image = crate::assets::decode_svg_at(source.bytes(), width, height, geometry)?;
+        let image = crate::assets::decode_svg_at(source.bytes(), width, height, geometry, source.overflow())?;
         self.rasterizations += 1;
         let Some(color) = source.tint() else {
             return Ok(image);
@@ -281,6 +289,32 @@ impl SvgCache {
 mod tests {
     use super::*;
     #[test]
+    fn overflow_rasters_keep_viewport_scale_fractional_clips_and_transform_pivot() {
+        let bytes = &br#"<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><path d="M-4-3H16V15H-4Z" fill="red"/></svg>"#[..];
+        let mut scene = Scene::new(100., 100.);
+        let source = Arc::new(crate::assets::svg_with_overflow(bytes, [true, false]).unwrap());
+        let node = scene.append(scene.root(), NodeKind::Svg(source.clone()), Default::default());
+        let bounds = Rect::new(20.25, 30.25, 10., 10.);
+        let mut cache = SvgCache::default();
+        for scale in [1., 1.5, 2.] {
+            for transform in [lumine::affine::Affine::IDENTITY, lumine::affine::Affine::rotation(0.7)] {
+                let source = Arc::new(source.transformed(transform));
+                let (image, raster) = cache.get_at(node, &source, bounds, scale).unwrap();
+                assert!(raster.x < bounds.x && raster.x + raster.width > bounds.x + bounds.width);
+                let actual = image.paint_transform(raster);
+                let expected = source.paint_transform(bounds);
+                for (x, y) in [(bounds.x, bounds.y), (bounds.x + 10., bounds.y + 10.)] {
+                    let (ax, ay) = actual.point(x, y);
+                    let (ex, ey) = expected.point(x, y);
+                    assert!((ax - ex).abs() < 0.0001 && (ay - ey).abs() < 0.0001);
+                }
+                let row = |y: u32| &image.pixels()[(y * image.width() * 4) as usize..((y + 1) * image.width() * 4) as usize];
+                assert!(row(0).chunks_exact(4).all(|pixel| pixel[3] < 255), "hidden Y clips fractional padding");
+                assert!(row(image.height() / 2).chunks_exact(4).any(|pixel| pixel[3] == 255));
+            }
+        }
+    }
+    #[test]
     fn source_fingerprint_collisions_compare_exact_bytes() {
         let key = |bytes: &[u8]| Key {
             source_hash: 7,
@@ -289,6 +323,7 @@ mod tests {
             width: 1,
             height: 1,
             geometry: [0; 4],
+            overflow: [false; 2],
         };
         let mut entries = HashMap::new();
         entries.insert(key(b"first SVG"), 1);
