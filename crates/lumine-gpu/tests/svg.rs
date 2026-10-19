@@ -300,6 +300,11 @@ fn raw_svg_stylesheet_overflow_cascades_both_axes() {
         ("overflow: auto visible", [false; 2]),
         ("overflow: initial", [true; 2]),
         ("overflow: unset", [true; 2]),
+        ("all: initial", [true; 2]),
+        ("overflow: hidden; all: unset", [true; 2]),
+        ("overflow: hidden !important; all: initial", [false; 2]),
+        ("overflow: visible; all: initial !important; overflow-y: hidden", [true; 2]),
+        ("all: unset; overflow-x: clip", [false, true]),
     ];
     for (css, expected) in cases {
         let source = format!("<svg><style>svg {{ {css} }}</style></svg>");
@@ -323,7 +328,7 @@ fn raw_svg_unrelated_stylesheets_preserve_paint_and_hidden_default() {
 
 #[test]
 fn raw_svg_unresolved_root_overflow_reports_the_property() {
-    for (property, value) in [("overflow", "inherit"), ("overflow-x", "var(--clip)"), ("overflow-y", "revert-layer")] {
+    for (property, value) in [("overflow", "inherit"), ("overflow-x", "var(--clip)"), ("overflow-y", "revert-layer"), ("all", "inherit"), ("all", "visible")] {
         let source = format!("<svg><style>svg {{ {property}: {value} }}</style></svg>");
         let error = lumine_gpu::assets::svg_root_overflow(source.as_bytes()).unwrap_err().to_string();
         assert!(error.contains(property) && error.contains(value), "{error}");

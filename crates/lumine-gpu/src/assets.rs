@@ -70,6 +70,7 @@ pub fn svg_root_overflow(bytes: &[u8]) -> Result<[bool; 2], GpuError> {
     for declaration in declarations {
         let (property, targets) = match declaration.name.to_ascii_lowercase().as_str() {
             "overflow" => ("overflow", 0..2),
+            "all" => ("all", 0..2),
             "overflow-x" => ("overflow-x", 0..1),
             "overflow-y" => ("overflow-y", 1..2),
             _ => continue,
@@ -104,6 +105,7 @@ fn svg_overflow_axis<'a>(property: &str, value: &'a str, axis: usize) -> Result<
     let error = || GpuError(format!("Resolve raw SVG root {property}: {value} before native import"));
     // These CSS-wide keywords select the initial value of this non-inherited property.
     if matches!(value, "initial" | "unset") { return Ok("visible"); }
+    if property == "all" { return Err(error()); }
     let mut values = value.split_whitespace();
     let x = values.next().ok_or_else(error)?;
     let y = values.next();
