@@ -179,6 +179,9 @@ enum Shading {
     /// pixel it writes. Same pixels.
     Opaque,
 }
+fn selected_shading(shading: Shading, regular_full: bool) -> Shading {
+    if !regular_full && shading == Shading::RegularFull { Shading::Full } else { shading }
+}
 fn gaussian_shadow(quad: &Quad) -> bool {
     quad.options[2] < 0.5 && quad.shape[2] >= 0.01
 }
@@ -1295,6 +1298,7 @@ pub struct GpuRenderer {
     present_stats: GpuStats,
     /// Quads use the shader their features need (see `push_draw`).
     split_shading: bool,
+    regular_full_shader: bool,
     /// Texts shaped since the word cache last started over, and the
     /// prepared text cache's count when last read.
     shaped_since_reset: u64,
@@ -1541,6 +1545,7 @@ impl GpuRenderer {
             target,
             view,
             split_shading,
+            regular_full_shader: true,
             shaped_since_reset: 0,
             cache_shaped: 0,
             bind,
@@ -3511,7 +3516,7 @@ impl GpuRenderer {
                     }
                     self.encode_draws(
                         &mut pass,
-                        &|shading| quads.get(shading),
+                        &|shading| quads.get(selected_shading(shading, self.regular_full_shader)),
                         *region,
                         &draws[from..end],
                         first,
@@ -3736,7 +3741,7 @@ impl GpuRenderer {
         pass.set_bind_group(2, &frame.geometry, &[0]);
         let clear = pipelines.clear(self.split_shading);
         let quads = pipelines.get(Shading::Full);
-        let pick = |shading| pipelines.get(shading);
+        let pick = |shading| pipelines.get(selected_shading(shading, self.regular_full_shader));
         let first = |index: usize| frame.first.get(index).copied().unwrap_or(0);
         if !frame.clear {
             pass.set_pipeline(quads);
@@ -4832,6 +4837,10 @@ impl GpuRenderer {
     /// the original Gaussian-capable full shader for an exact pixel A/B.
     pub fn debug_split_shading(&mut self, split: bool) {
         self.split_shading = split;
+    }
+    /// Compare full shader specialization with identical batches and Basic/opaque paths.
+    pub fn debug_regular_full_shader(&mut self, enabled: bool) {
+        self.regular_full_shader = enabled;
     }
     /// Ablate opaque-fill decomposition while retaining the same shader selection.
     pub fn debug_opaque_interiors(&mut self, enabled: bool) {

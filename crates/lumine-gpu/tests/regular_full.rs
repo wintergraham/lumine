@@ -149,7 +149,8 @@ fn regular_full_matches_original_with_nested_clips_nearest_masks_and_mixed_shado
         // Keep this experiment independent of opaque-interior decomposition.
         gpu.debug_opaque_interiors(false);
     }
-    original.debug_split_shading(false);
+    original.debug_split_shading(true);
+    original.debug_regular_full_shader(false);
     specialized.debug_split_shading(true);
     let damage = [Rect::new(0., 0., 160., 120.)];
     for single_pass in [false, true] {

@@ -246,7 +246,7 @@ impl GpuRenderer {
         DrawBatch {
             instances: batch.start..batch.end,
             geometry_offset: batch.geometry_offset,
-            shading: match batch.shading {
+            shading: match selected_shading(batch.shading, self.regular_full_shader) {
                 Shading::Full => "full",
                 Shading::RegularFull => "regular_full",
                 Shading::Basic => "basic",
