@@ -582,12 +582,21 @@ impl Scene {
             })
         {
             let padding = self.resolved_padding(id, constraints);
-            let width = constraints.force_width.or(root_style.width)
+            let fixed_width = root_options.min_width.zip(root_options.max_width)
+                .filter(|(min, max)| min == max)
+                .and_then(|(bound, _)| match bound {
+                    Length::Px(width) => Some(width),
+                    Length::Percent(ratio) => constraints.percent_width.map(|width| width * ratio),
+                    Length::Auto => None,
+                });
+            let width = constraints.force_width.or(root_style.width).or(fixed_width)
                 .or_else(|| percentage(root_style.width_percent, constraints.percent_width))
                 .map(|w| dimension(w, root_style.min_width, root_style.max_width))
                 .or_else(|| constraints.width.map(|w| w.min(root_style.max_width.unwrap_or(f32::INFINITY))))
                 .or(root_style.max_width)
                 .map(|w| (w - padding.left - padding.right).max(0.));
+            let definite_cross_axis = constraints.force_width.is_some() || root_style.width.is_some() || fixed_width.is_some()
+                || percentage(root_style.width_percent, constraints.percent_width).is_some();
             let mut total = 0.;
             let mut count = 0usize;
             let mut cancelled = false;
@@ -604,12 +613,22 @@ impl Scene {
                 };
                 let top = px(options.margin.top, style.margin.top);
                 let bottom = px(options.margin.bottom, style.margin.bottom);
+                // Height must use the same stretched width as final flex layout.
+                let force_width = (definite_cross_axis
+                    && style.width.is_none() && style.width_percent.is_none()
+                    && options.align_self.unwrap_or(root_style.align) == Align::Stretch
+                    && options.margin.left != Some(Length::Auto)
+                    && options.margin.right != Some(Length::Auto))
+                    .then(|| width.map(|width| (width
+                        - px(options.margin.left, style.margin.left)
+                        - px(options.margin.right, style.margin.right)).max(0.))).flatten();
                 let size = self.measure_intrinsic(
                     *child,
                     Constraints {
-                        width,
+                        width: force_width.or(width),
                         percent_width: width,
-                        min_content_width: self.child_min_content_width(*child, constraints, width),
+                        force_width,
+                        min_content_width: force_width.is_none() && self.child_min_content_width(*child, constraints, width),
                         ..Default::default()
                     },
                 );
