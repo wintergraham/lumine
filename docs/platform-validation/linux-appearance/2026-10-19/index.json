@@ -1,0 +1,22 @@
+{
+  "files": {
+    "logs/appearance-tests.log": "b0e740572feaa728efa3f1edbc76b9302cc9b12d314719abda2805ae6debc6bb",
+    "logs/native-appearance-chromium.log": "0d4cdc8917210a2794eb3fdbdf0dd6836297df7e6d4850ef382a89acbaecdc51",
+    "logs/native-appearance-missing-dark-theme.log": "5681d9fc227160ec1077d6957a99b88e312be7281e455853bb37804d64598fba",
+    "logs/native-appearance-r3.log": "006e0d8a0d244ba8ab2fd0a083653c80cc503b244701c3891563ad2420af9428",
+    "logs/native-appearance-unmapped-preferdark.log": "ec5465d9ceba95905617ff3c37856777028e3e3599dc2de17d909da79ff19f0b",
+    "logs/native-portal-appearance.log": "43cb0fa762565fb874eaeb4b327099e8def48d434318948e13edeaff71ed8199",
+    "logs/source-chromium-media.log": "2b1c19619c1fce7d07d7a9c52097c46bf53dc41f81ba2e36bbd82ae898f6e9e0",
+    "logs/source-media-missing-dark-theme.log": "e868c787546f78e406c287d8382aaa13648483675bbeef70a5d26926923a5b77",
+    "logs/source-media-r3.log": "27807f877a3aad3c03a5fb9b3168e3b539f60cbb37b06d770b72fc334ef78675",
+    "logs/source-media-unmapped-preferdark.log": "9f2e0481fc4ae4e757c8c4c70c199d959d08f38062a98f2e7095e4b9566c9812",
+    "logs/source-portal-media.log": "bb7f65905bc471c1412a8fd83f7161d9927a9c4aa7d16b1bfd572f94bb811715",
+    "receipt.json": "7ba6a08587f49632068eae779f3a3c82803d9fc3bedf37b07a1b7655eeb6871b",
+    "sources/appearance-check.rs": "36aec109705ff0f3cf3b88627e60050df05254c8daa1440c3a59a82a65594ff8",
+    "sources/appearance-probe.rs": "358728745749bbfdd2a3fc7be39c43e378ea3900c9de433baa5251fb184d8229",
+    "sources/cef-appearance.c": "7c308a468dfda31e7398787ee4e53d2abad19204234ae716b9315ddec4c309da",
+    "sources/observe-chromium-appearance.ts": "2360b0fb0340b6e2904c6a7e44ec2048ea04b89a39928792ac51b83d91523212",
+    "sources/observe-portal-appearance.ts": "d9ae6a053a05e84558270d5b124ce502808fce3d8145ae8ef8dc6e11400a9c9d",
+    "sources/read-xsettings.py": "979a3c57e5ea118a2a564cb3df4e6b69d0f3f2a28bb6a4095a332b986fdd65dd"
+  }
+}

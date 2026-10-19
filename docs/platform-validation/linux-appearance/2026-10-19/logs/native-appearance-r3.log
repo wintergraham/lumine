@@ -1,0 +1,4 @@
+appearance initial=Light
+appearance event=GtkChanged state=Dark elapsed=924.102348ms
+appearance event=GtkChanged state=Light elapsed=6.515236793s
+appearance events=16 final=Light

@@ -1,0 +1,97 @@
+{
+  "schema": "lumine-linux-appearance-observation/v1",
+  "implementationCommit": "2f59de8",
+  "scope": "Production appearance backend compiled with cached dependencies and a fixture containing only the public phase enum. Actual GTK and standard portal backends were exercised. Full Lumine window-manager integration, Ask services and production activation are separate gates.",
+  "display": ":100",
+  "sourceBrowser": {
+    "protocolVersion": "1.3",
+    "product": "Chrome/154.0.8037.57",
+    "revision": "@73c14f6228d7cd537c855007e8f88678969cc0eb",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+    "jsVersion": "15.4.80.11"
+  },
+  "initialState": {
+    "gtkTheme": "Arc-Dark",
+    "actualPortalReadOne": 0,
+    "sourceCssDark": true,
+    "nativeAppearance": "Dark"
+  },
+  "liveChanges": [
+    {
+      "osOperation": "gsettings set org.gnome.desktop.interface color-scheme prefer-light",
+      "actualPortalReadOne": 2,
+      "sourceCssDark": false,
+      "nativeEvent": "Portal(Light)",
+      "nativeAppearance": "Light"
+    },
+    {
+      "osOperation": "gsettings set org.gnome.desktop.interface color-scheme prefer-dark",
+      "actualPortalReadOne": 1,
+      "sourceCssDark": true,
+      "nativeEvent": "Portal(Dark)",
+      "nativeAppearance": "Dark"
+    },
+    {
+      "osOperation": "gsettings set org.gnome.desktop.interface color-scheme default",
+      "actualPortalReadOne": 0,
+      "sourceCssDark": true,
+      "nativeAppearance": "Dark",
+      "reason": "No portal preference falls back to the real, unchanged Arc-Dark GTK background"
+    }
+  ],
+  "nativeIdle": {
+    "durationSeconds": 15,
+    "totalNativeEventsIncludingStartupAndPreferenceChanges": 12,
+    "mechanism": "blocking native fd readiness; no appearance polling timer"
+  },
+  "sandboxDisablingFlags": [],
+  "mediaEmulation": false,
+  "portalImplementation": "Official unmodified Debian xdg-desktop-portal and xdg-desktop-portal-gtk; real session D-Bus, permission store, document portal and dconf/GSettings. No mock D-Bus service.",
+  "packages": [
+    {
+      "url": "https://deb.debian.org/debian/pool/main/a/arc-theme/arc-theme_20221218-3_all.deb",
+      "sha256": "2b620ccd99329d120ad08f1a4300c729c1fde16d98e916d94921b79087a42015"
+    },
+    {
+      "url": "https://deb.debian.org/debian/pool/main/x/xdg-desktop-portal/xdg-desktop-portal_1.20.3%2Bds-1_amd64.deb",
+      "sha256": "9dce4bf7ca1cc9afce6d48735a4a9897a27bcfd17791a05031eb73ac76788922"
+    },
+    {
+      "url": "https://deb.debian.org/debian/pool/main/x/xdg-desktop-portal-gtk/xdg-desktop-portal-gtk_1.15.3-2_amd64.deb",
+      "sha256": "d5c86cfaf063b3fb10ae3cd51443edf022f62a7de57c7cde4a3728f026b02f83"
+    }
+  ],
+  "priorAttempts": [
+    {
+      "result": "failed",
+      "operation": "Xfce Net/ThemeName Adwaita-dark",
+      "observation": "Dark theme was not installed; both GTK/native and source CSS stayed light. Environment failure retained."
+    },
+    {
+      "result": "failed",
+      "operation": "Xfce Gtk/ApplicationPreferDarkTheme=true",
+      "observation": "GTK3 X11 settings mapping does not support this key; actual GTK property stayed false and source CSS stayed light."
+    },
+    {
+      "result": "failed-source-parity",
+      "operation": "Real installed Arc-Dark GTK theme via Xfce Net/ThemeName, no portal",
+      "observation": "Native backend observed actual dark background, CEF source CSS stayed light. Not accepted."
+    },
+    {
+      "result": "failed-source-parity",
+      "operation": "Normal Chromium154, real installed Arc-Dark GTK theme via Xfce, no portal",
+      "observation": "Native backend observed Dark; source CSS stayed light after the change and reported dark immediately after restoring light. An upstream GTK cache/signal ordering issue is suspected, not established. This gate remains open."
+    }
+  ],
+  "cleanup": {
+    "xfceNetThemeName": "Xfce",
+    "gnomeColorScheme": "default (reset)",
+    "actualPortalReadOneAfterReset": 0
+  },
+  "productionModules": {
+    "crates/lumine-desktop/src/appearance_linux.rs": "5b449cbde5ec1f9bf74b6c6948a3bf67ee57c697d5d3452d9599a14bce0afdbb",
+    "crates/lumine-desktop/src/appearance_linux/gtk.rs": "85fc41069be7be0c95b5ec428eefe00460efcae2b73542b815625a6962550c39",
+    "crates/lumine-desktop/src/appearance_linux/portal.rs": "6d1d7f68188284cb67fc08bc23a0a74b830bc65a97acd49ebe4bf7985e773260",
+    "crates/lumine-desktop/src/appearance_linux/readiness.rs": "e06b34145ca083960a374ef9da99ba988b6246496d762f277d1057af8f439c7d"
+  }
+}

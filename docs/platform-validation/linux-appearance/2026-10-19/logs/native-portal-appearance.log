@@ -1,0 +1,4 @@
+appearance initial=Dark
+appearance event=Portal(Light) state=Light elapsed=82.180668ms
+appearance event=Portal(Dark) state=Dark elapsed=1.455251652s
+appearance events=12 final=Dark

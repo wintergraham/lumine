@@ -1,0 +1,14 @@
+{"initial":{"dark":false,"light":true}}
+{"osTheme":"Arc-Dark","sourceMedia":{"dark":false,"light":true}}
+{"restored":{"dark":true,"light":false}}
+17 |  const expected=theme==='Arc-Dark';
+18 |  let value:any;
+19 |  for(let i=0;i<100;i++){value=await media();if(value.dark===expected)break;await Bun.sleep(30);}
+20 |  console.log(JSON.stringify({osTheme:theme,sourceMedia:value}));
+21 |  await Bun.sleep(500);
+22 |  if(value.dark!==expected)throw Error('Source media failed to track OS theme');
+                                     ^
+error: Source media failed to track OS theme
+      at <anonymous> (/workspace/work/lumine-appearance/work/observe-chromium-appearance.ts:22:33)
+
+Bun v1.3.8 (Linux x64)
