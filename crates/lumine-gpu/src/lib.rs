@@ -5171,6 +5171,11 @@ fn quad_pipeline(
     clip_interiors: bool,
 ) -> wgpu::RenderPipeline {
     let basic = matches!(shading, Shading::Basic | Shading::Opaque);
+    let shader_constants = [
+        ("gaussian_shadows", if shading == Shading::Full { 1. } else { 0. }),
+        ("nearest_images", if shading == Shading::NearestImage { 1. } else { 0. }),
+        ("clip_interiors", if clip_interiors { 1. } else { 0. }),
+    ];
     let blend = blend.then_some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING);
     let all = wgpu::vertex_attr_array![0=>Float32x4,1=>Float32x4,2=>Float32x4,3=>Float32x4,4=>Float32x4,5=>Float32x4,6=>Float32x4,7=>Float32x4];
     let basic_attributes = [all[0], all[1], all[2], all[3], all[4], all[5]];
@@ -5209,22 +5214,7 @@ fn quad_pipeline(
                 (Shading::Full, false) => "fs",
             }),
             compilation_options: wgpu::PipelineCompilationOptions {
-                constants: if shading == Shading::NearestImage {
-                    &[
-                        ("gaussian_shadows", 0.),
-                        ("nearest_images", 1.),
-                        ("clip_interiors", if clip_interiors { 1. } else { 0. }),
-                    ]
-                } else if shading == Shading::RegularFull {
-                    &[
-                        ("gaussian_shadows", 0.),
-                        ("clip_interiors", if clip_interiors { 1. } else { 0. }),
-                    ]
-                } else if basic {
-                    &[]
-                } else {
-                    &[("clip_interiors", if clip_interiors { 1. } else { 0. })]
-                },
+                constants: if basic { &[] } else { &shader_constants },
                 ..Default::default()
             },
             targets: if drawable.is_some() {
