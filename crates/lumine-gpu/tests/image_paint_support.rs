@@ -56,11 +56,14 @@ fn tree(image: Arc<ImageData>, complex: bool) -> (Scene, NodeId) {
     scene.set_kind(scene.root(), NodeKind::Container(Layout::Overlay));
     let outer = scene.append(
         scene.root(),
-        NodeKind::Quad(QuadStyle {
-            fill: Color(0, 0, 0, 0),
-            radius: 13.,
-            ..Default::default()
-        }),
+        NodeKind::Panel {
+            layout: Layout::Overlay,
+            quad: QuadStyle {
+                fill: Color(0, 0, 0, 0),
+                radius: 13.,
+                ..Default::default()
+            },
+        },
         Style {
             clip: complex,
             ..fixed(190., 130.)
