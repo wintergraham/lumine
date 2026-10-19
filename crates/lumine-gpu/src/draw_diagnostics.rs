@@ -408,11 +408,14 @@ impl GpuRenderer {
                 pass.set_bind_group(1, self.viewport_bind.as_ref(), &[]);
                 let mut current = None;
                 let pipelines = |s| {
-                    self.context.inner.quads.get(selected_shading(
-                        s,
-                        self.regular_full_shader,
-                        self.nearest_image_shader,
-                    ))
+                    self.context.inner.quads.get(
+                        selected_shading(
+                            s,
+                            self.regular_full_shader,
+                            self.nearest_image_shader,
+                        ),
+                        self.clip_interiors,
+                    )
                 };
                 self.encode_batch(&mut pass, &pipelines, &mut current, batch, stats);
                 let mut end = ordinal + 1;

@@ -241,9 +241,9 @@ struct QuadPipelines {
     device: wgpu::Device,
     shader: wgpu::ShaderModule,
     layout: wgpu::PipelineLayout,
-    full: std::cell::OnceCell<wgpu::RenderPipeline>,
-    regular_full: std::cell::OnceCell<wgpu::RenderPipeline>,
-    nearest_image: std::cell::OnceCell<wgpu::RenderPipeline>,
+    full: [std::cell::OnceCell<wgpu::RenderPipeline>; 2],
+    regular_full: [std::cell::OnceCell<wgpu::RenderPipeline>; 2],
+    nearest_image: [std::cell::OnceCell<wgpu::RenderPipeline>; 2],
     full_clear: std::cell::OnceCell<wgpu::RenderPipeline>,
     basic: std::cell::OnceCell<wgpu::RenderPipeline>,
     basic_clear: std::cell::OnceCell<wgpu::RenderPipeline>,
@@ -251,11 +251,12 @@ struct QuadPipelines {
 }
 impl QuadPipelines {
     /// The pipeline drawing quads of `shading`.
-    fn get(&self, shading: Shading) -> &wgpu::RenderPipeline {
+    fn get(&self, shading: Shading, clip_interiors: bool) -> &wgpu::RenderPipeline {
+        let variant = usize::from(clip_interiors);
         let (cell, blend) = match shading {
-            Shading::Full => (&self.full, true),
-            Shading::RegularFull => (&self.regular_full, true),
-            Shading::NearestImage => (&self.nearest_image, true),
+            Shading::Full => (&self.full[variant], true),
+            Shading::RegularFull => (&self.regular_full[variant], true),
+            Shading::NearestImage => (&self.nearest_image[variant], true),
             Shading::Basic => (&self.basic, true),
             Shading::Opaque => (&self.basic_clear, false),
         };
@@ -267,13 +268,14 @@ impl QuadPipelines {
                 blend,
                 self.drawable,
                 shading,
+                clip_interiors,
             )
         })
     }
     /// The pipeline clearing a region to the background quad.
     fn clear(&self, basic: bool) -> &wgpu::RenderPipeline {
         if basic {
-            self.get(Shading::Opaque)
+            self.get(Shading::Opaque, false)
         } else {
             self.full_clear.get_or_init(|| {
                 quad_pipeline(
@@ -283,6 +285,7 @@ impl QuadPipelines {
                     false,
                     self.drawable,
                     Shading::Full,
+                    false,
                 )
             })
         }
@@ -1323,6 +1326,7 @@ pub struct GpuRenderer {
     split_shading: bool,
     regular_full_shader: bool,
     nearest_image_shader: bool,
+    clip_interiors: bool,
     /// Texts shaped since the word cache last started over, and the
     /// prepared text cache's count when last read.
     shaped_since_reset: u64,
@@ -1571,6 +1575,7 @@ impl GpuRenderer {
             split_shading,
             regular_full_shader: true,
             nearest_image_shader: true,
+            clip_interiors: false,
             shaped_since_reset: 0,
             cache_shaped: 0,
             bind,
@@ -3542,11 +3547,14 @@ impl GpuRenderer {
                     self.encode_draws(
                         &mut pass,
                         &|shading| {
-                            quads.get(selected_shading(
-                                shading,
-                                self.regular_full_shader,
-                                self.nearest_image_shader,
-                            ))
+                            quads.get(
+                                selected_shading(
+                                    shading,
+                                    self.regular_full_shader,
+                                    self.nearest_image_shader,
+                                ),
+                                self.clip_interiors,
+                            )
                         },
                         *region,
                         &draws[from..end],
@@ -3771,13 +3779,16 @@ impl GpuRenderer {
         pass.set_bind_group(1, frame.viewport.as_ref(), &[]);
         pass.set_bind_group(2, &frame.geometry, &[0]);
         let clear = pipelines.clear(self.split_shading);
-        let quads = pipelines.get(Shading::Full);
+        let quads = pipelines.get(Shading::Full, self.clip_interiors);
         let pick = |shading| {
-            pipelines.get(selected_shading(
-                shading,
-                self.regular_full_shader,
-                self.nearest_image_shader,
-            ))
+            pipelines.get(
+                selected_shading(
+                    shading,
+                    self.regular_full_shader,
+                    self.nearest_image_shader,
+                ),
+                self.clip_interiors,
+            )
         };
         let first = |index: usize| frame.first.get(index).copied().unwrap_or(0);
         if !frame.clear {
@@ -4885,6 +4896,11 @@ impl GpuRenderer {
     pub fn debug_nearest_image_shader(&mut self, enabled: bool) {
         self.nearest_image_shader = enabled;
     }
+    /// Opt in to exact quad clip-interior shortcuts with identical batches.
+    /// Blur-composite coverage retains the reference algorithm.
+    pub fn debug_clip_interiors(&mut self, enabled: bool) {
+        self.clip_interiors = enabled;
+    }
     /// Ablate opaque-fill decomposition while retaining the same shader selection.
     pub fn debug_opaque_interiors(&mut self, enabled: bool) {
         self.opaque_interiors = enabled;
@@ -5152,6 +5168,7 @@ fn quad_pipeline(
     blend: bool,
     drawable: Option<wgpu::TextureFormat>,
     shading: Shading,
+    clip_interiors: bool,
 ) -> wgpu::RenderPipeline {
     let basic = matches!(shading, Shading::Basic | Shading::Opaque);
     let blend = blend.then_some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING);
@@ -5193,11 +5210,20 @@ fn quad_pipeline(
             }),
             compilation_options: wgpu::PipelineCompilationOptions {
                 constants: if shading == Shading::NearestImage {
-                    &[("gaussian_shadows", 0.), ("nearest_images", 1.)]
+                    &[
+                        ("gaussian_shadows", 0.),
+                        ("nearest_images", 1.),
+                        ("clip_interiors", if clip_interiors { 1. } else { 0. }),
+                    ]
                 } else if shading == Shading::RegularFull {
-                    &[("gaussian_shadows", 0.)]
-                } else {
+                    &[
+                        ("gaussian_shadows", 0.),
+                        ("clip_interiors", if clip_interiors { 1. } else { 0. }),
+                    ]
+                } else if basic {
                     &[]
+                } else {
+                    &[("clip_interiors", if clip_interiors { 1. } else { 0. })]
                 },
                 ..Default::default()
             },
