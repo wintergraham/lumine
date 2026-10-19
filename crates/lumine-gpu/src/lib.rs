@@ -18,6 +18,7 @@ mod native_surface;
 mod paint_geometry;
 mod procedural;
 pub mod profiling;
+mod draw_diagnostics;
 mod surface;
 mod upload;
 pub use surface::PresentationStatus;
@@ -775,6 +776,7 @@ struct LayerCache {
 }
 #[derive(Clone)]
 struct Draw {
+    diagnostic_source: Option<draw_diagnostics::Source>,
     transform: lumine::affine::Affine,
     geometry_offset: u32,
     geometry_hash: u64,
@@ -2363,6 +2365,8 @@ impl GpuRenderer {
             border: [0.; 4],
             mask: NO_MASK,
         });
+        let diagnose = !self.in_layer && self.profiler.get_mut().as_mut()
+            .is_some_and(|p| p.begin_draw_diagnostics());
         let mut draws = Vec::new();
         self.geometry.begin();
         let element_profiler = scene.profiler();
@@ -2491,6 +2495,8 @@ impl GpuRenderer {
                     }),
                 });
                 draws.push(Draw {
+                    diagnostic_source: diagnose.then(|| draw_diagnostics::Source::new(
+                        &item, self.geometry.clip_count(geometry_offset))),
                     transform: lumine::affine::Affine::IDENTITY,
                     geometry_offset,
                     geometry_hash,
@@ -3210,6 +3216,8 @@ impl GpuRenderer {
             }
             if quads.len() as u32 > start || item.effects.blur_radius > 0. {
                 let draw = Draw {
+                    diagnostic_source: diagnose.then(|| draw_diagnostics::Source::new(
+                        &item, self.geometry.clip_count(geometry_offset))),
                     transform: item.transform,
                     geometry_offset,
                     geometry_hash,
@@ -3415,7 +3423,7 @@ impl GpuRenderer {
             self.blur_algorithm,
         );
         for (segment, end) in splits.iter().copied().chain([draws.len()]).enumerate() {
-            if defer && end == draws.len() {
+            if defer && !diagnose && end == draws.len() {
                 stats.render_passes += 1;
                 *self.deferred.get_mut() = Some(Deferred {
                     vertices: vertices.clone(),
@@ -3430,12 +3438,23 @@ impl GpuRenderer {
                 });
                 break;
             }
-            if segment == 0 || end > from {
+            if diagnose && (segment == 0 || end > from) {
+                let stage = if splits.is_empty() { "repaint" }
+                    else if segment == 0 { "pre_blur" } else { "post_blur" };
+                self.encode_diagnostic_segment(
+                    &mut encoder, &vertices, &quads, &regions, &draws[from..end],
+                    &first, segment == 0, vertical.take(), stage, &mut stats,
+                );
+            } else if segment == 0 || end > from {
                 stats.render_passes += 1;
                 let stamp = self.profile_pass(if self.in_layer {
                     "layer_repaint"
-                } else {
+                } else if splits.is_empty() {
                     "repaint"
+                } else if segment == 0 {
+                    "repaint_pre_blur"
+                } else {
+                    "repaint_post_blur"
                 });
                 let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("damage"),
@@ -3646,7 +3665,9 @@ impl GpuRenderer {
         // Not presented (skipped, hidden or read back): draw it the two-pass
         // way so the retained target is complete.
         if let Some(deferred) = self.deferred.borrow_mut().take() {
-            let stamp = self.profile_pass("deferred_repaint");
+            let stamp = self.profile_pass(if deferred.blur.is_some() {
+                "deferred_repaint_post_blur"
+            } else { "deferred_repaint" });
             let mut pass = pending.begin_render_pass(&wgpu::RenderPassDescriptor {
                 timestamp_writes: stamp.as_ref().map(|s| s.writes()),
                 label: Some("damage"),
@@ -3902,59 +3923,13 @@ impl GpuRenderer {
         first: u32,
         stats: &mut GpuStats,
     ) {
-        let mut batch: Option<Batch> = None;
-        // The pipeline set on `pass`: the caller's, until a batch sets one.
         let mut current = None;
-        // Skipping blending pays for its extra draws only over many pixels:
-        // a small region (a scrolled-in strip) blends plain quads in one draw.
-        let pixels = region.width * region.height * self.scale * self.scale;
-        let unblended = pixels >= SPLIT_PIXELS;
-        for draw in draws {
-            let shading = match draw.shading {
-                Shading::Opaque if !unblended => Shading::Basic,
-                shading => shading,
-            };
-            if !region.intersects(draw.bounds) || draw.end <= draw.start.max(first) {
-                continue;
-            }
-            let start = draw.start.max(first);
-            let Some(rect) = region.intersection(draw.clip) else {
-                if let Some(done) = batch.take() {
-                    self.encode_batch(pass, pipelines, &mut current, done, stats);
-                }
-                continue;
-            };
-            let source = (draw.image, draw.layer);
-            match &mut batch {
-                Some(open)
-                    if open.rect == rect
-                        && open.end == start
-                        && open.source == source
-                        && open.shading == shading
-                        && open.geometry_offset == draw.geometry_offset =>
-                {
-                    open.end = draw.end;
-                }
-                _ => {
-                    if let Some(done) = batch.take() {
-                        self.encode_batch(pass, pipelines, &mut current, done, stats);
-                    }
-                    batch = Some(Batch {
-                        geometry_offset: draw.geometry_offset,
-                        geometry: draw.geometry.clone(),
-                        rect,
-                        source,
-                        shading,
-                        start,
-                        end: draw.end,
-                    });
-                }
-            }
-        }
-        if let Some(done) = batch.take() {
-            self.encode_batch(pass, pipelines, &mut current, done, stats);
+        let unblended = region.width * region.height * self.scale * self.scale >= SPLIT_PIXELS;
+        for batch in draw_diagnostics::batches(draws, region, first, unblended) {
+            self.encode_batch(pass, pipelines, &mut current, batch, stats);
         }
     }
+
     fn encode_batch<'p>(
         &self,
         pass: &mut wgpu::RenderPass<'_>,
@@ -4949,6 +4924,15 @@ impl GpuRenderer {
             None
         };
         self.profiler.borrow().is_some()
+    }
+    /// Diagnose the next nonempty offscreen root redraw, once. Requires GPU profiling.
+    /// The first 48 batches starting at `first_batch` and up to 16 other large
+    /// image batches get individual pass slices. Other batches stay aggregated.
+    /// Pass partitioning perturbs GPU cost; disable this for throughput acceptance.
+    pub fn arm_gpu_draw_diagnostics(&mut self, first_batch: u32) -> bool {
+        if self.surface.is_some() { return false; }
+        self.flush_pending_inner(true);
+        self.profiler.get_mut().as_mut().is_some_and(|p| p.arm_draw_diagnostics(first_batch))
     }
     /// Poll completed timestamps without waiting for GPU work.
     pub fn take_gpu_profiles(&self) -> Vec<profiling::GpuFrameProfile> {

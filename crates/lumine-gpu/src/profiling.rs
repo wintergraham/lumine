@@ -1,5 +1,6 @@
 //! Opt-in, bounded GPU timestamp collection. Normal rendering never waits.
 //! Read results with GpuRenderer::take_gpu_profiles after polling the device.
+pub use crate::draw_diagnostics::{DrawBatch, DrawDiagnostics, DrawPass, DrawSource};
 use std::{collections::VecDeque, sync::mpsc};
 // Large native boards can animate hundreds of independent layers. Keep their
 // scopes measurable without silently truncating most of an active frame. The
@@ -15,24 +16,41 @@ pub struct GpuSpan {
 #[derive(Clone, Debug)]
 pub struct GpuFrameProfile {
     pub frame: u64,
+    /// Envelope of the recorded queries. Diagnostic frames can omit pairs when
+    /// capacity is low; inspect draw_diagnostics.missing_timestamp_pairs.
     pub duration_ms: f64,
     pub spans: Vec<GpuSpan>,
+    pub draw_diagnostics: Option<DrawDiagnostics>,
 }
-fn profile(frame: u64, labels: &[&'static str], ticks: &[u64], period: f64) -> Option<GpuFrameProfile> {
+fn profile(
+    frame: u64,
+    labels: &[&'static str],
+    ticks: &[u64],
+    period: f64,
+) -> Option<GpuFrameProfile> {
     let ticks = ticks.get(..labels.len() * 2)?;
-    if labels.is_empty() || ticks.chunks_exact(2).any(|pair| pair[0] == 0 || pair[1] < pair[0]) {
+    if labels.is_empty()
+        || ticks
+            .chunks_exact(2)
+            .any(|pair| pair[0] == 0 || pair[1] < pair[0])
+    {
         return None;
     }
     let base = *ticks.iter().min()?;
     let last = *ticks.iter().max()?;
     Some(GpuFrameProfile {
         frame,
+        draw_diagnostics: None,
         duration_ms: (last - base) as f64 * period,
-        spans: labels.iter().enumerate().map(|(i, label)| GpuSpan {
-            label,
-            offset_ms: (ticks[2 * i] - base) as f64 * period,
-            duration_ms: (ticks[2 * i + 1] - ticks[2 * i]) as f64 * period,
-        }).collect(),
+        spans: labels
+            .iter()
+            .enumerate()
+            .map(|(i, label)| GpuSpan {
+                label,
+                offset_ms: (ticks[2 * i] - base) as f64 * period,
+                duration_ms: (ticks[2 * i + 1] - ticks[2 * i]) as f64 * period,
+            })
+            .collect(),
     })
 }
 pub(crate) struct PassStamp {
@@ -41,6 +59,9 @@ pub(crate) struct PassStamp {
     end: u32,
 }
 impl PassStamp {
+    pub(crate) fn span_index(&self) -> usize {
+        self.start as usize / 2
+    }
     pub fn compute_writes(&self) -> wgpu::ComputePassTimestampWrites<'_> {
         wgpu::ComputePassTimestampWrites {
             query_set: &self.set,
@@ -64,6 +85,7 @@ struct Slot {
     frame: u64,
     ready: Option<mpsc::Receiver<Result<(), wgpu::BufferAsyncError>>>,
     overflowed: bool,
+    draw_diagnostics: Option<DrawDiagnostics>,
 }
 impl Slot {
     fn new(device: &wgpu::Device) -> Self {
@@ -89,6 +111,7 @@ impl Slot {
             frame: 0,
             ready: None,
             overflowed: false,
+            draw_diagnostics: None,
         }
     }
 }
@@ -101,6 +124,7 @@ pub(crate) struct Profiler {
     encoders: bool,
     frame: u64,
     pub dropped: u64,
+    draw_request: Option<u32>,
 }
 impl Profiler {
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue) -> Option<Self> {
@@ -116,14 +140,18 @@ impl Profiler {
                 // Metal's out-of-pass timestamps use blit encoders. Empty blits
                 // can return zero timestamps, invalidating an otherwise valid
                 // frame. Measure real render/compute pass boundaries instead.
-                encoders: !cfg!(target_os = "macos") && device
-                    .features()
-                    .contains(wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS),
+                encoders: !cfg!(target_os = "macos")
+                    && device
+                        .features()
+                        .contains(wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS),
                 frame: 0,
                 dropped: 0,
+                draw_request: None,
             })
     }
-    pub(crate) fn frame_id(&self) -> u64 { self.frame }
+    pub(crate) fn frame_id(&self) -> u64 {
+        self.frame
+    }
     pub fn begin(&mut self, device: &wgpu::Device) {
         self.poll();
         // No command buffer for an idle frame.
@@ -137,9 +165,34 @@ impl Profiler {
         }
         let mut slot = self.free.pop().unwrap_or_else(|| Slot::new(device));
         slot.labels.clear();
+        slot.draw_diagnostics = None;
         slot.overflowed = false;
         slot.frame = self.frame;
         self.active = Some(slot);
+    }
+    pub(crate) fn arm_draw_diagnostics(&mut self, first_batch: u32) -> bool {
+        self.draw_request = Some(first_batch);
+        true
+    }
+    pub(crate) fn begin_draw_diagnostics(&mut self) -> bool {
+        let Some(slot) = self.active.as_mut() else {
+            return false;
+        };
+        let Some(first) = self.draw_request.take() else {
+            return false;
+        };
+        slot.draw_diagnostics = Some(DrawDiagnostics::new(first));
+        true
+    }
+    pub(crate) fn draw_diagnostics(&mut self) -> Option<&mut DrawDiagnostics> {
+        self.active.as_mut()?.draw_diagnostics.as_mut()
+    }
+    pub(crate) fn draw_pass(&mut self, label: &'static str) -> Option<PassStamp> {
+        // Diagnostic queries never consume the tail reserved for normal work.
+        if self.active.as_ref()?.labels.len() + 1 + 64 > QUERIES as usize / 2 {
+            return None;
+        }
+        self.pass(label)
     }
     pub fn pass(&mut self, label: &'static str) -> Option<PassStamp> {
         let slot = self.active.as_mut()?;
@@ -220,8 +273,10 @@ impl Profiler {
                     .collect();
                 // A stalled consumer must not grow profiling memory indefinitely.
                 if self.completed.len() < MAX_PENDING * 8
-                    && let Some(profile) = profile(slot.frame, &slot.labels, &ticks, self.period)
+                    && let Some(mut profile) =
+                        profile(slot.frame, &slot.labels, &ticks, self.period)
                 {
+                    profile.draw_diagnostics = slot.draw_diagnostics.take();
                     self.completed.push(profile);
                 } else {
                     self.dropped += 1;

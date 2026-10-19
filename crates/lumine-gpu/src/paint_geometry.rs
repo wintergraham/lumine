@@ -121,6 +121,10 @@ impl FrameGeometry {
         self.parameters.resize(offset + self.stride, 0);
         offset as u32
     }
+    pub(super) fn clip_count(&self, offset: u32) -> u32 {
+        let bytes = &self.parameters[offset as usize..][..std::mem::size_of::<Parameters>()];
+        bytemuck::pod_read_unaligned::<Parameters>(bytes).metadata[1]
+    }
     pub fn item(&mut self, item: &PaintItem<'_>, scale: f32) -> Result<(u32, u64), GpuError> {
         if item.transform == Affine::IDENTITY
             && item.clip_regions.is_empty()
