@@ -73,6 +73,400 @@ impl fmt::Display for GpuError {
     }
 }
 impl std::error::Error for GpuError {}
+
+/// Validation only. These limits cover a frame and all retained font/raster evidence.
+#[derive(Clone, Copy, Debug)]
+pub struct GlyphEvidenceLimits {
+    pub nodes: usize,
+    pub glyphs: usize,
+    pub fonts: usize,
+    pub font_bytes: usize,
+    pub clip_regions: usize,
+}
+impl Default for GlyphEvidenceLimits {
+    fn default() -> Self {
+        Self {
+            nodes: 1024,
+            glyphs: 65536,
+            fonts: 64,
+            font_bytes: 64 * 1024 * 1024,
+            clip_regions: 8192,
+        }
+    }
+}
+
+/// Bytes from `FontSystem::get_font(id, weight).data()`, copied once per pair.
+/// The host must hash these bytes with SHA-256 and bind the collection index.
+#[derive(Debug)]
+pub struct NativeFontEvidence {
+    pub font_id: cosmic_text::fontdb::ID,
+    pub weight: u16,
+    pub collection_index: u32,
+    pub bytes: Vec<u8>,
+    /// The current cosmic-text API does not expose the actual shaper/scaler
+    /// coordinates. None means strictly unknown, including for static fonts.
+    pub variation_coordinates: Option<Vec<([u8; 4], f32)>>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NativeGlyphContent {
+    Mask,
+    SubpixelMask,
+    Color,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NativeGlyphStatus {
+    MissingGlyph,
+    RasterUnavailable,
+    WhitespaceNoInk,
+    ZeroInk,
+    ColorUnsupported,
+    SubpixelMaskUnsupported,
+    Mask,
+}
+/// The result returned by the actual atlas rasterization, before upload.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NativeGlyphRaster {
+    pub content: Option<NativeGlyphContent>,
+    /// left, top, width, height in physical pixels, without the atlas gutter.
+    pub placement: [i64; 4],
+    pub has_ink: bool,
+}
+impl NativeGlyphRaster {
+    fn from_image(image: Option<&cosmic_text::SwashImage>) -> Self {
+        let Some(image) = image else {
+            return Self {
+                content: None,
+                placement: [0; 4],
+                has_ink: false,
+            };
+        };
+        let content = match image.content {
+            SwashContent::Mask => NativeGlyphContent::Mask,
+            SwashContent::SubpixelMask => NativeGlyphContent::SubpixelMask,
+            SwashContent::Color => NativeGlyphContent::Color,
+        };
+        let has_ink = image.placement.width > 0
+            && image.placement.height > 0
+            && match content {
+                NativeGlyphContent::Mask => image.data.iter().any(|a| *a != 0),
+                NativeGlyphContent::Color => image.data.chunks_exact(4).any(|p| p[3] != 0),
+                NativeGlyphContent::SubpixelMask => image
+                    .data
+                    .chunks_exact(4)
+                    .any(|p| p[..3].iter().any(|a| *a != 0)),
+            };
+        let p = image.placement;
+        Self {
+            content: Some(content),
+            placement: [
+                i64::from(p.left),
+                i64::from(p.top),
+                i64::from(p.width),
+                i64::from(p.height),
+            ],
+            has_ink,
+        }
+    }
+    fn status(self, glyph_id: u16, whitespace: bool) -> NativeGlyphStatus {
+        if glyph_id == 0 {
+            return NativeGlyphStatus::MissingGlyph;
+        }
+        match self.content {
+            Some(NativeGlyphContent::Color) => NativeGlyphStatus::ColorUnsupported,
+            Some(NativeGlyphContent::SubpixelMask) => NativeGlyphStatus::SubpixelMaskUnsupported,
+            _ if !self.has_ink && whitespace => NativeGlyphStatus::WhitespaceNoInk,
+            Some(_) if !self.has_ink => NativeGlyphStatus::ZeroInk,
+            None => NativeGlyphStatus::RasterUnavailable,
+            Some(NativeGlyphContent::Mask) => NativeGlyphStatus::Mask,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct NativeGlyphShape {
+    /// Absolute UTF-8 byte offsets in the node's original text.
+    pub cluster_start: usize,
+    pub cluster_end: usize,
+    pub source_line: usize,
+    pub layout_line: usize,
+    pub paragraph_rtl: bool,
+    pub bidi_level: u8,
+    /// Logical layout units. Offsets are in em units, as returned by cosmic-text.
+    pub advance: f32,
+    pub offset: [f32; 2],
+    pub position: [f32; 2],
+    pub line_baseline: f32,
+    pub font_size: f32,
+    pub whitespace: bool,
+    pub cache_key: CacheKey,
+}
+#[derive(Debug)]
+pub struct NativeGlyphQuad {
+    /// Exact instance rectangle before its paint transform, in logical units.
+    pub bounds: Rect,
+    /// Clockwise corners starting at top left, after paint transform and layer origin.
+    pub scene_points: [[f32; 2]; 4],
+    pub physical_points: [[f32; 2]; 4],
+    /// False when the actual CPU clip culled this generated quad.
+    pub emitted: bool,
+}
+#[derive(Debug)]
+pub struct NativeGlyphEvidence {
+    pub shape: NativeGlyphShape,
+    pub font_index: usize,
+    pub raster_cache_key: CacheKey,
+    pub raster: NativeGlyphRaster,
+    pub status: NativeGlyphStatus,
+    pub quad: Option<NativeGlyphQuad>,
+}
+#[derive(Debug)]
+pub struct NativeTextEvidence {
+    pub scene_node_id: NodeId,
+    pub layer: Option<NodeId>,
+    pub shape_cached: bool,
+    pub bounds: Rect,
+    pub transform: lumine::affine::Affine,
+    pub layer_origin: (f32, f32),
+    pub clip: Rect,
+    pub draw_clip: Rect,
+    pub clip_regions: Vec<lumine::scene::PaintClip>,
+    /// Additional text allocation clip installed by FrameGeometry::item.
+    pub allocation_clip: Option<lumine::scene::PaintClip>,
+    pub mask: Option<lumine::scene::FadeMask>,
+    pub fade_transform: lumine::affine::Affine,
+    pub opacity: f32,
+    pub edge_fade: f32,
+    pub blur_radius: f32,
+    pub glyphs: Vec<NativeGlyphEvidence>,
+}
+/// The actual draw compositing a world-rasterized isolated layer. Follow
+/// parent_layer to retain the clips, masks and opacity applied after glyph draw.
+#[derive(Debug)]
+pub struct NativeGlyphLayer {
+    pub scene_node_id: NodeId,
+    pub parent_layer: Option<NodeId>,
+    pub layer_origin: (f32, f32),
+    pub quad_bounds: Rect,
+    pub allocation: Rect,
+    /// Layer quads are world-rasterized and drawn with an identity vertex map.
+    /// This original map supplies the fragment allocation/fade inverse.
+    pub allocation_transform: lumine::affine::Affine,
+    pub clip: Rect,
+    pub clip_regions: Vec<lumine::scene::PaintClip>,
+    pub allocation_clip: Option<lumine::scene::PaintClip>,
+    pub mask: Option<lumine::scene::FadeMask>,
+    pub fade_transform: lumine::affine::Affine,
+    pub effects: lumine::scene::Effects,
+}
+/// Actual native observations only. This cannot establish parity or authorize a
+/// font raster allowance without independently shaped source evidence.
+#[derive(Debug)]
+pub struct NativeGlyphFrame {
+    pub scale: f32,
+    pub full_repaint: bool,
+    pub shapes_cleared_on_enable: bool,
+    pub nodes: Vec<NativeTextEvidence>,
+    pub layers: Vec<NativeGlyphLayer>,
+    /// Retained across collected frames; glyph font_index values index this list.
+    pub fonts: Vec<NativeFontEvidence>,
+}
+struct GlyphEvidenceCollector {
+    limits: GlyphEvidenceLimits,
+    frame: NativeGlyphFrame,
+    rasters: FxHashMap<CacheKey, NativeGlyphRaster>,
+    failure: Option<&'static str>,
+    complete: bool,
+    glyphs: usize,
+    clips: usize,
+    font_bytes: usize,
+    layer: Option<NodeId>,
+}
+impl GlyphEvidenceCollector {
+    fn fail(&mut self, reason: &'static str) {
+        self.failure.get_or_insert(reason);
+    }
+    fn font(&mut self, fonts: &mut FontSystem, key: CacheKey) -> Option<usize> {
+        if let Some(index) = self
+            .frame
+            .fonts
+            .iter()
+            .position(|f| f.font_id == key.font_id && f.weight == key.font_weight.0)
+        {
+            return Some(index);
+        }
+        let Some(font) = fonts.get_font(key.font_id, key.font_weight) else {
+            self.fail("actual glyph font unavailable");
+            return None;
+        };
+        let Some(face) = fonts.db().face(key.font_id) else {
+            self.fail("actual font collection index unavailable");
+            return None;
+        };
+        if self.frame.fonts.len() >= self.limits.fonts
+            || font.data().len() > self.limits.font_bytes.saturating_sub(self.font_bytes)
+        {
+            self.fail("font evidence limit exceeded");
+            return None;
+        }
+        let index = self.frame.fonts.len();
+        self.font_bytes += font.data().len();
+        self.frame.fonts.push(NativeFontEvidence {
+            font_id: key.font_id,
+            weight: key.font_weight.0,
+            collection_index: face.index,
+            bytes: font.data().to_vec(),
+            variation_coordinates: None,
+        });
+        Some(index)
+    }
+    fn raster(&mut self, key: CacheKey, image: Option<&cosmic_text::SwashImage>) {
+        if self.failure.is_some() {
+            return;
+        }
+        if !self.rasters.contains_key(&key) && self.rasters.len() >= self.limits.glyphs {
+            self.fail("raster evidence limit exceeded");
+            return;
+        }
+        self.rasters
+            .insert(key, NativeGlyphRaster::from_image(image));
+    }
+    fn text_node(
+        &mut self,
+        fonts: &mut FontSystem,
+        item: &lumine::scene::PaintItem<'_>,
+        shaped: &Shaped,
+        shape_cached: bool,
+        clip: Rect,
+        affine_geometry: bool,
+        layer_origin: (f32, f32),
+        scale: f32,
+    ) {
+        if self.failure.is_some() {
+            return;
+        }
+        let Some(metadata) = &shaped.glyph_metadata else {
+            self.fail("cached shape has no glyph evidence");
+            return;
+        };
+        if metadata.len() != shaped.glyphs.len() {
+            self.fail("shape glyph evidence is incomplete");
+            return;
+        }
+        let clip_count = item.clip_regions.len() + usize::from(affine_geometry);
+        if self.frame.nodes.len() + self.frame.layers.len() >= self.limits.nodes
+            || metadata.len() > self.limits.glyphs.saturating_sub(self.glyphs)
+            || clip_count > self.limits.clip_regions.saturating_sub(self.clips)
+        {
+            self.fail("frame glyph/node/clip evidence limit exceeded");
+            return;
+        }
+        let mut glyphs = Vec::with_capacity(metadata.len());
+        for m in metadata {
+            let Some(font_index) = self.font(fonts, m.raster_key) else {
+                return;
+            };
+            let Some(raster) = self.rasters.get(&m.raster_key).copied() else {
+                self.fail("actual cached raster evidence unavailable");
+                return;
+            };
+            let quad = m.quad_index.map(|index| {
+                let q = shaped.quads[index].rect;
+                let bounds = Rect::new(q[0] + item.bounds.x, q[1] + item.bounds.y, q[2], q[3]);
+                let scene_points = [
+                    (bounds.x, bounds.y),
+                    (bounds.x + bounds.width, bounds.y),
+                    (bounds.x + bounds.width, bounds.y + bounds.height),
+                    (bounds.x, bounds.y + bounds.height),
+                ]
+                .map(|(x, y)| {
+                    let (x, y) = item.transform.point(x, y);
+                    [x + layer_origin.0, y + layer_origin.1]
+                });
+                NativeGlyphQuad {
+                    bounds,
+                    scene_points,
+                    physical_points: scene_points.map(|p| [p[0] * scale, p[1] * scale]),
+                    emitted: false,
+                }
+            });
+            glyphs.push(NativeGlyphEvidence {
+                shape: m.shape.clone(),
+                font_index,
+                raster_cache_key: m.raster_key,
+                raster,
+                status: raster.status(m.shape.cache_key.glyph_id, m.shape.whitespace),
+                quad,
+            });
+        }
+        self.glyphs += glyphs.len();
+        self.clips += clip_count;
+        self.frame.nodes.push(NativeTextEvidence {
+            scene_node_id: item.id,
+            layer: self.layer,
+            shape_cached,
+            bounds: item.bounds,
+            transform: item.transform,
+            layer_origin,
+            clip,
+            draw_clip: clip,
+            clip_regions: item.clip_regions.to_vec(),
+            allocation_clip: affine_geometry.then(|| lumine::scene::PaintClip {
+                bounds: item.bounds,
+                inverse: item.transform.inverse().unwrap_or_default(),
+                axes: [true, true],
+                corners: [0.; 4],
+            }),
+            mask: item.mask,
+            fade_transform: item.fade_transform,
+            opacity: item.effects.opacity,
+            edge_fade: item.effects.edge_fade,
+            blur_radius: item.effects.blur_radius,
+            glyphs,
+        });
+    }
+    fn composite(
+        &mut self,
+        item: &lumine::scene::PaintItem<'_>,
+        bounds: Rect,
+        clip: Rect,
+        affine_geometry: bool,
+        layer_origin: (f32, f32),
+    ) {
+        if self.failure.is_some() {
+            return;
+        }
+        let text_clip = affine_geometry
+            && matches!(item.kind, NodeKind::Text { .. } | NodeKind::RichText { .. });
+        let clip_count = item.clip_regions.len() + usize::from(text_clip);
+        if self.frame.nodes.len() + self.frame.layers.len() >= self.limits.nodes
+            || clip_count > self.limits.clip_regions.saturating_sub(self.clips)
+        {
+            self.fail("layer/node/clip evidence limit exceeded");
+            return;
+        }
+        self.clips += clip_count;
+        self.frame.layers.push(NativeGlyphLayer {
+            scene_node_id: item.id,
+            parent_layer: self.layer,
+            layer_origin,
+            quad_bounds: bounds,
+            allocation: item.bounds,
+            allocation_transform: item.transform,
+            clip,
+            clip_regions: item.clip_regions.to_vec(),
+            mask: item.mask,
+            allocation_clip: text_clip.then(|| lumine::scene::PaintClip {
+                bounds: item.bounds,
+                inverse: item.transform.inverse().unwrap_or_default(),
+                axes: [true, true],
+                corners: [0.; 4],
+            }),
+            fade_transform: item.fade_transform,
+            effects: item.effects,
+        });
+    }
+}
 #[derive(Default, Debug, Clone, Copy)]
 pub struct GpuStats {
     pub draw_calls: usize,
@@ -529,6 +923,7 @@ fn scroll_item_bounds(
 }
 /// Positioned glyphs of laid-out runs; rich text takes each glyph's colour
 /// from its run (it is shaped without colours, see `rich_buffer_raw`).
+#[cfg(test)]
 fn glyphs_of<'a>(
     runs: impl Iterator<Item = cosmic_text::LayoutRun<'a>>,
     starts: &[usize],
@@ -536,8 +931,26 @@ fn glyphs_of<'a>(
     font: &lumine::text_layout::FontStyle,
     scale: f32,
 ) -> Vec<Glyph> {
+    collect_glyphs(runs, starts, rich, font, scale, "", None).0
+}
+fn collect_glyphs<'a>(
+    runs: impl Iterator<Item = cosmic_text::LayoutRun<'a>>,
+    starts: &[usize],
+    rich: Option<&lumine::rich_text::RichText>,
+    font: &lumine::text_layout::FontStyle,
+    scale: f32,
+    source: &str,
+    mut evidence: Option<&mut GlyphEvidenceCollector>,
+) -> (Vec<Glyph>, Option<Vec<GlyphMetadata>>) {
+    let mut metadata = evidence.as_ref().map(|_| Vec::new());
     let mut glyphs = Vec::new();
-    for run in runs {
+    for (layout_line, run) in runs.enumerate() {
+        if let Some(evidence) = evidence.as_deref_mut() {
+            if source.get(starts[run.line_i]..starts[run.line_i] + run.text.len()) != Some(run.text)
+            {
+                evidence.fail("display text has no exact original UTF-8 cluster mapping");
+            }
+        }
         for glyph in run.glyphs {
             let p = glyph.physical((0., 0.), scale);
             let run_index = rich.map_or(0, |rich| {
@@ -546,6 +959,38 @@ fn glyphs_of<'a>(
             let line_height = rich.map_or(font.line_height, |rich| {
                 rich.runs()[run_index].font.line_height
             });
+            if let Some(evidence) = evidence.as_deref_mut() {
+                if glyphs.len() >= evidence.limits.glyphs {
+                    evidence.fail("shape glyph evidence limit exceeded");
+                }
+                if evidence.failure.is_none() {
+                    let cluster = run.text.get(glyph.start..glyph.end);
+                    if cluster.is_none() {
+                        evidence.fail("invalid shaped UTF-8 cluster");
+                    }
+                    metadata.as_mut().unwrap().push(GlyphMetadata {
+                        shape: NativeGlyphShape {
+                            cluster_start: starts[run.line_i] + glyph.start,
+                            cluster_end: starts[run.line_i] + glyph.end,
+                            source_line: run.line_i,
+                            layout_line,
+                            paragraph_rtl: run.rtl,
+                            bidi_level: glyph.level.number(),
+                            advance: glyph.w,
+                            offset: [glyph.x_offset, glyph.y_offset],
+                            position: [glyph.x, glyph.y],
+                            line_baseline: run.line_y + line_height.baseline_offset(),
+                            font_size: glyph.font_size,
+                            whitespace: cluster.is_some_and(|s| {
+                                !s.is_empty() && s.chars().all(char::is_whitespace)
+                            }),
+                            cache_key: p.cache_key,
+                        },
+                        raster_key: p.cache_key,
+                        quad_index: None,
+                    });
+                }
+            }
             glyphs.push(Glyph {
                 key: p.cache_key,
                 color: match rich {
@@ -560,7 +1005,7 @@ fn glyphs_of<'a>(
             });
         }
     }
-    glyphs
+    (glyphs, metadata)
 }
 /// A pixel rectangle: x, y, width, height.
 type Scissor = (u32, u32, u32, u32);
@@ -772,6 +1217,90 @@ mod glyph_baseline_tests {
         assert_eq!(raster.y_bin, cosmic_text::SubpixelBin::Two);
     }
 }
+struct GlyphMetadata {
+    shape: NativeGlyphShape,
+    raster_key: CacheKey,
+    quad_index: Option<usize>,
+}
+#[cfg(test)]
+mod glyph_evidence_tests {
+    use super::*;
+
+    #[test]
+    fn raster_status_never_confuses_blank_missing_or_color_with_mask_ink() {
+        let mut image = cosmic_text::SwashImage::new();
+        image.placement.width = 1;
+        image.placement.height = 1;
+        image.data = vec![0];
+        let blank = NativeGlyphRaster::from_image(Some(&image));
+        assert_eq!(blank.status(3, true), NativeGlyphStatus::WhitespaceNoInk);
+        assert_eq!(blank.status(1, false), NativeGlyphStatus::ZeroInk);
+        image.data[0] = 255;
+        let ink = NativeGlyphRaster::from_image(Some(&image));
+        assert_eq!(ink.status(0, false), NativeGlyphStatus::MissingGlyph);
+        assert_eq!(ink.status(36, false), NativeGlyphStatus::Mask);
+        let unavailable = NativeGlyphRaster::from_image(None);
+        assert_eq!(
+            unavailable.status(1, false),
+            NativeGlyphStatus::RasterUnavailable
+        );
+        assert_eq!(unavailable.status(0, true), NativeGlyphStatus::MissingGlyph);
+        image.content = SwashContent::Color;
+        image.data = vec![255, 255, 255, 0];
+        let transparent_color = NativeGlyphRaster::from_image(Some(&image));
+        assert!(!transparent_color.has_ink);
+        assert_eq!(
+            transparent_color.status(36, false),
+            NativeGlyphStatus::ColorUnsupported
+        );
+        image.data[3] = 255;
+        let color = NativeGlyphRaster::from_image(Some(&image));
+        assert!(color.has_ink);
+        assert_eq!(color.status(36, false), NativeGlyphStatus::ColorUnsupported);
+        image.content = SwashContent::SubpixelMask;
+        assert_eq!(
+            NativeGlyphRaster::from_image(Some(&image)).status(36, false),
+            NativeGlyphStatus::SubpixelMaskUnsupported
+        );
+    }
+
+    #[test]
+    fn absent_actual_font_invalidates_the_collector_without_a_font_blob() {
+        let mut evidence = GlyphEvidenceCollector {
+            limits: GlyphEvidenceLimits::default(),
+            frame: NativeGlyphFrame {
+                scale: 1.,
+                full_repaint: true,
+                shapes_cleared_on_enable: true,
+                nodes: Vec::new(),
+                layers: Vec::new(),
+                fonts: Vec::new(),
+            },
+            rasters: FxHashMap::default(),
+            failure: None,
+            complete: false,
+            glyphs: 0,
+            clips: 0,
+            font_bytes: 0,
+            layer: None,
+        };
+        let mut fonts = FontSystem::new_with_locale_and_db(
+            "en-US".into(),
+            cosmic_text::fontdb::Database::new(),
+        );
+        let (key, _, _) = CacheKey::new(
+            cosmic_text::fontdb::ID::dummy(),
+            36,
+            16.,
+            (0., 0.),
+            cosmic_text::Weight::NORMAL,
+            cosmic_text::CacheKeyFlags::empty(),
+        );
+        assert!(evidence.font(&mut fonts, key).is_none());
+        assert_eq!(evidence.failure, Some("actual glyph font unavailable"));
+        assert!(evidence.frame.fonts.is_empty());
+    }
+}
 struct Shaped {
     rich: Option<Arc<lumine::rich_text::RichText>>,
     text_options: lumine::text_layout::TextOptions,
@@ -783,6 +1312,8 @@ struct Shaped {
     height: f32,
     unwrapped: bool,
     glyphs: Vec<Glyph>,
+    /// Allocated only while explicit validation evidence collection is enabled.
+    glyph_metadata: Option<Vec<GlyphMetadata>>,
     quads: Vec<Quad>,
     atlas_epoch: u64,
     /// Fractional physical node origin used for the cached glyph rasters.
@@ -799,6 +1330,10 @@ impl Shaped {
             + self.font.storage_bytes()
             + self.decorations.capacity() * std::mem::size_of::<text::RichDecoration>()
             + self.glyphs.capacity() * std::mem::size_of::<Glyph>()
+            + self
+                .glyph_metadata
+                .as_ref()
+                .map_or(0, |m| m.capacity() * std::mem::size_of::<GlyphMetadata>())
             + self.quads.capacity() * std::mem::size_of::<Quad>()
     }
 }
@@ -1391,6 +1926,7 @@ pub struct GpuRenderer {
     layers: FxHashMap<NodeId, LayerCache>,
     layer_origin: (f32, f32),
     shapes: FxHashMap<NodeId, Shaped>,
+    glyph_evidence: Option<Box<GlyphEvidenceCollector>>,
     shaped_bytes: usize,
     fresh: bool,
     /// The scene flush the retained target was last rendered from.
@@ -1649,6 +2185,7 @@ impl GpuRenderer {
             layers: FxHashMap::default(),
             layer_origin: (0., 0.),
             shapes: FxHashMap::default(),
+            glyph_evidence: None,
             shaped_bytes: 0,
             fresh: true,
             rendered_serial: None,
@@ -1869,13 +2406,78 @@ impl GpuRenderer {
             .map(|p| blit_group(&self.device, p, &self.view));
         self.fresh = true;
     }
+    /// Explicit validation opt-in. Clears cached shapes and atlas entries once.
+    /// Collected frames repaint fully and reprepare isolated layers, while shapes
+    /// and rasters remain cached between frames. Keep this OFF for benchmarks.
+    pub fn enable_glyph_evidence(&mut self, limits: GlyphEvidenceLimits) {
+        self.flush_pending();
+        self.shapes.clear();
+        self.shaped_bytes = 0;
+        self.reset_atlas(self.atlas_size);
+        self.glyph_evidence = Some(Box::new(GlyphEvidenceCollector {
+            limits,
+            frame: NativeGlyphFrame {
+                scale: self.scale,
+                full_repaint: true,
+                shapes_cleared_on_enable: true,
+                nodes: Vec::new(),
+                layers: Vec::new(),
+                fonts: Vec::new(),
+            },
+            rasters: FxHashMap::default(),
+            failure: None,
+            complete: false,
+            glyphs: 0,
+            clips: 0,
+            font_bytes: 0,
+            layer: None,
+        }));
+        self.fresh = true;
+    }
+    pub fn disable_glyph_evidence(&mut self) {
+        self.glyph_evidence = None;
+        for shaped in self.shapes.values_mut() {
+            shaped.glyph_metadata = None;
+        }
+        self.shaped_bytes = self.shapes.values().map(Shaped::bytes).sum();
+    }
+    /// An overflow, missing font, unsupported source mapping or failed render
+    /// returns Err, never a partial successful frame. Errors persist until re-enabled.
+    pub fn glyph_evidence(&self) -> Result<Option<&NativeGlyphFrame>, &'static str> {
+        let Some(evidence) = self.glyph_evidence.as_deref() else {
+            return Ok(None);
+        };
+        if let Some(failure) = evidence.failure {
+            return Err(failure);
+        }
+        if !evidence.complete {
+            return Err("glyph evidence frame has not completed");
+        }
+        Ok(Some(&evidence.frame))
+    }
+    /// Move the complete frame and its font blobs to the host without copying
+    /// font bytes again. Successful extraction also disables collection.
+    pub fn take_glyph_evidence(&mut self) -> Result<Option<NativeGlyphFrame>, &'static str> {
+        self.glyph_evidence()?;
+        let frame = self.glyph_evidence.take().map(|e| e.frame);
+        self.disable_glyph_evidence();
+        Ok(frame)
+    }
     pub fn render(&mut self, scene: &Scene, damage: &[Rect]) -> Result<GpuStats, GpuError> {
         self.flush_pending_inner(true);
         if let Some(profiler) = self.profiler.get_mut() {
             profiler.begin(&self.device);
         }
         let presented = std::mem::take(&mut self.present_stats);
-        let mut stats = self.render_inner(scene, damage)?;
+        let mut stats = match self.render_inner(scene, damage) {
+            Ok(stats) => stats,
+            Err(error) => {
+                if let Some(evidence) = self.glyph_evidence.as_deref_mut() {
+                    evidence.fail("native render failed during glyph evidence collection");
+                }
+                return Err(error);
+            }
+        };
         stats.shader_dispatches = std::mem::take(&mut self.procedural.dispatches)
             + std::mem::take(&mut self.chain_cache.dispatches);
         stats.shader_resource_allocations = std::mem::take(&mut self.procedural.allocations)
@@ -1907,6 +2509,9 @@ impl GpuRenderer {
         }
         stats.draw_calls += presented.draw_calls;
         stats.instances += presented.instances;
+        if let Some(evidence) = self.glyph_evidence.as_deref_mut() {
+            evidence.complete = true;
+        }
         Ok(stats)
     }
     fn render_inner(&mut self, scene: &Scene, damage: &[Rect]) -> Result<GpuStats, GpuError> {
@@ -1926,6 +2531,15 @@ impl GpuRenderer {
         // A frame deferred but never presented draws into the retained target
         // before this one prunes images or layers it may reference.
         self.flush_pending();
+        if let Some(evidence) = self.glyph_evidence.as_deref_mut() {
+            evidence.frame.nodes.clear();
+            evidence.frame.layers.clear();
+            evidence.frame.scale = self.scale;
+            evidence.glyphs = 0;
+            evidence.clips = 0;
+            evidence.complete = false;
+            self.fresh = true;
+        }
         self.frame_image_ids.clear();
         if self.scene_identity != Some(scene.identity()) {
             self.scene_identity = Some(scene.identity());
@@ -2150,7 +2764,8 @@ impl GpuRenderer {
     ) -> Result<(), GpuError> {
         let revision = scene.layer_revision(id);
         let root = scene.bounds(id);
-        if let Some(cache) = self.layers.get_mut(&id)
+        if self.glyph_evidence.is_none()
+            && let Some(cache) = self.layers.get_mut(&id)
             && cache.revision == revision
             && [root.x - cache.root_origin.0, root.y - cache.root_origin.1]
                 .into_iter()
@@ -2294,11 +2909,18 @@ impl GpuRenderer {
         let in_layer = std::mem::replace(&mut self.in_layer, true);
         // `fresh` repaints the whole texture, slack included, so an earlier
         // larger frame never bleeds into sampling at the content's edge.
+        let previous_evidence_layer = self
+            .glyph_evidence
+            .as_deref_mut()
+            .and_then(|e| e.layer.replace(id));
         let result = self.render_flat(
             scene,
             local,
             &[Rect::new(0., 0., bounds.width, bounds.height)],
         );
+        if let Some(evidence) = self.glyph_evidence.as_deref_mut() {
+            evidence.layer = previous_evidence_layer;
+        }
         self.in_layer = in_layer;
         self.layer_origin = old_origin;
         let texture = std::mem::replace(&mut self.target, target);
@@ -2597,6 +3219,15 @@ impl GpuRenderer {
                         fade_parameters(rect, [top, bottom])
                     }),
                 });
+                if let Some(evidence) = self.glyph_evidence.as_deref_mut() {
+                    evidence.composite(
+                        &item,
+                        bounds,
+                        clip,
+                        geometry_offset != 0,
+                        self.layer_origin,
+                    );
+                }
                 draws.push(Draw {
                     diagnostic_source: diagnose.then(|| draw_diagnostics::Source::new(
                         &item, self.geometry.clip_count(geometry_offset))),
@@ -3067,12 +3698,14 @@ impl GpuRenderer {
                                 )
                             };
                             let starts = laid.line_starts();
-                            let glyphs = glyphs_of(
+                            let glyphs = collect_glyphs(
                                 laid.runs(Some(bounds.height)),
                                 &starts,
                                 None,
                                 &item.font,
                                 self.scale,
+                                text,
+                                self.glyph_evidence.as_deref_mut(),
                             );
                             Err((glyphs, Vec::new(), laid.key()))
                         } else if let Some(rich) = prepared {
@@ -3083,12 +3716,14 @@ impl GpuRenderer {
                                 cache.layout(&mut fonts, rich, Some(bounds.width))
                             };
                             let starts = laid.line_starts();
-                            let glyphs = glyphs_of(
+                            let glyphs = collect_glyphs(
                                 laid.runs(Some(bounds.height)),
                                 &starts,
                                 Some(rich),
                                 &item.font,
                                 self.scale,
+                                text,
+                                self.glyph_evidence.as_deref_mut(),
                             );
                             let decorations = text::rich_decorations_in(
                                 laid.runs(Some(bounds.height)),
@@ -3145,15 +3780,17 @@ impl GpuRenderer {
                             b.shape_until_scroll(&mut fonts, false);
                             Ok(b)
                         };
-                        let (glyphs, decorations, prepared) = match b {
+                        let ((glyphs, glyph_metadata), decorations, prepared) = match b {
                             Err((glyphs, decorations, key)) => (glyphs, decorations, Some(key)),
                             Ok(b) => (
-                                glyphs_of(
+                                collect_glyphs(
                                     b.layout_runs(),
                                     &text::line_starts(&b),
                                     rich.as_deref(),
                                     &item.font,
                                     self.scale,
+                                    text,
+                                    self.glyph_evidence.as_deref_mut(),
                                 ),
                                 rich.as_ref()
                                     .map_or_else(Vec::new, |rich| text::rich_decorations(&b, rich)),
@@ -3171,6 +3808,7 @@ impl GpuRenderer {
                             height: bounds.height,
                             unwrapped,
                             glyphs,
+                            glyph_metadata,
                             quads: Vec::new(),
                             atlas_epoch: 0,
                             raster_origin: (f32::NAN, f32::NAN),
@@ -3196,12 +3834,21 @@ impl GpuRenderer {
                                 .filter(|d| d.background)
                                 .map(rich_decoration_quad),
                         );
-                        for glyph in &shaped.glyphs {
+                        for (glyph_index, glyph) in shaped.glyphs.iter().enumerate() {
                             // Rasterize at the final physical phase. Translating an
                             // antialiased bitmap by a fraction of a pixel blurs it
                             // again; include the baseline before vertical hinting.
                             let (key, x, y) = glyph.at(origin);
-                            if let Some(a) = self.glyph(key, &mut stats)? {
+                            let atlas = self.glyph(key, &mut stats)?;
+                            if let Some(metadata) = shaped
+                                .glyph_metadata
+                                .as_mut()
+                                .and_then(|m| m.get_mut(glyph_index))
+                            {
+                                metadata.raster_key = key;
+                                metadata.quad_index = atlas.map(|_| shaped.quads.len());
+                            }
+                            if let Some(a) = atlas {
                                 shaped.quads.push(Quad {
                                     rect: [
                                         (x as f32 + a.left as f32 - origin.0) / self.scale,
@@ -3253,6 +3900,18 @@ impl GpuRenderer {
                         quad.options[0] = item.effects.edge_fade;
                         quads.push(quad);
                     }
+                    if let Some(evidence) = self.glyph_evidence.as_deref_mut() {
+                        evidence.text_node(
+                            &mut self.fonts.borrow_mut(),
+                            &item,
+                            &shaped,
+                            !stale,
+                            clip,
+                            geometry_offset != 0,
+                            self.layer_origin,
+                            self.scale,
+                        );
+                    }
                     shaped.last_used = self.frame;
                     let bytes = shaped.bytes();
                     if bytes <= SHAPE_BUDGET {
@@ -3294,12 +3953,12 @@ impl GpuRenderer {
             }
             let mut draw_clip = clip;
             let limit = snap_out(clip, self.scale);
-            if geometry_offset == 0
+            let cull_whole_quads = geometry_offset == 0
                 && item.effects.blur_radius <= 0.
                 && quads[start as usize..]
                     .iter()
-                    .all(|quad| quad.options[2] < 0.5 && !crosses(quad, limit))
-            {
+                    .all(|quad| quad.options[2] < 0.5 && !crosses(quad, limit));
+            if cull_whole_quads {
                 let mut kept = start as usize;
                 for index in start as usize..quads.len() {
                     if inside(&quads[index], limit) {
@@ -3309,6 +3968,26 @@ impl GpuRenderer {
                 }
                 quads.truncate(kept);
                 draw_clip = viewport;
+            }
+            if let Some(evidence) = self.glyph_evidence.as_deref_mut() {
+                if let Some(node) = evidence
+                    .frame
+                    .nodes
+                    .last_mut()
+                    .filter(|n| n.scene_node_id == item.id)
+                {
+                    node.draw_clip = draw_clip;
+                    for glyph in &mut node.glyphs {
+                        if let Some(quad) = &mut glyph.quad {
+                            let r = quad.bounds;
+                            quad.emitted = !cull_whole_quads
+                                || (r.x >= limit.x
+                                    && r.y >= limit.y
+                                    && r.x + r.width <= limit.x + limit.width
+                                    && r.y + r.height <= limit.y + limit.height);
+                        }
+                    }
+                }
             }
             // Draw.clip also defines backdrop filter outputs: never narrow a filter ROI.
             if item.effects.blur_radius <= 0. {
@@ -4643,10 +5322,13 @@ impl GpuRenderer {
                 "glyph metadata exceeds 8192 entries in one frame".into(),
             ));
         }
-        let Some(image) = self
+        let image = self
             .swash
-            .get_image_uncached(&mut self.fonts.borrow_mut(), key)
-        else {
+            .get_image_uncached(&mut self.fonts.borrow_mut(), key);
+        if let Some(evidence) = self.glyph_evidence.as_deref_mut() {
+            evidence.raster(key, image.as_ref());
+        }
+        let Some(image) = image else {
             self.entries.insert(key, None);
             return Ok(None);
         };
