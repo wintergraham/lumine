@@ -70,6 +70,9 @@ fn shadow_outside(point:vec2<f32>,rect:vec4<f32>,corners:vec4<f32>)->f32 {
  let bl=corner_outside(vec2(corners.w)-vec2(p.x,end.y),corners.w,point);
  return max(max(tl,tr),max(br,bl));
 }
+// Pipeline specialization removes the Gaussian loop from regular full draws.
+// The original entry points keep the default for reference and mixed batches.
+override gaussian_shadows:bool=true;
 fn shade(v:Out)->vec4<f32> {
  var color=v.color;
  let outer_shadow=v.shape.z>0. && v.options.w>1.5;
@@ -84,7 +87,7 @@ fn shade(v:Out)->vec4<f32> {
    let distance=length(max(q,vec2(0.)))+min(max(q.x,q.y),0.)-radius;
    if v.shape.z>0. {
      if v.shape.z<0.01 {let aa=select(1.,shape_pixel_width(q,v.point),geometry.metadata.w!=0u);color.a*=clamp(0.5-distance/aa,0.,1.);}
-     else {color.a*=gaussian_shadow(v.point,v.fade,clamp(v.border,vec4(0.),vec4(min(v.fade.z,v.fade.w)*0.5)),v.shape.z);}
+     else if gaussian_shadows {color.a*=gaussian_shadow(v.point,v.fade,clamp(v.border,vec4(0.),vec4(min(v.fade.z,v.fade.w)*0.5)),v.shape.z);}
    }
    // Analytic SDF gradient keeps coverage independent of 2x2 fragment groups
    // after an odd-pixel retained scroll, including rounded corners.
@@ -118,9 +121,11 @@ fn shade(v:Out)->vec4<f32> {
  return vec4(color.rgb*color.a,color.a);
 }
 @fragment fn fs(v:Out)->@location(0) vec4<f32> { return shade(v); }
+@fragment fn fs_regular(v:Out)->@location(0) vec4<f32> { return shade(v); }
 // Single-pass presentation: the same colour to the retained target and the drawable.
 struct Both { @location(0) retained:vec4<f32>, @location(1) drawable:vec4<f32> }
 @fragment fn fs_both(v:Out)->Both { let c=shade(v); return Both(c,c); }
+@fragment fn fs_regular_both(v:Out)->Both { let c=shade(v); return Both(c,c); }
 // Plain quads (no corners, borders, shadows, fades, masks or transforms):
 // most text and backgrounds. A software rasterizer runs a fragment shader on
 // the CPU for every pixel, and every branch of `shade` with it, so these use

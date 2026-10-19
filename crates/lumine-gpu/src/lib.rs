@@ -169,13 +169,18 @@ fn fade_parameters(rect: Rect, bands: [f32; 2]) -> [f32; 4] {
 /// How a quad is drawn, where drawing is split (see `push_draw`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Shading {
-    /// Corners, borders, shadows, fades, masks or transforms: `shade`.
+    /// Original full shader, including Gaussian shadows; also the A/B reference.
     Full,
+    /// All full-shader features except Gaussian shadows.
+    RegularFull,
     /// Colour, or colour times a texture sample: `basic`.
     Basic,
     /// An opaque flat colour: `basic` without blending, which reads every
     /// pixel it writes. Same pixels.
     Opaque,
+}
+fn gaussian_shadow(quad: &Quad) -> bool {
+    quad.options[2] < 0.5 && quad.shape[2] >= 0.01
 }
 fn shading(quad: &Quad, _scale: f32) -> Shading {
     // The basic shader preserves square-panel coverage at fractional pixels,
@@ -193,7 +198,11 @@ fn shading(quad: &Quad, _scale: f32) -> Shading {
         && quad.mask[2] == 0.
         && quad.mask[3] == 0.;
     if !plain {
-        Shading::Full
+        if gaussian_shadow(quad) {
+            Shading::Full
+        } else {
+            Shading::RegularFull
+        }
     } else if quad.options[1] <= 0.5 && quad.color[3] >= 1. && !square {
         Shading::Opaque
     } else {
@@ -208,6 +217,7 @@ struct QuadPipelines {
     shader: wgpu::ShaderModule,
     layout: wgpu::PipelineLayout,
     full: std::cell::OnceCell<wgpu::RenderPipeline>,
+    regular_full: std::cell::OnceCell<wgpu::RenderPipeline>,
     full_clear: std::cell::OnceCell<wgpu::RenderPipeline>,
     basic: std::cell::OnceCell<wgpu::RenderPipeline>,
     basic_clear: std::cell::OnceCell<wgpu::RenderPipeline>,
@@ -216,10 +226,11 @@ struct QuadPipelines {
 impl QuadPipelines {
     /// The pipeline drawing quads of `shading`.
     fn get(&self, shading: Shading) -> &wgpu::RenderPipeline {
-        let (cell, basic, blend) = match shading {
-            Shading::Full => (&self.full, false, true),
-            Shading::Basic => (&self.basic, true, true),
-            Shading::Opaque => (&self.basic_clear, true, false),
+        let (cell, blend) = match shading {
+            Shading::Full => (&self.full, true),
+            Shading::RegularFull => (&self.regular_full, true),
+            Shading::Basic => (&self.basic, true),
+            Shading::Opaque => (&self.basic_clear, false),
         };
         cell.get_or_init(|| {
             quad_pipeline(
@@ -228,7 +239,7 @@ impl QuadPipelines {
                 &self.layout,
                 blend,
                 self.drawable,
-                basic,
+                shading,
             )
         })
     }
@@ -244,7 +255,7 @@ impl QuadPipelines {
                     &self.layout,
                     false,
                     self.drawable,
-                    false,
+                    Shading::Full,
                 )
             })
         }
@@ -330,13 +341,21 @@ fn opaque_interior(quads: &mut Vec<Quad>, start: u32, scale: f32, clip: Rect, da
 /// `split`: software and integrated GPUs benefit from lighter shaders for
 /// backgrounds; discrete GPUs favor fewer draws through the full shader.
 fn push_draw(draws: &mut Vec<Draw>, quads: &[Quad], draw: Draw, split: bool, scale: f32) {
-    if draw.geometry_offset != 0
-        || !split
-        || draw.blur.is_some()
-        || draw.layer.is_some()
-        || draw.end <= draw.start
-    {
+    if !split || draw.end <= draw.start {
         draws.push(draw);
+        return;
+    }
+    if draw.geometry_offset != 0 || draw.blur.is_some() || draw.layer.is_some() {
+        // Preserve retained world bounds and bindings; Basic cannot read geometry.
+        let shading = if quads[draw.start as usize..draw.end as usize]
+            .iter()
+            .any(gaussian_shadow)
+        {
+            Shading::Full
+        } else {
+            Shading::RegularFull
+        };
+        draws.push(Draw { shading, ..draw });
         return;
     }
     let mut start = draw.start;
@@ -1163,6 +1182,7 @@ impl GpuContext {
             shader: quad_shader.clone(),
             layout: quad_layout.clone(),
             full: Default::default(),
+            regular_full: Default::default(),
             full_clear: Default::default(),
             basic: Default::default(),
             basic_clear: Default::default(),
@@ -3810,6 +3830,7 @@ impl GpuRenderer {
                     shader: inner.quad_shader.clone(),
                     layout: inner.quad_layout.clone(),
                     full: Default::default(),
+                    regular_full: Default::default(),
                     full_clear: Default::default(),
                     basic: Default::default(),
                     basic_clear: Default::default(),
@@ -4807,8 +4828,8 @@ impl GpuRenderer {
     pub fn debug_single_pass_frames(&self) -> u64 {
         self.single_pass_frames
     }
-    /// Test hook: draw plain quads with the lighter shader, as on software
-    /// rasterizers (see `push_draw`), or everything with the full one.
+    /// Test hook: specialize quads by their features (see `push_draw`), or use
+    /// the original Gaussian-capable full shader for an exact pixel A/B.
     pub fn debug_split_shading(&mut self, split: bool) {
         self.split_shading = split;
     }
@@ -5078,8 +5099,9 @@ fn quad_pipeline(
     layout: &wgpu::PipelineLayout,
     blend: bool,
     drawable: Option<wgpu::TextureFormat>,
-    basic: bool,
+    shading: Shading,
 ) -> wgpu::RenderPipeline {
+    let basic = matches!(shading, Shading::Basic | Shading::Opaque);
     let blend = blend.then_some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING);
     let all = wgpu::vertex_attr_array![0=>Float32x4,1=>Float32x4,2=>Float32x4,3=>Float32x4,4=>Float32x4,5=>Float32x4,6=>Float32x4,7=>Float32x4];
     let basic_attributes = [all[0], all[1], all[2], all[3], all[4], all[5]];
@@ -5109,13 +5131,22 @@ fn quad_pipeline(
         multisample: Default::default(),
         fragment: Some(wgpu::FragmentState {
             module: shader,
-            entry_point: Some(match (basic, drawable.is_some()) {
-                (true, true) => "fs_basic_both",
-                (true, false) => "fs_basic",
-                (false, true) => "fs_both",
-                (false, false) => "fs",
+            entry_point: Some(match (shading, drawable.is_some()) {
+                (Shading::Basic | Shading::Opaque, true) => "fs_basic_both",
+                (Shading::Basic | Shading::Opaque, false) => "fs_basic",
+                (Shading::RegularFull, true) => "fs_regular_both",
+                (Shading::RegularFull, false) => "fs_regular",
+                (Shading::Full, true) => "fs_both",
+                (Shading::Full, false) => "fs",
             }),
-            compilation_options: Default::default(),
+            compilation_options: wgpu::PipelineCompilationOptions {
+                constants: if shading == Shading::RegularFull {
+                    &[("gaussian_shadows", 0.)]
+                } else {
+                    &[]
+                },
+                ..Default::default()
+            },
             targets: if drawable.is_some() {
                 &targets
             } else {
@@ -5749,7 +5780,7 @@ mod fade_tests {
             mask,
             ..<Quad as bytemuck::Zeroable>::zeroed()
         };
-        assert!(matches!(shading(&quad, 1.), Shading::Full));
+        assert!(matches!(shading(&quad, 1.), Shading::RegularFull));
         assert_eq!(fade_parameters(rect, [12., 8.]), [29., 69., 12., 8.]);
     }
 }

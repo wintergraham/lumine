@@ -248,6 +248,7 @@ impl GpuRenderer {
             geometry_offset: batch.geometry_offset,
             shading: match batch.shading {
                 Shading::Full => "full",
+                Shading::RegularFull => "regular_full",
                 Shading::Basic => "basic",
                 Shading::Opaque => "opaque",
             },
@@ -264,7 +265,7 @@ impl GpuRenderer {
                 .map(|(x, y, w, h)| [x, y, w, h]),
             gaussian_shadow_instances: quads
                 .iter()
-                .filter(|q| q.options[2] < 0.5 && q.shape[2] >= 0.01)
+                .filter(|q| gaussian_shadow(q))
                 .count(),
             nearest_image_instances: quads
                 .iter()
@@ -439,6 +440,67 @@ mod tests {
             image: None,
             layer: None,
         }
+    }
+    #[test]
+    fn retained_draw_specialization_preserves_geometry_and_mixed_shadow_fallback() {
+        let plain = Quad {
+            color: [1.; 4],
+            ..<Quad as bytemuck::Zeroable>::zeroed()
+        };
+        let transformed = Quad {
+            options: [0., 2., 1., 1.],
+            shape: [1., 0., 0.4, 1.],
+            ..plain
+        };
+        let sharp = Quad {
+            shape: [4., 0., 0.001, 0.],
+            ..plain
+        };
+        let gaussian = Quad {
+            shape: [4., 0., 0.01, 0.],
+            ..plain
+        };
+        let quads = [plain, transformed, sharp, gaussian, plain];
+        for split in [false, true] {
+            for end in [3, 5] {
+                let mut source = draw(0, end);
+                source.geometry_offset = 256;
+                source.geometry_hash = 17;
+                source.transform = lumine::affine::Affine::rotation(0.3);
+                source.bounds = Rect::new(20., 30., 70., 80.);
+                let mut draws = Vec::new();
+                push_draw(&mut draws, &quads, source.clone(), split, 2.);
+                assert_eq!(
+                    draws.len(),
+                    1,
+                    "retained draws must keep their original range"
+                );
+                let actual = &draws[0];
+                assert_eq!((actual.start, actual.end), (source.start, source.end));
+                assert_eq!(actual.bounds, source.bounds);
+                assert_eq!(actual.transform, source.transform);
+                assert_eq!(actual.geometry_offset, source.geometry_offset);
+                assert_eq!(actual.geometry_hash, source.geometry_hash);
+                assert_eq!(
+                    actual.shading,
+                    if split && end == 3 {
+                        Shading::RegularFull
+                    } else {
+                        Shading::Full
+                    }
+                );
+            }
+        }
+        let mut draws = Vec::new();
+        push_draw(&mut draws, &quads, draw(1, 5), true, 2.);
+        assert_eq!(
+            draws.iter().map(|d| (d.start, d.end, d.shading)).collect::<Vec<_>>(),
+            vec![
+                (1, 3, Shading::RegularFull),
+                (3, 4, Shading::Full),
+                (4, 5, Shading::Opaque)
+            ]
+        );
     }
     #[test]
     fn batches_preserve_order_merging_clip_flush_and_geometry_binding() {
