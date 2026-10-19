@@ -20,6 +20,8 @@ lumine-workload = { path = "../../comparisons/workload" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 smithay-clipboard = "0.7.3"
+libloading = "0.8.9"
+libc = "0.2"
 dbus = "=0.9.12"
 dbus-crossroads = "=0.5.3"
 calloop = "=0.14.4"

@@ -80,6 +80,8 @@ enum Event {
     MenusChanged,
     #[cfg(target_os = "linux")]
     NativeFiles(u64, crate::wayland_files::FileEvent),
+    #[cfg(target_os = "linux")]
+    Appearance(crate::appearance_linux::Event),
     #[cfg(target_os = "macos")]
     NativeMenuAction(crate::MenuAction),
     Wake(u64),
@@ -627,11 +629,22 @@ impl Application {
             gpu_contexts: Rc::new(RefCell::new(Vec::new())),
             proxy: proxy.clone(),
         };
+        #[cfg(target_os = "linux")]
+        let appearance = {
+            let proxy = proxy.clone();
+            crate::appearance_linux::Appearance::new(Arc::new(move |event| {
+                let _ = proxy.send_event(Event::Appearance(event));
+            }))
+        };
         let handle = factory.allocate();
         let token = handle.token;
         let mut root = Host::new(self.options, handle, factory.clone());
+        #[cfg(target_os = "linux")]
+        root.context.window_info.record_system_appearance(appearance.state());
         build(&mut root.context);
         let mut host = WindowManager {
+            #[cfg(target_os = "linux")]
+            appearance: Some(appearance),
             #[cfg(target_os = "linux")]
             native_files: None,
             _native_events: native_events,
@@ -1613,7 +1626,10 @@ impl Host {
         }
         match event {
             WindowEvent::ThemeChanged(theme) => {
+                #[cfg(not(target_os = "linux"))]
                 self.context.window_info.record_theme(Some(theme));
+                #[cfg(target_os = "linux")]
+                let _ = theme;
             }
             WindowEvent::CloseRequested => {}
             WindowEvent::Occluded(true) => {
@@ -2124,6 +2140,8 @@ impl Drop for Host {
 }
 struct WindowManager {
     #[cfg(target_os = "linux")]
+    appearance: Option<crate::appearance_linux::Appearance>,
+    #[cfg(target_os = "linux")]
     native_files: Option<crate::wayland_files::NativeFiles>,
     _native_events: Option<crate::native_events::NativeApplicationEvents>,
     application_event: Option<ApplicationEventHandler>,
@@ -2180,6 +2198,10 @@ impl WindowManager {
             let token = request.handle.token;
             let mut host = Host::new(request.options, request.handle, self.factory.clone());
             host.state = request.state;
+            #[cfg(target_os = "linux")]
+            if let Some(appearance) = &self.appearance {
+                host.context.window_info.record_system_appearance(appearance.state());
+            }
             (request.build)(&mut host.context);
             if host.context.window.is_closed() {
                 continue;
@@ -2214,6 +2236,8 @@ impl WindowManager {
 }
 impl Drop for WindowManager {
     fn drop(&mut self) {
+        #[cfg(target_os = "linux")]
+        self.appearance.take();
         self.factory.alive.set(false);
         self.factory.gpu_contexts.borrow_mut().clear();
         // Cloned public factories become inert at shutdown and must not keep
@@ -2282,6 +2306,18 @@ impl ApplicationHandler<Event> for WindowManager {
     }
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: Event) {
         match event {
+            #[cfg(target_os = "linux")]
+            Event::Appearance(event) => {
+                if let Some(appearance) = &mut self.appearance {
+                    let before = appearance.state();
+                    let after = appearance.handle(event);
+                    if before != after {
+                        for host in self.hosts.values() {
+                            host.context.window_info.record_system_appearance(after);
+                        }
+                    }
+                }
+            }
             Event::Quit => event_loop.exit(),
             Event::Application(event) => {
                 if let Some(handler) = &mut self.application_event {
@@ -2910,6 +2946,8 @@ mod tests {
         };
         let retained = factory.clone();
         let manager = WindowManager {
+            #[cfg(target_os = "linux")]
+            appearance: None,
             #[cfg(target_os = "linux")]
             native_files: None,
             _native_events: None,

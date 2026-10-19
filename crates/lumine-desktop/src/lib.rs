@@ -37,6 +37,8 @@ mod portal_parent;
 mod url;
 #[cfg(target_os = "linux")]
 mod wayland_files;
+#[cfg(target_os = "linux")]
+mod appearance_linux;
 mod window_info;
 pub use app_menu::{
     AppMenu, AppMenuEntry, AppMenuError, MenuAccelerator, MenuAction, app_menu_bar,
@@ -48,7 +50,7 @@ pub use file_dialog::{
 pub use native_events::{ApplicationEvent, ApplicationEventError};
 pub use native_prompt::{PromptButtons, PromptLevel, PromptOptions, PromptResponse};
 pub use url::{OpenUrlError, open_url};
-pub use window_info::{DisplayInfo, DisplaySelector, WindowBounds, WindowCapabilities, WindowInfo};
+pub use window_info::{DisplayInfo, DisplaySelector, WindowBounds, WindowCapabilities, WindowInfo, SystemAppearance};
 mod focus_memory;
 pub mod performance;
 pub use performance::Performance;

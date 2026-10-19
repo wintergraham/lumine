@@ -57,12 +57,33 @@ pub struct WindowCapabilities {
     pub interactive_drag: bool,
     pub native_fullscreen: bool,
 }
+/// Observed OS preference, independent of native window geometry readiness.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SystemAppearance {
+    #[default]
+    Pending,
+    Unsupported,
+    Light,
+    Dark,
+}
+impl SystemAppearance {
+    pub fn system_light(self) -> Option<bool> {
+        match self {
+            Self::Light => Some(true),
+            Self::Dark => Some(false),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct WindowInfo {
     pub ready: Signal<bool>,
     /// Observed system appearance when no native theme override is configured.
     /// None means this platform cannot report it, or the window is not ready yet.
     pub system_light: Signal<Option<bool>>,
+    /// Pending and unsupported remain distinct even after window geometry is ready.
+    pub system_appearance: Signal<SystemAppearance>,
     pub bounds: Signal<WindowBounds>,
     pub fullscreen: Signal<bool>,
     pub displays: Signal<Vec<DisplayInfo>>,
@@ -76,6 +97,7 @@ impl WindowInfo {
         Self {
             ready: ui.signal(false),
             system_light: ui.signal(None),
+            system_appearance: ui.signal(SystemAppearance::Pending),
             bounds: ui.signal(WindowBounds::new(
                 width.max(1.) as u32,
                 height.max(1.) as u32,
@@ -88,8 +110,20 @@ impl WindowInfo {
         }
     }
     pub(crate) fn record_theme(&self, theme: Option<winit::window::Theme>) {
-        self.system_light
-            .set(theme.map(|theme| theme == winit::window::Theme::Light));
+        self.record_system_appearance(match theme {
+            Some(winit::window::Theme::Light) => SystemAppearance::Light,
+            Some(winit::window::Theme::Dark) => SystemAppearance::Dark,
+            None => SystemAppearance::Unsupported,
+        });
+    }
+    pub(crate) fn record_system_appearance(&self, appearance: SystemAppearance) {
+        if self.system_appearance.get() != appearance {
+            self.system_appearance.set(appearance);
+        }
+        let light = appearance.system_light();
+        if self.system_light.get() != light {
+            self.system_light.set(light);
+        }
     }
     pub(crate) fn refresh(&self, window: &Window) {
         let wayland = window
@@ -130,6 +164,7 @@ impl WindowInfo {
             interactive_drag: true,
             native_fullscreen: true,
         });
+        #[cfg(not(target_os = "linux"))]
         self.record_theme(window.theme());
         self.ready.set(true);
     }
@@ -196,11 +231,13 @@ mod appearance_tests {
         let ui = Ui::new(100., 100.);
         let info = WindowInfo::new(&ui, 100., 100.);
         assert_eq!(info.system_light.get(), None);
+        assert_eq!(info.system_appearance.get(), SystemAppearance::Pending);
         info.record_theme(Some(winit::window::Theme::Light));
         assert_eq!(info.system_light.get(), Some(true));
         info.record_theme(Some(winit::window::Theme::Dark));
         assert_eq!(info.system_light.get(), Some(false));
         info.record_theme(None);
         assert_eq!(info.system_light.get(), None);
+        assert_eq!(info.system_appearance.get(), SystemAppearance::Unsupported);
     }
 }
