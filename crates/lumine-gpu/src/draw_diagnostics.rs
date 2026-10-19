@@ -75,6 +75,30 @@ pub struct DrawPass {
     /// Present only for a single selected batch. A group is never per-draw time.
     pub batch: Option<DrawBatch>,
 }
+#[derive(Clone, Debug, Default)]
+struct BatchBoundaries {
+    nonempty_segments: u32,
+    adjacent_batches: u32,
+    source: u32,
+    image: u32,
+    layer: u32,
+    shading: u32,
+    rect: u32,
+    physical_scissor: u32,
+    geometry_offset: u32,
+    noncontiguous_instances: u32,
+    unchanged_keys: u32,
+    batches_ignoring_geometry: u32,
+    batches_ignoring_geometry_and_scissor: u32,
+}
+struct BatchKey {
+    source: (Option<u64>, Option<NodeId>),
+    shading: Shading,
+    rect: Rect,
+    physical_scissor: (u32, u32, u32, u32),
+    geometry_offset: u32,
+    end: u32,
+}
 #[derive(Clone, Debug)]
 pub struct DrawDiagnostics {
     pub first_batch: u32,
@@ -84,6 +108,7 @@ pub struct DrawDiagnostics {
     pub omitted_pass_records: u32,
     pub missing_timestamp_pairs: u32,
     pub passes: Vec<DrawPass>,
+    batch_boundaries: BatchBoundaries,
 }
 impl DrawDiagnostics {
     pub(super) fn new(first_batch: u32) -> Self {
@@ -95,7 +120,56 @@ impl DrawDiagnostics {
             omitted_pass_records: 0,
             missing_timestamp_pairs: 0,
             passes: Vec::new(),
+            batch_boundaries: BatchBoundaries::default(),
         }
+    }
+    // Call for every submitted normal batch, before selection. The caller owns
+    // one previous key per region/segment, independent of diagnostic pass slices.
+    fn observe_batch(
+        &mut self,
+        batch: &Batch,
+        physical_scissor: (u32, u32, u32, u32),
+        previous: &mut Option<BatchKey>,
+    ) {
+        let counts = &mut self.batch_boundaries;
+        if let Some(last) = previous {
+            let image = last.source.0 != batch.source.0;
+            let layer = last.source.1 != batch.source.1;
+            let source = image || layer;
+            let shading = last.shading != batch.shading;
+            let rect = last.rect != batch.rect;
+            let geometry = last.geometry_offset != batch.geometry_offset;
+            let noncontiguous = last.end != batch.start;
+            // An invisible clip can flush the iterator even with identical
+            // adjacent keys. Removing geometry/scissor must preserve that flush.
+            let unchanged = !(source || shading || rect || geometry || noncontiguous);
+            counts.adjacent_batches += 1;
+            counts.source += u32::from(source);
+            counts.image += u32::from(image);
+            counts.layer += u32::from(layer);
+            counts.shading += u32::from(shading);
+            counts.rect += u32::from(rect);
+            counts.physical_scissor += u32::from(last.physical_scissor != physical_scissor);
+            counts.geometry_offset += u32::from(geometry);
+            counts.noncontiguous_instances += u32::from(noncontiguous);
+            counts.unchanged_keys += u32::from(unchanged);
+            counts.batches_ignoring_geometry +=
+                u32::from(source || shading || rect || noncontiguous || unchanged);
+            counts.batches_ignoring_geometry_and_scissor +=
+                u32::from(source || shading || noncontiguous || unchanged);
+        } else {
+            counts.nonempty_segments += 1;
+            counts.batches_ignoring_geometry += 1;
+            counts.batches_ignoring_geometry_and_scissor += 1;
+        }
+        *previous = Some(BatchKey {
+            source: batch.source,
+            shading: batch.shading,
+            rect: batch.rect,
+            physical_scissor,
+            geometry_offset: batch.geometry_offset,
+            end: batch.end,
+        });
     }
     pub(super) fn select(&mut self, large_image: bool) -> (u32, bool) {
         let index = self.total_batches;
@@ -135,6 +209,24 @@ impl DrawDiagnostics {
             "firstBatch":self.first_batch,"totalBatches":self.total_batches,
             "selectedBatches":self.selected_batches,"omittedBatches":self.omitted_batches,
             "omittedPassRecords":self.omitted_pass_records,"missingTimestampPairs":self.missing_timestamp_pairs,
+            "batchBoundaries":{
+                "scope":"all submitted normal batches, selected and omitted, in diagnostic encoding through the normal batches iterator",
+                "categoriesOverlap":true,
+                "keyMeaning":"iterator image/layer, shading, logical rect, geometry offset and instance contiguity; physical scissor changes counted separately",
+                "hypothesisMeaning":"adjacent batches only; preserve source, iterator shading, order, instance contiguity and unchanged-key iterator flushes; reset each region and pass segment; no batching change or FPS claim",
+                "nonemptyRegionSegments":self.batch_boundaries.nonempty_segments,
+                "adjacentBatchBoundaries":self.batch_boundaries.adjacent_batches,
+                "splits":{
+                    "source":self.batch_boundaries.source,"image":self.batch_boundaries.image,
+                    "layer":self.batch_boundaries.layer,"shading":self.batch_boundaries.shading,
+                    "rect":self.batch_boundaries.rect,"physicalScissor":self.batch_boundaries.physical_scissor,
+                    "geometryOffset":self.batch_boundaries.geometry_offset,
+                    "noncontiguousInstances":self.batch_boundaries.noncontiguous_instances,
+                    "unchangedKeys":self.batch_boundaries.unchanged_keys
+                },
+                "hypotheticalBatchesIgnoringGeometry":self.batch_boundaries.batches_ignoring_geometry,
+                "hypotheticalBatchesIgnoringGeometryAndScissor":self.batch_boundaries.batches_ignoring_geometry_and_scissor
+            },
             "passes":self.passes.iter().map(|p| json!({"spanIndex":p.span_index,"stage":p.stage,
                 "batchRange":[p.batches.start,p.batches.end],"batch":p.batch.as_ref().map(|b|json!({
                     "instanceRange":[b.instances.start,b.instances.end],"geometryOffset":b.geometry_offset,
@@ -378,9 +470,12 @@ impl GpuRenderer {
                 self.diagnostic_record(stamp, "clear", 0..0, None);
             }
             let unblended = region.width * region.height * self.scale * self.scale >= SPLIT_PIXELS;
+            let mut previous_batch = None;
             let mut batches = batches(draws, *region, first[index], unblended)
-                .filter(|b| scissor(b.rect, self.scale, self.width, self.height).is_some())
-                .map(|b| {
+                .filter_map(|b| {
+                    scissor(b.rect, self.scale, self.width, self.height).map(|s| (b, s))
+                })
+                .map(|(b, physical_scissor)| {
                     let large_image = b.source.0.is_some()
                         && draws.iter().any(|d| {
                             d.start < b.end
@@ -389,14 +484,14 @@ impl GpuRenderer {
                                     r.width * r.height * self.scale * self.scale >= 262_144.
                                 })
                         });
-                    let (ordinal, selected) = self
-                        .profiler
-                        .borrow_mut()
+                    let mut profiler = self.profiler.borrow_mut();
+                    let diagnostics = profiler
                         .as_mut()
                         .unwrap()
                         .draw_diagnostics()
-                        .unwrap()
-                        .select(large_image);
+                        .unwrap();
+                    diagnostics.observe_batch(&b, physical_scissor, &mut previous_batch);
+                    let (ordinal, selected) = diagnostics.select(large_image);
                     (b, ordinal, selected)
                 })
                 .peekable();
@@ -584,6 +679,100 @@ mod tests {
                 .shading,
             Shading::Basic
         );
+    }
+    #[test]
+    fn batch_boundaries_count_omitted_batches_and_preserve_gaps_and_segment_resets() {
+        let scene = Scene::new(100., 100.);
+        let region = Rect::new(0., 0., 100., 100.);
+        let mut draws = (0..12).map(|i| draw(i, i + 1)).collect::<Vec<_>>();
+        // The first two draws merge. Geometry-only and subpixel rect changes
+        // then split batches, even where the physical scissor stays identical.
+        draws[2].geometry_offset = 256;
+        for d in &mut draws[3..11] {
+            d.geometry_offset = 512;
+            d.clip = Rect::new(1., 0., 99., 100.);
+        }
+        draws[3].clip = Rect::new(0.25, 0., 99.75, 100.);
+        for d in &mut draws[5..11] {
+            d.image = Some(7);
+            d.shading = Shading::Basic;
+        }
+        for d in &mut draws[6..11] {
+            d.image = Some(8);
+            d.layer = Some(scene.root());
+        }
+        // Skipping invisible instances must prevent hypothetical merging.
+        draws[7].bounds = Rect::new(200., 200., 10., 10.);
+        // A clip flush can separate identical contiguous keys. Preserve it too.
+        draws[9].clip = Rect::new(200., 200., 10., 10.);
+        draws[10].start = 9;
+
+        let mut diagnostics = DrawDiagnostics::new(5);
+        for segment in 1..=4 {
+            for (region_index, region) in [region, Rect::new(0., 0., 50., 50.)]
+                .into_iter()
+                .enumerate()
+            {
+                let mut previous = None;
+                let mut submitted = 0;
+                for batch in batches(&draws, region, 1, true) {
+                    let Some(physical_scissor) = scissor(batch.rect, 1., 100, 100) else {
+                        continue;
+                    };
+                    diagnostics.observe_batch(&batch, physical_scissor, &mut previous);
+                    diagnostics.select(false);
+                    submitted += 1;
+                }
+                assert_eq!(submitted, 9);
+                let runs = (segment - 1) * 2 + region_index as u32 + 1;
+                let counts = &diagnostics.batch_boundaries;
+                assert_eq!(diagnostics.total_batches, 9 * runs);
+                assert_eq!(counts.nonempty_segments, runs);
+                assert_eq!(counts.adjacent_batches, 8 * runs);
+                assert_eq!(counts.source, 3 * runs);
+                assert_eq!(counts.image, 3 * runs);
+                assert_eq!(counts.layer, 2 * runs);
+                assert_eq!(counts.shading, 2 * runs);
+                assert_eq!(counts.rect, 3 * runs);
+                assert_eq!(counts.physical_scissor, 2 * runs);
+                assert_eq!(counts.geometry_offset, 3 * runs);
+                assert_eq!(counts.noncontiguous_instances, runs);
+                assert_eq!(counts.unchanged_keys, runs);
+                assert_eq!(counts.batches_ignoring_geometry, 8 * runs);
+                assert_eq!(counts.batches_ignoring_geometry_and_scissor, 6 * runs);
+            }
+        }
+        // Both the leading gap and batches after the selection window count.
+        assert_eq!(diagnostics.selected_batches, 48);
+        assert_eq!(diagnostics.omitted_batches, 24);
+    }
+    #[test]
+    fn batch_boundaries_skip_empty_physical_scissors_without_merging_instance_gaps() {
+        let mut draws = [draw(0, 1), draw(1, 2), draw(2, 3)];
+        // This batch intersects the logical region but is outside the target.
+        draws[1].clip = Rect::new(120., 0., 10., 10.);
+        draws[1].bounds = draws[1].clip;
+        draws[1].geometry_offset = 256;
+        draws[1].image = Some(7);
+        let mut diagnostics = DrawDiagnostics::new(0);
+        let mut previous = None;
+        let mut iterator_batches = 0;
+        for batch in batches(&draws, Rect::new(0., 0., 200., 100.), 0, true) {
+            iterator_batches += 1;
+            if let Some(physical_scissor) = scissor(batch.rect, 1., 100, 100) {
+                diagnostics.observe_batch(&batch, physical_scissor, &mut previous);
+                diagnostics.select(false);
+            }
+        }
+        assert_eq!(iterator_batches, 3);
+        assert_eq!(diagnostics.total_batches, 2);
+        let counts = &diagnostics.batch_boundaries;
+        assert_eq!(counts.adjacent_batches, 1);
+        assert_eq!(counts.source, 0);
+        assert_eq!(counts.geometry_offset, 0);
+        assert_eq!(counts.noncontiguous_instances, 1);
+        assert_eq!(counts.batches_ignoring_geometry, 2);
+        assert_eq!(counts.batches_ignoring_geometry_and_scissor, 2);
     }
     #[test]
     fn source_mapping_crops_instance_ranges_and_bounds_metadata() {
