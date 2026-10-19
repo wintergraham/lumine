@@ -106,6 +106,9 @@ fn new_and_cached_shapes_keep_all_clusters_without_changing_pixels() {
         frame.fonts[0].variation_coordinates.is_none(),
         "unavailable coordinates remain unknown"
     );
+    assert!(frame.fonts[0].shaping_normalized_coords.is_empty());
+    assert!(frame.fonts[0].raster_normalized_coords.is_none());
+    assert!(frame.fonts[0].variation_axes.is_empty(), "pinned static font has no variation axes");
     assert_eq!(render(&mut gpu, &mut scene).shaped_nodes, 0);
     let cached = &gpu.glyph_evidence().unwrap().unwrap().nodes[0];
     assert!(cached.shape_cached);

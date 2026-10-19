@@ -106,6 +106,21 @@ pub struct NativeFontEvidence {
     /// The current cosmic-text API does not expose the actual shaper/scaler
     /// coordinates. None means strictly unknown, including for static fonts.
     pub variation_coordinates: Option<Vec<([u8; 4], f32)>>,
+    /// Directly read from the actual Harfrust instance, raw F2Dot14 in fvar order.
+    pub shaping_normalized_coords: Vec<i16>,
+    /// Derived from the same clamped weight inputs used by cosmic-text's scaler.
+    /// None means no wght axis, so no coordinate override reaches the scaler.
+    pub raster_normalized_coords: Option<Vec<i16>>,
+    pub variation_axes: Vec<NativeVariationAxis>,
+}
+
+#[derive(Debug)]
+pub struct NativeVariationAxis {
+    pub index: usize,
+    pub tag: [u8; 4],
+    pub min: f32,
+    pub default: f32,
+    pub max: f32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -313,12 +328,28 @@ impl GlyphEvidenceCollector {
         }
         let index = self.frame.fonts.len();
         self.font_bytes += font.data().len();
+        let shaping_normalized_coords = font.shaper().normalized_coords().iter()
+            .map(|coord| coord.to_bits()).collect();
+        let swash_font = font.as_swash();
+        let wght = u32::from_be_bytes(*b"wght");
+        let raster_normalized_coords = swash_font.variations().find_by_tag(wght).map(|axis| {
+            swash_font.variations().normalized_coords([(
+                wght, f32::from(key.font_weight.0).clamp(axis.min_value(), axis.max_value()),
+            )]).collect()
+        });
+        let variation_axes = swash_font.variations().map(|axis| NativeVariationAxis {
+            index: usize::from(axis.index()), tag: axis.tag().to_be_bytes(),
+            min: axis.min_value(), default: axis.default_value(), max: axis.max_value(),
+        }).collect();
         self.frame.fonts.push(NativeFontEvidence {
             font_id: key.font_id,
             weight: key.font_weight.0,
             collection_index: face.index,
             bytes: font.data().to_vec(),
             variation_coordinates: None,
+            shaping_normalized_coords,
+            raster_normalized_coords,
+            variation_axes,
         });
         Some(index)
     }
