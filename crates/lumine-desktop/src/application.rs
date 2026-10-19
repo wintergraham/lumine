@@ -1612,6 +1612,9 @@ impl Host {
             adapter.process_event(window, &event);
         }
         match event {
+            WindowEvent::ThemeChanged(theme) => {
+                self.context.window_info.record_theme(Some(theme));
+            }
             WindowEvent::CloseRequested => {}
             WindowEvent::Occluded(true) => {
                 self.context.ui.cancel_interactions();

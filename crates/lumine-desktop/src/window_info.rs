@@ -1,11 +1,11 @@
 //! Native geometry snapshots and explicit platform capability reporting.
+use lumine::{reactive::Signal, widgets::Ui};
 use winit::{
     event_loop::ActiveEventLoop,
     monitor::MonitorHandle,
     raw_window_handle::{HasDisplayHandle, RawDisplayHandle},
     window::{Window, WindowAttributes},
 };
-use lumine::{reactive::Signal, widgets::Ui};
 /// Physical desktop coordinates and physical client-area size. Position is None
 /// when the compositor does not expose global window placement (notably Wayland).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -60,6 +60,9 @@ pub struct WindowCapabilities {
 #[derive(Clone)]
 pub struct WindowInfo {
     pub ready: Signal<bool>,
+    /// Observed system appearance when no native theme override is configured.
+    /// None means this platform cannot report it, or the window is not ready yet.
+    pub system_light: Signal<Option<bool>>,
     pub bounds: Signal<WindowBounds>,
     pub fullscreen: Signal<bool>,
     pub displays: Signal<Vec<DisplayInfo>>,
@@ -72,6 +75,7 @@ impl WindowInfo {
     pub(crate) fn new(ui: &Ui, width: f64, height: f64) -> Self {
         Self {
             ready: ui.signal(false),
+            system_light: ui.signal(None),
             bounds: ui.signal(WindowBounds::new(
                 width.max(1.) as u32,
                 height.max(1.) as u32,
@@ -82,6 +86,10 @@ impl WindowInfo {
             capabilities: ui.signal(WindowCapabilities::default()),
             last_request_error: ui.signal(None),
         }
+    }
+    pub(crate) fn record_theme(&self, theme: Option<winit::window::Theme>) {
+        self.system_light
+            .set(theme.map(|theme| theme == winit::window::Theme::Light));
     }
     pub(crate) fn refresh(&self, window: &Window) {
         let wayland = window
@@ -122,6 +130,7 @@ impl WindowInfo {
             interactive_drag: true,
             native_fullscreen: true,
         });
+        self.record_theme(window.theme());
         self.ready.set(true);
     }
 }
@@ -177,4 +186,21 @@ pub(crate) fn attributes(
         }
     }
     Ok(attrs)
+}
+
+#[cfg(test)]
+mod appearance_tests {
+    use super::*;
+    #[test]
+    fn observed_appearance_changes_preserve_unknown() {
+        let ui = Ui::new(100., 100.);
+        let info = WindowInfo::new(&ui, 100., 100.);
+        assert_eq!(info.system_light.get(), None);
+        info.record_theme(Some(winit::window::Theme::Light));
+        assert_eq!(info.system_light.get(), Some(true));
+        info.record_theme(Some(winit::window::Theme::Dark));
+        assert_eq!(info.system_light.get(), Some(false));
+        info.record_theme(None);
+        assert_eq!(info.system_light.get(), None);
+    }
 }
