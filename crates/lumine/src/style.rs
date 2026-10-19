@@ -123,6 +123,9 @@ impl Styles {
         }
         if let Some(o) = &mut self.layout_options {
             let o = std::sync::Arc::make_mut(o);
+            if let Some(quantum) = &mut o.text_width_quantum {
+                *quantum *= scale;
+            }
             use crate::layout::Length;
             for edge in [&mut o.inset, &mut o.padding, &mut o.margin] {
                 for v in [
@@ -943,6 +946,11 @@ pub trait Styled: Sized {
     }
     fn italic(mut self, italic: bool) -> Self {
         self.styles_mut().italic = Some(italic);
+        self
+    }
+    /// Round intrinsic text width only. Zero preserves fractional measurement.
+    fn text_width_quantum(mut self, value: f32) -> Self {
+        self.styles_mut().layout_options_mut().text_width_quantum = Some(value);
         self
     }
     fn text_size(mut self, value: f32) -> Self {

@@ -2217,6 +2217,9 @@ impl Scene {
         let percent_width = explicit_w.map(|w| (w - horizontal_padding).max(0.0));
         let percent_height = explicit_h.map(|h| (h - vertical_padding).max(0.0));
         let kind = self.node(id).kind.clone();
+        let text_width_quantum = matches!(&kind, NodeKind::Text { .. } | NodeKind::RichText { .. })
+            .then(|| style.layout_options.as_ref().and_then(|options| options.text_width_quantum))
+            .flatten();
         let mut children = Vec::new();
         let (mut width, mut height) = match kind {
             NodeKind::Text {
@@ -2624,6 +2627,12 @@ impl Scene {
                 (natural_w, natural_h)
             }
         };
+        if let Some(quantum) = text_width_quantum.filter(|q| q.is_finite() && *q > 0.) {
+            let units = width / quantum;
+            if units.is_finite() {
+                width = units.ceil() * quantum;
+            }
+        }
         width = dimension(
             explicit_w.unwrap_or(width + horizontal_padding),
             style.min_width,

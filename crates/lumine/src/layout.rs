@@ -101,6 +101,9 @@ pub struct LayoutOptions {
     pub max_width: Option<Length>,
     pub min_height: Option<Length>,
     pub max_height: Option<Length>,
+    /// Round text's intrinsic width upward by this logical-pixel quantum.
+    /// Glyph positions and explicit/flex allocations retain their own precision.
+    pub text_width_quantum: Option<f32>,
 }
 impl LayoutOptions {
     /// Canonicalize nonfinite values at style ingress, preserving equal-write suppression.
@@ -141,6 +144,9 @@ impl LayoutOptions {
         if let Some(ratio) = &mut self.aspect_ratio {
             *ratio = finite(*ratio).max(0.);
         }
+        if let Some(quantum) = &mut self.text_width_quantum {
+            *quantum = finite(*quantum).max(0.);
+        }
         if let Some(count) = &mut self.columns {
             *count = (*count).max(1);
         }
@@ -178,7 +184,8 @@ impl LayoutOptions {
             min_width,
             max_width,
             min_height,
-            max_height
+            max_height,
+            text_width_quantum
         );
         self.inset.merge(other.inset);
         self.margin.merge(other.margin);
