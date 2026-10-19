@@ -1895,10 +1895,21 @@ impl crate::Device for super::Device {
             }
         };
 
+        // Native completion waits avoid millisecond polling quantization. Keep
+        // the former path available for matched diagnostic comparisons.
+        if timeout.is_none() && std::env::var_os("LUMINE_METAL_WAIT_POLL").is_none() {
+            cmd_buf.waitUntilCompleted();
+            return match cmd_buf.status() {
+                MTLCommandBufferStatus::Completed => Ok(true),
+                _ => Err(crate::DeviceError::Lost),
+            };
+        }
         let start = time::Instant::now();
         loop {
-            if let MTLCommandBufferStatus::Completed = cmd_buf.status() {
-                return Ok(true);
+            match cmd_buf.status() {
+                MTLCommandBufferStatus::Completed => return Ok(true),
+                MTLCommandBufferStatus::Error => return Err(crate::DeviceError::Lost),
+                _ => {},
             }
             if let Some(timeout) = timeout {
                 if start.elapsed() >= timeout {
