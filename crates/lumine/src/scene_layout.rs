@@ -400,6 +400,7 @@ impl Scene {
                         options.visible = None;
                         options.clip_x = None;
                         options.clip_y = None;
+                        options.text_width_quantum = None;
                         !options.is_empty()
                     })
             })
