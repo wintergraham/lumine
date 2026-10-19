@@ -77,6 +77,24 @@ pub(super) fn layout(device: &wgpu::Device, indexed: bool) -> wgpu::BindGroupLay
         },
     })
 }
+#[derive(Default)]
+struct UploadedPrefix {
+    bytes: Vec<u8>,
+}
+impl UploadedPrefix {
+    fn invalidate(&mut self) {
+        self.bytes.clear();
+    }
+    // Retain only one known uploaded prefix, bounded by the geometry budget.
+    fn update(&mut self, bytes: &[u8]) -> bool {
+        if self.bytes.starts_with(bytes) {
+            return false;
+        }
+        self.bytes.clear();
+        self.bytes.extend_from_slice(bytes);
+        true
+    }
+}
 pub(super) struct FrameGeometry {
     uniforms: wgpu::Buffer,
     clips: wgpu::Buffer,
@@ -86,7 +104,8 @@ pub(super) struct FrameGeometry {
     clip_capacity: usize,
     parameters: Vec<u8>,
     regions: Vec<Clip>,
-    identity_uploaded: bool,
+    uploaded_parameters: UploadedPrefix,
+    uploaded_clips: UploadedPrefix,
     pub indexed_bind: Option<wgpu::BindGroup>,
     instances: Option<wgpu::Buffer>,
     instance_capacity: usize,
@@ -123,7 +142,8 @@ impl FrameGeometry {
             clip_capacity: std::mem::size_of::<Clip>(),
             parameters: Vec::new(),
             regions: Vec::new(),
-            identity_uploaded: false,
+            uploaded_parameters: UploadedPrefix::default(),
+            uploaded_clips: UploadedPrefix::default(),
             indexed_bind: None,
             instances: None,
             instance_capacity: 0,
@@ -298,9 +318,6 @@ impl FrameGeometry {
         belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
     ) -> usize {
-        if self.parameters.len() == self.stride && self.identity_uploaded {
-            return 0;
-        }
         let needed = self.parameters.len();
         let clip_bytes = bytemuck::cast_slice(&self.regions);
         let mut resized = false;
@@ -313,6 +330,7 @@ impl FrameGeometry {
                 "paint uniforms",
                 wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::STORAGE,
             );
+            self.uploaded_parameters.invalidate();
             resized = true;
             allocations += 1;
         }
@@ -324,6 +342,7 @@ impl FrameGeometry {
                 "paint clips",
                 wgpu::BufferUsages::STORAGE,
             );
+            self.uploaded_clips.invalidate();
             resized = true;
             allocations += 1;
         }
@@ -331,14 +350,16 @@ impl FrameGeometry {
             self.indexed_bind = None;
             self.bind = group(device, layout, &self.uniforms, &self.clips);
         }
-        belt.write_buffer(
-            encoder,
-            &self.uniforms,
-            0,
-            wgpu::BufferSize::new(needed as u64).unwrap(),
-        )
-        .copy_from_slice(&self.parameters);
-        if !clip_bytes.is_empty() {
+        if self.uploaded_parameters.update(&self.parameters) {
+            belt.write_buffer(
+                encoder,
+                &self.uniforms,
+                0,
+                wgpu::BufferSize::new(needed as u64).unwrap(),
+            )
+            .copy_from_slice(&self.parameters);
+        }
+        if self.uploaded_clips.update(clip_bytes) {
             belt.write_buffer(
                 encoder,
                 &self.clips,
@@ -347,7 +368,6 @@ impl FrameGeometry {
             )
             .copy_from_slice(clip_bytes);
         }
-        self.identity_uploaded = true;
         allocations
     }
 }
@@ -431,6 +451,52 @@ pub(super) fn shader(indexed: bool) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn uploaded_prefix_compares_float_bits() {
+        let mut uploaded = UploadedPrefix::default();
+        let mut values = [0.0_f32, f32::from_bits(0x7fc00001)];
+        assert!(uploaded.update(bytemuck::cast_slice(&values)));
+        assert!(!uploaded.update(bytemuck::cast_slice(&values)));
+        values[0] = -0.0;
+        assert!(uploaded.update(bytemuck::cast_slice(&values)));
+        values[1] = f32::from_bits(0x7fc00002);
+        assert!(uploaded.update(bytemuck::cast_slice(&values)));
+        assert!(!uploaded.update(bytemuck::cast_slice(&values)));
+    }
+    #[test]
+    fn uploaded_prefix_survives_identity_and_empty_frames() {
+        let mut uploaded = UploadedPrefix::default();
+        assert!(!uploaded.update(b""));
+        assert!(uploaded.update(b"identity;transform"));
+        let pointer = uploaded.bytes.as_ptr();
+        let capacity = uploaded.bytes.capacity();
+        assert!(!uploaded.update(b"identity"));
+        assert!(!uploaded.update(b""));
+        assert!(!uploaded.update(b"identity;transform"));
+        assert_eq!(uploaded.bytes.as_ptr(), pointer);
+        assert_eq!(uploaded.bytes.capacity(), capacity);
+        assert!(uploaded.update(b"Identity"));
+        assert!(uploaded.update(b"identity;transform"));
+        assert!(uploaded.update(b"identity;transform;more"));
+        assert!(!uploaded.update(b"identity;transform;more"));
+    }
+    #[test]
+    fn uploaded_prefix_invalidates_replaced_buffers_independently() {
+        let mut parameters = UploadedPrefix::default();
+        let mut clips = UploadedPrefix::default();
+        assert!(parameters.update(b"parameters"));
+        assert!(clips.update(b"clip"));
+        assert!(clips.update(b"Clip"));
+        assert!(!parameters.update(b"parameters"));
+        parameters.invalidate();
+        assert!(parameters.update(b"parameters"));
+        assert!(!clips.update(b"Clip"));
+        clips.invalidate();
+        assert!(clips.update(b"Clip"));
+        assert!(!parameters.update(b"parameters"));
+        assert!(!clips.update(b""));
+        assert!(!clips.update(b"Clip"));
+    }
     #[test]
     fn indexed_shader_changes_only_geometry_transport() {
         let reference = shader(false);
