@@ -209,7 +209,9 @@ pub struct NativeGlyphQuad {
     pub scene_points: [[f32; 2]; 4],
     pub physical_points: [[f32; 2]; 4],
     /// False when the actual CPU clip culled this generated quad.
-    pub emitted: bool,
+    pub retained_after_cpu_clip: bool,
+    /// Final encoded draw membership is unobserved, including later occlusion.
+    pub submitted: Option<bool>,
 }
 #[derive(Debug)]
 pub struct NativeGlyphEvidence {
@@ -387,7 +389,8 @@ impl GlyphEvidenceCollector {
                     bounds,
                     scene_points,
                     physical_points: scene_points.map(|p| [p[0] * scale, p[1] * scale]),
-                    emitted: false,
+                    retained_after_cpu_clip: false,
+                    submitted: None,
                 }
             });
             glyphs.push(NativeGlyphEvidence {
@@ -3980,7 +3983,7 @@ impl GpuRenderer {
                     for glyph in &mut node.glyphs {
                         if let Some(quad) = &mut glyph.quad {
                             let r = quad.bounds;
-                            quad.emitted = !cull_whole_quads
+                            quad.retained_after_cpu_clip = !cull_whole_quads
                                 || (r.x >= limit.x
                                     && r.y >= limit.y
                                     && r.x + r.width <= limit.x + limit.width

@@ -145,7 +145,7 @@ fn missing_glyph_and_whitespace_never_claim_visible_mask_coverage() {
     let glyphs = &gpu.glyph_evidence().unwrap().unwrap().nodes[0].glyphs;
     assert_eq!(glyphs.len(), 3);
     assert_eq!(glyphs[0].status, NativeGlyphStatus::Mask);
-    assert!(glyphs[0].raster.has_ink && glyphs[0].quad.as_ref().unwrap().emitted);
+    assert!(glyphs[0].raster.has_ink && glyphs[0].quad.as_ref().unwrap().retained_after_cpu_clip);
     assert_eq!(glyphs[1].shape.cache_key.glyph_id, 3);
     assert_eq!(glyphs[1].status, NativeGlyphStatus::WhitespaceNoInk);
     assert!(!glyphs[1].raster.has_ink);
@@ -195,9 +195,26 @@ fn generated_glyph_quads_record_actual_cpu_clip_culling() {
     render(&mut gpu, &mut scene);
     let glyphs = &gpu.glyph_evidence().unwrap().unwrap().nodes[0].glyphs;
     assert_eq!(glyphs.len(), 5);
-    assert!(glyphs[0].quad.as_ref().unwrap().emitted);
-    assert!(!glyphs[4].quad.as_ref().unwrap().emitted);
+    assert!(glyphs[0].quad.as_ref().unwrap().retained_after_cpu_clip);
+    assert!(!glyphs[4].quad.as_ref().unwrap().retained_after_cpu_clip);
     assert_eq!(glyphs[4].shape.cache_key.glyph_id, 36);
+}
+
+#[test]
+fn cpu_clip_survival_never_claims_submission_under_an_opaque_cover() {
+    let mut gpu = renderer(FONT);
+    let (mut scene, _) = scene(&gpu, "A");
+    scene.append(
+        scene.root(),
+        NodeKind::Quad { color: Color(0, 0, 0, 255), radius: 0. },
+        Style { width: Some(200.), height: Some(100.), ..Default::default() },
+    );
+    gpu.enable_glyph_evidence(GlyphEvidenceLimits::default());
+    render(&mut gpu, &mut scene);
+    assert!(gpu.readback().unwrap().chunks_exact(4).all(|pixel| pixel == [0, 0, 0, 255]));
+    let quad = gpu.glyph_evidence().unwrap().unwrap().nodes[0].glyphs[0].quad.as_ref().unwrap();
+    assert!(quad.retained_after_cpu_clip);
+    assert_eq!(quad.submitted, None, "later occlusion is outside this observation");
 }
 
 #[test]
