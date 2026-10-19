@@ -4,7 +4,15 @@
 use cosmic_text::{Buffer, CacheKey, FontSystem, Metrics, SwashCache, SwashContent};
 use lumine::scene::{Color, NodeId, NodeKind, Rect, Scene};
 use rustc_hash::FxHashMap;
-use std::{cell::RefCell, fmt, rc::Rc, sync::Arc};
+use std::{
+    cell::RefCell,
+    fmt,
+    rc::Rc,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+};
 
 #[cfg(feature = "benchmark")]
 pub mod benchmark;
@@ -1867,7 +1875,23 @@ struct IndexedGeometryPipelines {
     quads: QuadPipelines,
 }
 
+/// Completion observation for one explicitly submitted pending render.
+/// The callback time is an upper bound, not an individual GPU timestamp.
+/// Tickets retain no renderer resources and cannot be used with another renderer.
+pub struct CompletionTicket {
+    owner: Arc<()>,
+    submission: wgpu::SubmissionIndex,
+    complete: Arc<AtomicBool>,
+}
+impl CompletionTicket {
+    /// True only after wgpu has delivered the submission's completion callback.
+    pub fn is_complete(&self) -> bool {
+        self.complete.load(Ordering::Acquire)
+    }
+}
+
 pub struct GpuRenderer {
+    completion_owner: Arc<()>,
     geometry_batching: GeometryBatching,
     geometry: paint_geometry::FrameGeometry,
     profiler: RefCell<Option<profiling::Profiler>>,
@@ -2160,6 +2184,7 @@ impl GpuRenderer {
             .and_then(|_| profiling::Profiler::new(&device, &queue));
         let geometry = paint_geometry::FrameGeometry::new(&device, &context.inner.geometry_layout);
         Ok(Self {
+            completion_owner: Arc::new(()),
             geometry_batching: GeometryBatching::configured(),
             geometry,
             context: context.clone(),
@@ -2498,7 +2523,7 @@ impl GpuRenderer {
         Ok(frame)
     }
     pub fn render(&mut self, scene: &Scene, damage: &[Rect]) -> Result<GpuStats, GpuError> {
-        self.flush_pending_inner(true);
+        let _ = self.flush_pending_inner(true);
         if let Some(profiler) = self.profiler.get_mut() {
             profiler.begin(&self.device);
         }
@@ -4499,11 +4524,11 @@ impl GpuRenderer {
     }
     /// Submit commands recorded by the last render, if any.
     fn flush_pending(&self) {
-        self.flush_pending_inner(false);
+        let _ = self.flush_pending_inner(false);
     }
-    fn flush_pending_inner(&self, finish_profile: bool) {
+    fn flush_pending_inner(&self, finish_profile: bool) -> Option<wgpu::SubmissionIndex> {
         let Some(mut pending) = self.pending.borrow_mut().take() else {
-            return;
+            return None;
         };
         // Not presented (skipped, hidden or read back): draw it the two-pass
         // way so the retained target is complete.
@@ -4532,12 +4557,13 @@ impl GpuRenderer {
             }
             self.encode_damage(&mut pass, &deferred, self.quad_pipelines(), &mut stats);
         }
-        self.submit_profiled(pending, finish_profile);
+        let submission = self.submit_profiled(pending, finish_profile);
         self.belt.borrow_mut().recall();
         self.submitted();
         if let Some(mapped) = &self.mapped {
             mapped.borrow_mut().submitted();
         }
+        Some(submission)
     }
     fn submitted(&self) {
         #[cfg(target_os = "macos")]
@@ -5825,13 +5851,18 @@ impl GpuRenderer {
         Ok(pixels)
     }
     pub fn readback(&self) -> Result<Vec<u8>, GpuError> {
-        self.flush_pending_inner(true);
+        let _ = self.flush_pending_inner(true);
         self.read_texture(&self.target)
     }
     /// Finish submitted rendering without a texture readback. For benchmarks
     /// and diagnostics only: normal frames must stay asynchronous.
     pub fn wait_idle(&self) -> Result<(), GpuError> {
-        self.flush_pending_inner(true);
+        let _ = self.flush_pending_inner(true);
+        self.wait_submitted()
+    }
+    /// Drain already submitted work without submitting a still-pending render.
+    /// Useful when a diagnostic deadline expires during CPU frame preparation.
+    pub fn wait_submitted(&self) -> Result<(), GpuError> {
         self.device
             .poll(wgpu::PollType::wait_indefinitely())
             .map_err(|e| GpuError(e.to_string()))?;
@@ -5839,7 +5870,52 @@ impl GpuRenderer {
     }
     /// Submit an offscreen frame asynchronously; unlike wait_idle this never waits.
     pub fn submit(&self) {
-        self.flush_pending_inner(true);
+        let _ = self.flush_pending_inner(true);
+    }
+    /// Submit only a new pending render and observe its completion asynchronously.
+    /// Register after upload remaps so completion also proves those callbacks ran.
+    /// This does not qualify damage or count frames; callers own that accounting.
+    pub fn submit_with_completion(&self) -> Result<CompletionTicket, GpuError> {
+        let submission = self
+            .flush_pending_inner(true)
+            .ok_or_else(|| GpuError("completion ticket requires a pending render".into()))?;
+        let complete = Arc::new(AtomicBool::new(false));
+        let flag = complete.clone();
+        self.queue
+            .on_submitted_work_done(move || flag.store(true, Ordering::Release));
+        Ok(CompletionTicket {
+            owner: self.completion_owner.clone(),
+            submission,
+            complete,
+        })
+    }
+    /// Deliver ready completion and mapped-buffer callbacks without waiting.
+    pub fn poll_completions(&self) -> Result<(), GpuError> {
+        self.device
+            .poll(wgpu::PollType::Poll)
+            .map_err(|e| GpuError(e.to_string()))?;
+        Ok(())
+    }
+    /// Wait for this ticket's submission, without draining later queued work.
+    /// No pending rendering is submitted implicitly by this operation.
+    pub fn wait_completion(&self, ticket: &CompletionTicket) -> Result<(), GpuError> {
+        if !Arc::ptr_eq(&self.completion_owner, &ticket.owner) {
+            return Err(GpuError(
+                "completion ticket belongs to another renderer".into(),
+            ));
+        }
+        self.device
+            .poll(wgpu::PollType::Wait {
+                submission_index: Some(ticket.submission.clone()),
+                timeout: None,
+            })
+            .map_err(|e| GpuError(e.to_string()))?;
+        if !ticket.is_complete() {
+            return Err(GpuError(
+                "submission wait returned without its completion callback".into(),
+            ));
+        }
+        Ok(())
     }
     /// Enable bounded GPU pass timestamps. Returns false on unsupported adapters.
     /// No device waits or readbacks are added when profiling is disabled.
@@ -5855,7 +5931,7 @@ impl GpuRenderer {
         }
     }
     pub fn set_gpu_profiling(&mut self, enabled: bool) -> bool {
-        self.flush_pending_inner(true);
+        let _ = self.flush_pending_inner(true);
         *self.profiler.get_mut() = if enabled {
             profiling::Profiler::new(&self.device, &self.queue)
         } else {
@@ -5869,7 +5945,7 @@ impl GpuRenderer {
     /// Pass partitioning perturbs GPU cost; disable this for throughput acceptance.
     pub fn arm_gpu_draw_diagnostics(&mut self, first_batch: u32) -> bool {
         if self.surface.is_some() { return false; }
-        self.flush_pending_inner(true);
+        let _ = self.flush_pending_inner(true);
         self.profiler.get_mut().as_mut().is_some_and(|p| p.arm_draw_diagnostics(first_batch))
     }
     /// Poll completed timestamps without waiting for GPU work.
@@ -5903,14 +5979,15 @@ impl GpuRenderer {
             .as_mut()
             .and_then(|p| p.start(encoder, label))
     }
-    fn submit_profiled(&self, mut encoder: wgpu::CommandEncoder, finish: bool) {
+    fn submit_profiled(&self, mut encoder: wgpu::CommandEncoder, finish: bool) -> wgpu::SubmissionIndex {
         if finish && let Some(p) = self.profiler.borrow_mut().as_mut() {
             p.resolve(&mut encoder);
         }
-        self.queue.submit([encoder.finish()]);
+        let submission = self.queue.submit([encoder.finish()]);
         if finish && let Some(p) = self.profiler.borrow_mut().as_mut() {
             p.submitted();
         }
+        submission
     }
     fn read_texture(&self, texture: &wgpu::Texture) -> Result<Vec<u8>, GpuError> {
         let stride = (self.width * 4).div_ceil(256) * 256;
