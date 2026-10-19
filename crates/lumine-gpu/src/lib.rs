@@ -233,7 +233,10 @@ pub struct NativeGlyphQuad {
     pub physical_points: [[f32; 2]; 4],
     /// False when the actual CPU clip culled this generated quad.
     pub retained_after_cpu_clip: bool,
-    /// Final encoded draw membership is unobserved, including later occlusion.
+    /// Actual compacted instance index in this node's render target; absent after CPU culling.
+    pub instance_index: Option<u32>,
+    /// True only after this instance and every enclosing layer composite were
+    /// encoded and queued. This does not establish fragment visibility.
     pub submitted: Option<bool>,
 }
 #[derive(Debug)]
@@ -269,6 +272,8 @@ pub struct NativeTextEvidence {
 /// parent_layer to retain the clips, masks and opacity applied after glyph draw.
 #[derive(Debug)]
 pub struct NativeGlyphLayer {
+    pub instance_index: u32,
+    pub submitted: Option<bool>,
     pub scene_node_id: NodeId,
     pub parent_layer: Option<NodeId>,
     pub layer_origin: (f32, f32),
@@ -300,6 +305,8 @@ struct GlyphEvidenceCollector {
     limits: GlyphEvidenceLimits,
     frame: NativeGlyphFrame,
     rasters: FxHashMap<CacheKey, NativeGlyphRaster>,
+    // Only actual glyph/composite indices are registered, bounded by evidence limits.
+    instances: RefCell<FxHashMap<(Option<NodeId>, u32), bool>>,
     failure: Option<&'static str>,
     complete: bool,
     glyphs: usize,
@@ -310,6 +317,47 @@ struct GlyphEvidenceCollector {
 impl GlyphEvidenceCollector {
     fn fail(&mut self, reason: &'static str) {
         self.failure.get_or_insert(reason);
+    }
+    fn finalize_submission(&mut self) {
+        let instances = self.instances.get_mut();
+        for layer in &mut self.frame.layers {
+            layer.submitted = instances.get(&(layer.parent_layer, layer.instance_index)).copied();
+        }
+        // A glyph encoded into an offscreen layer is not submitted to the final
+        // target unless the full parent chain is also encoded. Missing or cyclic
+        // layer records fail closed rather than implying visibility.
+        for node in &mut self.frame.nodes {
+            let mut parent = node.layer;
+            let mut composed = true;
+            let mut depth = 0;
+            while let Some(id) = parent {
+                depth += 1;
+                let Some(layer) = self.frame.layers.iter().find(|layer| layer.scene_node_id == id) else {
+                    self.failure.get_or_insert("glyph parent composite was not observed");
+                    composed = false;
+                    break;
+                };
+                if depth > self.frame.layers.len() {
+                    self.failure.get_or_insert("glyph layer cycle in submission evidence");
+                    composed = false;
+                    break;
+                }
+                composed &= layer.submitted == Some(true);
+                parent = layer.parent_layer;
+            }
+            for glyph in &mut node.glyphs {
+                if let Some(quad) = &mut glyph.quad {
+                    quad.submitted = if let Some(index) = quad.instance_index {
+                        instances.get(&(node.layer, index)).map(|encoded| *encoded && composed)
+                    } else {
+                        Some(false)
+                    };
+                    if quad.submitted.is_none() {
+                        self.failure.get_or_insert("glyph instance submission was not observed");
+                    }
+                }
+            }
+        }
     }
     fn font(&mut self, fonts: &mut FontSystem, key: CacheKey) -> Option<usize> {
         if let Some(index) = self
@@ -382,6 +430,7 @@ impl GlyphEvidenceCollector {
         affine_geometry: bool,
         layer_origin: (f32, f32),
         scale: f32,
+        instance_start: u32,
     ) {
         if self.failure.is_some() {
             return;
@@ -429,6 +478,7 @@ impl GlyphEvidenceCollector {
                     scene_points,
                     physical_points: scene_points.map(|p| [p[0] * scale, p[1] * scale]),
                     retained_after_cpu_clip: false,
+                    instance_index: Some(instance_start + index as u32),
                     submitted: None,
                 }
             });
@@ -474,6 +524,7 @@ impl GlyphEvidenceCollector {
         clip: Rect,
         affine_geometry: bool,
         layer_origin: (f32, f32),
+        instance_index: u32,
     ) {
         if self.failure.is_some() {
             return;
@@ -488,7 +539,10 @@ impl GlyphEvidenceCollector {
             return;
         }
         self.clips += clip_count;
+        self.instances.get_mut().insert((self.layer, instance_index), false);
         self.frame.layers.push(NativeGlyphLayer {
+            instance_index,
+            submitted: None,
             scene_node_id: item.id,
             parent_layer: self.layer,
             layer_origin,
@@ -1319,6 +1373,7 @@ mod glyph_evidence_tests {
                 fonts: Vec::new(),
             },
             rasters: FxHashMap::default(),
+            instances: RefCell::new(FxHashMap::default()),
             failure: None,
             complete: false,
             glyphs: 0,
@@ -2484,6 +2539,7 @@ impl GpuRenderer {
                 fonts: Vec::new(),
             },
             rasters: FxHashMap::default(),
+            instances: RefCell::new(FxHashMap::default()),
             failure: None,
             complete: false,
             glyphs: 0,
@@ -2568,7 +2624,13 @@ impl GpuRenderer {
         }
         stats.draw_calls += presented.draw_calls;
         stats.instances += presented.instances;
+        if self.glyph_evidence.is_some() {
+            // Resolve deferred root draws and queue every recorded batch before
+            // exposing submission membership. Readback completion remains separate.
+            self.flush_pending();
+        }
         if let Some(evidence) = self.glyph_evidence.as_deref_mut() {
+            evidence.finalize_submission();
             evidence.complete = true;
         }
         Ok(stats)
@@ -2591,6 +2653,7 @@ impl GpuRenderer {
         // before this one prunes images or layers it may reference.
         self.flush_pending();
         if let Some(evidence) = self.glyph_evidence.as_deref_mut() {
+            evidence.instances.get_mut().clear();
             evidence.frame.nodes.clear();
             evidence.frame.layers.clear();
             evidence.frame.scale = self.scale;
@@ -3285,6 +3348,7 @@ impl GpuRenderer {
                         clip,
                         geometry_offset != 0,
                         self.layer_origin,
+                        start,
                     );
                 }
                 draws.push(Draw {
@@ -3969,6 +4033,7 @@ impl GpuRenderer {
                             geometry_offset != 0,
                             self.layer_origin,
                             self.scale,
+                            start,
                         );
                     }
                     shaped.last_used = self.frame;
@@ -4017,9 +4082,14 @@ impl GpuRenderer {
                 && quads[start as usize..]
                     .iter()
                     .all(|quad| quad.options[2] < 0.5 && !crosses(quad, limit));
+            let mut evidence_remap = self.glyph_evidence.as_ref().map(|_|
+                (start..quads.len() as u32).map(Some).collect::<Vec<_>>());
             if cull_whole_quads {
                 let mut kept = start as usize;
                 for index in start as usize..quads.len() {
+                    if let Some(remap) = &mut evidence_remap {
+                        remap[index - start as usize] = inside(&quads[index], limit).then_some(kept as u32);
+                    }
                     if inside(&quads[index], limit) {
                         quads[kept] = quads[index];
                         kept += 1;
@@ -4038,12 +4108,12 @@ impl GpuRenderer {
                     node.draw_clip = draw_clip;
                     for glyph in &mut node.glyphs {
                         if let Some(quad) = &mut glyph.quad {
-                            let r = quad.bounds;
-                            quad.retained_after_cpu_clip = !cull_whole_quads
-                                || (r.x >= limit.x
-                                    && r.y >= limit.y
-                                    && r.x + r.width <= limit.x + limit.width
-                                    && r.y + r.height <= limit.y + limit.height);
+                            quad.instance_index = quad.instance_index.and_then(|index|
+                                evidence_remap.as_ref().and_then(|remap| remap[(index - start) as usize]));
+                            quad.retained_after_cpu_clip = quad.instance_index.is_some();
+                            if let Some(index) = quad.instance_index {
+                                evidence.instances.get_mut().insert((node.layer, index), false);
+                            }
                         }
                     }
                 }
@@ -4852,6 +4922,14 @@ impl GpuRenderer {
             pass.set_bind_group(2, self.quad_geometry(), &[0]);
         }
         pass.draw(0..6, batch.start..batch.end);
+        if let Some(evidence) = self.glyph_evidence.as_deref() {
+            let mut instances = evidence.instances.borrow_mut();
+            for index in batch.start..batch.end {
+                if let Some(submitted) = instances.get_mut(&(evidence.layer, index)) {
+                    *submitted = true;
+                }
+            }
+        }
         stats.draw_calls += 1;
         stats.instances += (batch.end - batch.start) as usize;
     }

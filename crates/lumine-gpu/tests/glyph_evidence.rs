@@ -108,7 +108,10 @@ fn new_and_cached_shapes_keep_all_clusters_without_changing_pixels() {
     );
     assert!(frame.fonts[0].shaping_normalized_coords.is_empty());
     assert!(frame.fonts[0].raster_normalized_coords.is_none());
-    assert!(frame.fonts[0].variation_axes.is_empty(), "pinned static font has no variation axes");
+    assert!(
+        frame.fonts[0].variation_axes.is_empty(),
+        "pinned static font has no variation axes"
+    );
     assert_eq!(render(&mut gpu, &mut scene).shaped_nodes, 0);
     let cached = &gpu.glyph_evidence().unwrap().unwrap().nodes[0];
     assert!(cached.shape_cached);
@@ -200,24 +203,47 @@ fn generated_glyph_quads_record_actual_cpu_clip_culling() {
     assert_eq!(glyphs.len(), 5);
     assert!(glyphs[0].quad.as_ref().unwrap().retained_after_cpu_clip);
     assert!(!glyphs[4].quad.as_ref().unwrap().retained_after_cpu_clip);
+    assert_eq!(glyphs[0].quad.as_ref().unwrap().submitted, Some(true));
+    assert_eq!(glyphs[4].quad.as_ref().unwrap().submitted, Some(false));
+    assert_eq!(glyphs[4].quad.as_ref().unwrap().instance_index, None);
     assert_eq!(glyphs[4].shape.cache_key.glyph_id, 36);
 }
 
 #[test]
-fn cpu_clip_survival_never_claims_submission_under_an_opaque_cover() {
+fn actual_batch_membership_excludes_glyphs_under_an_opaque_cover() {
     let mut gpu = renderer(FONT);
     let (mut scene, _) = scene(&gpu, "A");
     scene.append(
         scene.root(),
-        NodeKind::Quad(QuadStyle { fill: Color(0, 0, 0, 255), ..Default::default() }),
-        Style { width: Some(200.), height: Some(100.), ..Default::default() },
+        NodeKind::Quad(QuadStyle {
+            fill: Color(0, 0, 0, 255),
+            ..Default::default()
+        }),
+        Style {
+            width: Some(200.),
+            height: Some(100.),
+            ..Default::default()
+        },
     );
     gpu.enable_glyph_evidence(GlyphEvidenceLimits::default());
     render(&mut gpu, &mut scene);
-    assert!(gpu.readback().unwrap().chunks_exact(4).all(|pixel| pixel == [0, 0, 0, 255]));
-    let quad = gpu.glyph_evidence().unwrap().unwrap().nodes[0].glyphs[0].quad.as_ref().unwrap();
+    assert!(
+        gpu.readback()
+            .unwrap()
+            .chunks_exact(4)
+            .all(|pixel| pixel == [0, 0, 0, 255])
+    );
+    let quad = gpu.glyph_evidence().unwrap().unwrap().nodes[0].glyphs[0]
+        .quad
+        .as_ref()
+        .unwrap();
     assert!(quad.retained_after_cpu_clip);
-    assert_eq!(quad.submitted, None, "later occlusion is outside this observation");
+    assert_eq!(
+        quad.submitted,
+        Some(false),
+        "opaque full-region cover suppresses the actual batch"
+    );
+    assert!(quad.instance_index.is_some());
 }
 
 #[test]
@@ -281,9 +307,15 @@ fn actual_raster_quad_points_match_scale_and_affine_without_metadata_as_referenc
         assert_eq!(node.transform, matrix);
         let allocation_clip = node.allocation_clip.unwrap();
         let allocation = scene.layout_bounds(node.scene_node_id);
-        assert_eq!(allocation_clip.bounds,
-            Rect::new(allocation.x + origin.0, allocation.y + origin.1,
-                allocation.width, allocation.height));
+        assert_eq!(
+            allocation_clip.bounds,
+            Rect::new(
+                allocation.x + origin.0,
+                allocation.y + origin.1,
+                allocation.width,
+                allocation.height
+            )
+        );
         assert_eq!(allocation_clip.inverse, matrix.inverse().unwrap());
         assert!(
             !node.clip_regions.is_empty(),
@@ -417,6 +449,11 @@ fn cached_isolated_text_is_observed_on_every_collected_frame() {
     assert_eq!(frame.nodes.len(), 1);
     assert!(frame.nodes[0].shape_cached);
     assert_eq!(frame.nodes[0].layer, Some(scene.root()));
+    assert_eq!(
+        frame.nodes[0].glyphs[0].quad.as_ref().unwrap().submitted,
+        Some(true)
+    );
+    assert_eq!(frame.layers[0].submitted, Some(true));
     assert_eq!(frame.nodes[0].opacity, 1.);
     assert_eq!(frame.layers.len(), 1);
     assert_eq!(frame.layers[0].scene_node_id, scene.root());
@@ -424,4 +461,70 @@ fn cached_isolated_text_is_observed_on_every_collected_frame() {
     assert_eq!(frame.layers[0].effects.opacity, 0.5);
     assert_eq!(frame.nodes[0].glyphs[0].shape.cache_key.glyph_id, 36);
     assert_eq!(first, gpu.readback().unwrap());
+}
+
+#[test]
+fn compacted_glyph_instance_indices_follow_actual_cpu_culling() {
+    let mut gpu = renderer(FONT);
+    let (mut scene, node) = scene(&gpu, "A B C");
+    let mut style = scene.style(node);
+    style.width = Some(30.);
+    scene.set_style(node, style);
+    gpu.enable_glyph_evidence(GlyphEvidenceLimits::default());
+    render(&mut gpu, &mut scene);
+    let frame = gpu.glyph_evidence().unwrap().unwrap();
+    let glyphs = &frame.nodes[0].glyphs;
+    let kept: Vec<_> = glyphs
+        .iter()
+        .filter_map(|g| g.quad.as_ref())
+        .filter(|q| q.retained_after_cpu_clip)
+        .collect();
+    assert!(kept.len() >= 2);
+    assert!(
+        kept.windows(2)
+            .all(|pair| pair[1].instance_index.unwrap() == pair[0].instance_index.unwrap() + 1)
+    );
+    assert!(kept.iter().all(|q| q.submitted == Some(true)));
+    assert!(
+        glyphs
+            .iter()
+            .filter_map(|g| g.quad.as_ref())
+            .any(|q| q.submitted == Some(false))
+    );
+}
+
+#[test]
+fn glyph_submitted_to_layer_is_excluded_when_its_composite_is_occluded() {
+    let mut gpu = renderer(FONT);
+    let (mut scene, node) = scene(&gpu, "A");
+    scene.set_isolated(node, true);
+    scene.append(
+        scene.root(),
+        NodeKind::Quad(QuadStyle {
+            fill: Color(0, 0, 0, 255),
+            ..Default::default()
+        }),
+        Style {
+            width: Some(200.),
+            height: Some(100.),
+            ..Default::default()
+        },
+    );
+    gpu.enable_glyph_evidence(GlyphEvidenceLimits::default());
+    render(&mut gpu, &mut scene);
+    let frame = gpu.glyph_evidence().unwrap().unwrap();
+    assert_eq!(frame.nodes[0].layer, Some(node));
+    assert_eq!(
+        frame
+            .layers
+            .iter()
+            .find(|layer| layer.scene_node_id == node)
+            .unwrap()
+            .submitted,
+        Some(false)
+    );
+    assert_eq!(
+        frame.nodes[0].glyphs[0].quad.as_ref().unwrap().submitted,
+        Some(false)
+    );
 }
