@@ -21,6 +21,8 @@
 //! ```
 pub mod app_menu;
 mod clipboard;
+mod scrollbar_preference;
+pub use scrollbar_preference::reserves_scrollbar_gutters;
 #[cfg(target_os = "windows")]
 mod editor_menu;
 pub mod file_dialog;

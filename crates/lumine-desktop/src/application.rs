@@ -509,6 +509,7 @@ pub struct Application {
 type ApplicationEventHandler = Box<dyn FnMut(crate::ApplicationEvent, &WindowFactory)>;
 impl Application {
     pub fn new() -> Self {
+        crate::reserves_scrollbar_gutters();
         Self {
             #[cfg(any(target_os = "windows", target_os = "macos"))]
             message_pump: None,
