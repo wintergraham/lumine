@@ -206,7 +206,7 @@ fn cpu_clip_survival_never_claims_submission_under_an_opaque_cover() {
     let (mut scene, _) = scene(&gpu, "A");
     scene.append(
         scene.root(),
-        NodeKind::Quad { color: Color(0, 0, 0, 255), radius: 0. },
+        NodeKind::Quad(QuadStyle { fill: Color(0, 0, 0, 255), ..Default::default() }),
         Style { width: Some(200.), height: Some(100.), ..Default::default() },
     );
     gpu.enable_glyph_evidence(GlyphEvidenceLimits::default());
@@ -277,15 +277,10 @@ fn actual_raster_quad_points_match_scale_and_affine_without_metadata_as_referenc
         let node = &frame.nodes[0];
         assert_eq!(node.transform, matrix);
         let allocation_clip = node.allocation_clip.unwrap();
-        assert_eq!(
-            allocation_clip.bounds,
-            scene
-                .layout_bounds(node.scene_node_id)
-                .translated(Transform {
-                    x: origin.0,
-                    y: origin.1
-                })
-        );
+        let allocation = scene.layout_bounds(node.scene_node_id);
+        assert_eq!(allocation_clip.bounds,
+            Rect::new(allocation.x + origin.0, allocation.y + origin.1,
+                allocation.width, allocation.height));
         assert_eq!(allocation_clip.inverse, matrix.inverse().unwrap());
         assert!(
             !node.clip_regions.is_empty(),
