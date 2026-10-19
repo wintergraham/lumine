@@ -2725,21 +2725,24 @@ impl GpuRenderer {
                             self.images.remove(&old);
                             self.image_textures.remove(&old);
                         }
-                        quads.push(Quad {
-                            rect: fade,
-                            uv: [0.; 4],
-                            color: rgba(fill, item.effects.opacity),
-                            fade,
-                            options: [item.effects.edge_fade, 0., 0., 1.],
-                            shape: [0., 0., 0., 1.],
-                            border: decoration::shadow_corners(
-                                style,
-                                bounds.width,
-                                bounds.height,
-                                0.,
-                            ),
-                            mask: NO_MASK,
-                        });
+                        // Empty draws below still carry backdrop filters and masks.
+                        if fill.3 != 0 {
+                            quads.push(Quad {
+                                rect: fade,
+                                uv: [0.; 4],
+                                color: rgba(fill, item.effects.opacity),
+                                fade,
+                                options: [item.effects.edge_fade, 0., 0., 1.],
+                                shape: [0., 0., 0., 1.],
+                                border: decoration::shadow_corners(
+                                    style,
+                                    bounds.width,
+                                    bounds.height,
+                                    0.,
+                                ),
+                                mask: NO_MASK,
+                            });
+                        }
                     } else if style.decoration.is_some() && bounds.width > 0. && bounds.height > 0.
                     {
                         let before = self.canvases.rasterizations();
