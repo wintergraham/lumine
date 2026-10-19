@@ -1245,6 +1245,11 @@ impl Host {
         if !self.context.ui.scene.borrow().contains(node) {
             return;
         }
+        if self.context.ui.input.is_enabled(&self.context.ui.scene.borrow(), node) {
+            // Native interaction can follow a transient surface acquisition occlusion.
+            self.presentation.expose();
+            self.force = true;
+        }
         if crate::accessibility::scroll_action(&self.context.ui, node, request.action) {
             return;
         }
@@ -1774,6 +1779,10 @@ impl Host {
             }
             WindowEvent::Focused(false) => self.deactivate(),
             WindowEvent::Focused(true) => {
+                if !self.native_focused {
+                    self.presentation.expose();
+                    self.force = true;
+                }
                 self.native_focused = true;
                 self.focus_memory.activate(&self.context.ui);
                 self.sync_performance();
@@ -2955,6 +2964,48 @@ mod tests {
                 assert_eq!(native_provider.native_window().unwrap().id(), first_id);
                 host.create_window(event_loop).unwrap();
                 assert_eq!(host.window.as_ref().unwrap().id(), first_id);
+                let now = std::time::Instant::now();
+                host.window_event(WindowEvent::Focused(false)).unwrap();
+                host.presentation.damaged();
+                host.presentation
+                    .completed(lumine_gpu::PresentationStatus::Occluded, now);
+                host.force = false;
+                host.window_event(WindowEvent::Focused(true)).unwrap();
+                assert!(host.presentation.ready(now) && host.force);
+                host.presentation
+                    .completed(lumine_gpu::PresentationStatus::Occluded, now);
+                host.force = false;
+                host.window_event(WindowEvent::Focused(true)).unwrap();
+                assert!(!host.presentation.ready(now) && !host.force);
+                host.context.ui.prepare_frame();
+                host.context.ui.scene.borrow_mut().flush();
+                let target = host.tree
+                    .update(
+                        &host.context.ui.scene.borrow(),
+                        &host.context.ui.semantics.borrow(),
+                        Some(editor.node),
+                        &host.options.title,
+                        host.scale_factor,
+                    )
+                    .focus;
+                let action = |target_node| {
+                    accesskit_winit::WindowEvent::ActionRequested(accesskit::ActionRequest {
+                        action: accesskit::Action::Focus,
+                        target_tree: accesskit::TreeId::ROOT,
+                        target_node,
+                        data: None,
+                    })
+                };
+                host.accessibility_event(action(accesskit::NodeId(u64::MAX)));
+                assert!(!host.presentation.ready(now) && !host.force);
+                host.context.ui.set_disabled(editor.node, true);
+                host.accessibility_event(action(target));
+                assert!(!host.presentation.ready(now) && !host.force);
+                host.context.ui.set_disabled(editor.node, false);
+                host.accessibility_event(action(target));
+                assert!(host.presentation.ready(now) && host.force);
+                assert_eq!(host.context.ui.input.focused(), Some(editor.node));
+                assert_eq!(host.presentation.deadline(), None);
                 #[cfg(target_os = "windows")]
                 {
                     use lumine::compose::prelude::*;

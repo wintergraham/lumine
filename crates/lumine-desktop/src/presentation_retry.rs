@@ -182,4 +182,32 @@ mod visibility_tests {
         p.expose();
         assert!(p.render_allowed((100, 100), None, None, false));
     }
+    #[test]
+    fn interaction_recovery_keeps_native_gates_and_retained_frame() {
+        let now = Instant::now();
+        for (size, visible, minimized, native_occluded) in [
+            ((0, 100), Some(true), Some(false), false),
+            ((100, 100), Some(false), Some(false), false),
+            ((100, 100), Some(true), Some(true), false),
+            ((100, 100), Some(true), Some(false), true),
+        ] {
+            let mut p = Presentation::default();
+            p.damaged();
+            p.completed(PresentationStatus::Occluded, now);
+            p.expose(); // Focus regain or a valid accessibility interaction.
+            assert!(!p.render_allowed(size, visible, minimized, native_occluded));
+            assert!(!p.drawable());
+            assert_eq!(p.deadline(), None);
+            assert!(p.render_allowed((100, 100), Some(true), Some(false), false));
+            assert!(p.ready(now)); // No new damage was needed.
+            p.completed(PresentationStatus::Occluded, now);
+            assert!(!p.ready(now + Duration::from_secs(60)));
+            assert_eq!(p.deadline(), None);
+            p.expose();
+            assert!(p.render_allowed((100, 100), Some(true), Some(false), false));
+            assert!(p.ready(now));
+            p.completed(PresentationStatus::Presented, now);
+            assert!(!p.ready(now));
+        }
+    }
 }
