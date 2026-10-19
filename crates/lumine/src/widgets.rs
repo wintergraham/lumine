@@ -72,6 +72,8 @@ pub struct EditorHandle {
     pub editor: Rc<RefCell<TextEditor>>,
     pub value: Signal<String>,
     refresh: Rc<dyn Fn()>,
+    scroll: Rc<RefCell<(f32, f32)>>,
+    reveal_caret: Rc<Cell<bool>>,
     typography: Rc<RefCell<(Color, f32, FontStyle)>>,
     wrap: Rc<Cell<bool>>,
     preferred_x: Rc<Cell<Option<f32>>>,
@@ -164,6 +166,24 @@ impl EditorHandle {
             editor.set_selection(anchor, focus);
         });
         self.refresh();
+    }
+    /// Internal viewport offset in logical pixels, after the latest layout refresh.
+    pub fn scroll_offset(&self) -> (f32, f32) {
+        *self.scroll.borrow()
+    }
+    /// Restore the viewport after value and selection, clamping to current layout limits.
+    /// This refresh suppresses caret reveal so an offscreen selection stays offscreen.
+    pub fn set_scroll_offset(&self, left: f32, top: f32) -> Result<(), &'static str> {
+        if !left.is_finite() || !top.is_finite() || left < 0. || top < 0. {
+            return Err("editor scroll offsets must be finite and nonnegative");
+        }
+        if !self.scene.borrow().contains(self.node) {
+            return Err("editor is unmounted");
+        }
+        *self.scroll.borrow_mut() = (left, top);
+        self.reveal_caret.set(false);
+        self.refresh();
+        Ok(())
     }
     pub fn select_all(&self) {
         let end = self
@@ -2199,6 +2219,8 @@ impl Ui {
             editor: editor.clone(),
             value: value.clone(),
             refresh: refresh.clone(),
+            scroll: scroll.clone(),
+            reveal_caret: reveal_caret.clone(),
             typography: typography.clone(),
             wrap: wrap.clone(),
             preferred_x: preferred_x.clone(),
