@@ -250,6 +250,7 @@ pub(super) fn batches(
     region: Rect,
     first: u32,
     unblended: bool,
+    merge_geometry: bool,
 ) -> impl Iterator<Item = Batch> + '_ {
     let mut draws = draws.iter();
     let mut open: Option<Batch> = None;
@@ -275,7 +276,7 @@ pub(super) fn batches(
                 && batch.end == start
                 && batch.source == source
                 && batch.shading == shading
-                && batch.geometry_offset == draw.geometry_offset
+                && (merge_geometry || batch.geometry_offset == draw.geometry_offset)
             {
                 batch.end = draw.end;
                 continue;
@@ -460,8 +461,8 @@ impl GpuRenderer {
                 pass.set_vertex_buffer(0, vertices.slice(..));
                 pass.set_bind_group(0, &self.bind, &[]);
                 pass.set_bind_group(1, self.viewport_bind.as_ref(), &[]);
-                pass.set_bind_group(2, &self.geometry.bind, &[0]);
-                pass.set_pipeline(self.context.inner.quads.clear(self.split_shading));
+                pass.set_bind_group(2, self.quad_geometry(), &[0]);
+                pass.set_pipeline(self.quad_pipelines().clear(self.split_shading));
                 pass.set_scissor_rect(*x, *y, *w, *h);
                 pass.draw(0..6, 0..1);
                 drop(pass);
@@ -471,7 +472,13 @@ impl GpuRenderer {
             }
             let unblended = region.width * region.height * self.scale * self.scale >= SPLIT_PIXELS;
             let mut previous_batch = None;
-            let mut batches = batches(draws, *region, first[index], unblended)
+            let mut batches = batches(
+                draws,
+                *region,
+                first[index],
+                unblended,
+                self.geometry_batching == GeometryBatching::IndexedMerged,
+            )
                 .filter_map(|b| {
                     scissor(b.rect, self.scale, self.width, self.height).map(|s| (b, s))
                 })
@@ -503,7 +510,7 @@ impl GpuRenderer {
                 pass.set_bind_group(1, self.viewport_bind.as_ref(), &[]);
                 let mut current = None;
                 let pipelines = |s| {
-                    self.context.inner.quads.get(
+                    self.quad_pipelines().get(
                         selected_shading(
                             s,
                             self.regular_full_shader,
@@ -658,7 +665,7 @@ mod tests {
         draws[2].clip = Rect::new(200., 200., 10., 10.);
         draws[4].geometry_offset = 256;
         draws[5].image = Some(7);
-        let batches = batches(&draws, region, 1, true).collect::<Vec<_>>();
+        let batches = batches(&draws, region, 1, true, false).collect::<Vec<_>>();
         assert_eq!(
             batches
                 .iter()
@@ -673,12 +680,54 @@ mod tests {
         );
         draws[0].shading = Shading::Opaque;
         assert_eq!(
-            super::batches(&draws, region, 0, false)
+            super::batches(&draws, region, 0, false, false)
                 .next()
                 .unwrap()
                 .shading,
             Shading::Basic
         );
+    }
+    #[test]
+    fn indexed_geometry_merges_only_geometry_preserving_all_other_boundaries() {
+        let region = Rect::new(0., 0., 100., 100.);
+        let scene = Scene::new(100., 100.);
+        let mut draws = (1..11).map(|i| draw(i, i + 1)).collect::<Vec<_>>();
+        for (i, draw) in draws.iter_mut().enumerate() {
+            draw.geometry_offset = (i as u32 + 1) * 256;
+        }
+        // Same physical scissor, different logical rect must remain a boundary.
+        draws[2].clip = Rect::new(0.25, 0., 99.75, 100.);
+        draws[3].image = Some(7);
+        draws[4].layer = Some(scene.root());
+        draws[5].shading = Shading::RegularFull;
+        // A skipped draw makes an instance gap.
+        draws[6].bounds = Rect::new(200., 200., 10., 10.);
+        // Invisible clip flushes even contiguous instances on either side.
+        draws[8].clip = Rect::new(200., 200., 10., 10.);
+        draws[9].start = 9;
+        let ranges = |merge| {
+            batches(&draws, region, 1, true, merge)
+                .map(|b| b.start..b.end)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            ranges(false),
+            vec![1..2, 2..3, 3..4, 4..5, 5..6, 6..7, 8..9, 9..11]
+        );
+        assert_eq!(
+            ranges(true),
+            vec![1..3, 3..4, 4..5, 5..6, 6..7, 8..9, 9..11]
+        );
+        // A blur/pass split is still an explicit slice, even if all keys match.
+        assert_eq!(batches(&draws[..1], region, 1, true, true).count(), 1);
+        assert_eq!(batches(&draws[1..2], region, 1, true, true).count(), 1);
+
+        let mut indices = Vec::new();
+        paint_geometry::instance_indices(&mut indices, &draws, 11);
+        assert_eq!(indices, vec![0, 2, 4, 6, 8, 10, 12, 14, 16, 20, 20]);
+        // Reusing upload memory must reset both identity slots and trailing data.
+        paint_geometry::instance_indices(&mut indices, &[draw(1, 3)], 4);
+        assert_eq!(indices, vec![0; 4]);
     }
     #[test]
     fn batch_boundaries_count_omitted_batches_and_preserve_gaps_and_segment_resets() {
@@ -715,7 +764,7 @@ mod tests {
             {
                 let mut previous = None;
                 let mut submitted = 0;
-                for batch in batches(&draws, region, 1, true) {
+                for batch in batches(&draws, region, 1, true, false) {
                     let Some(physical_scissor) = scissor(batch.rect, 1., 100, 100) else {
                         continue;
                     };
@@ -757,7 +806,7 @@ mod tests {
         let mut diagnostics = DrawDiagnostics::new(0);
         let mut previous = None;
         let mut iterator_batches = 0;
-        for batch in batches(&draws, Rect::new(0., 0., 200., 100.), 0, true) {
+        for batch in batches(&draws, Rect::new(0., 0., 200., 100.), 0, true, false) {
             iterator_batches += 1;
             if let Some(physical_scissor) = scissor(batch.rect, 1., 100, 100) {
                 diagnostics.observe_batch(&batch, physical_scissor, &mut previous);
@@ -789,7 +838,7 @@ mod tests {
                 d
             })
             .collect::<Vec<_>>();
-        let batch = batches(&draws, Rect::new(0., 0., 100., 100.), 1, true)
+        let batch = batches(&draws, Rect::new(0., 0., 100., 100.), 1, true, false)
             .next()
             .unwrap();
         let (sources, omitted, bounds) = batch_sources(&batch, &draws);

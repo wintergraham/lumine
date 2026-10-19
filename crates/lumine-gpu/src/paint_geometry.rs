@@ -27,33 +27,54 @@ fn rows(m: Affine) -> [[f32; 4]; 2] {
 fn rect(r: Rect) -> [f32; 4] {
     [r.x, r.y, r.width, r.height]
 }
-pub(super) fn layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+pub(super) fn layout(device: &wgpu::Device, indexed: bool) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("paint geometry"),
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: true,
-                    min_binding_size: wgpu::BufferSize::new(
-                        std::mem::size_of::<Parameters>() as u64
-                    ),
+        entries: &{
+            let mut entries = vec![
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: true,
+                        min_binding_size: wgpu::BufferSize::new(
+                            std::mem::size_of::<Parameters>() as u64
+                        ),
+                    },
+                    count: None,
                 },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Storage { read_only: true },
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
                 },
-                count: None,
-            },
-        ],
+            ];
+            if indexed {
+                for binding in [2, 3] {
+                    entries.push(wgpu::BindGroupLayoutEntry {
+                        binding,
+                        visibility: if binding == 2 {
+                            wgpu::ShaderStages::VERTEX_FRAGMENT
+                        } else {
+                            wgpu::ShaderStages::VERTEX
+                        },
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    });
+                }
+            }
+            entries
+        },
     })
 }
 pub(super) struct FrameGeometry {
@@ -66,11 +87,15 @@ pub(super) struct FrameGeometry {
     parameters: Vec<u8>,
     regions: Vec<Clip>,
     identity_uploaded: bool,
+    pub indexed_bind: Option<wgpu::BindGroup>,
+    instances: Option<wgpu::Buffer>,
+    instance_capacity: usize,
+    indices: Vec<u32>,
     last: Option<(Parameters, std::ops::Range<usize>, u32, u64)>,
 }
 impl FrameGeometry {
     pub fn bytes(&self) -> usize {
-        self.uniform_capacity + self.clip_capacity
+        self.uniform_capacity + self.clip_capacity + self.instance_capacity
     }
     pub fn new(device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Self {
         let stride = (std::mem::size_of::<Parameters>() as u32)
@@ -80,7 +105,7 @@ impl FrameGeometry {
             device,
             stride,
             "paint uniforms",
-            wgpu::BufferUsages::UNIFORM,
+            wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::STORAGE,
         );
         let clips = buffer(
             device,
@@ -99,6 +124,10 @@ impl FrameGeometry {
             parameters: Vec::new(),
             regions: Vec::new(),
             identity_uploaded: false,
+            indexed_bind: None,
+            instances: None,
+            instance_capacity: 0,
+            indices: Vec::new(),
             last: None,
         }
     }
@@ -200,6 +229,68 @@ impl FrameGeometry {
         self.last = Some((stable, start..self.regions.len(), offset, hash));
         Ok((offset, hash))
     }
+    /// Keep the original padded parameters and blur bindings. Indices address
+    /// 128-byte storage records, including the padding between uniform records.
+    pub fn upload_instances(
+        &mut self,
+        device: &wgpu::Device,
+        layout: &wgpu::BindGroupLayout,
+        draws: &[Draw],
+        count: usize,
+        belt: &mut wgpu::util::StagingBelt,
+        encoder: &mut wgpu::CommandEncoder,
+    ) -> usize {
+        instance_indices(&mut self.indices, draws, count);
+        let bytes = bytemuck::cast_slice(&self.indices);
+        let mut allocations = 0;
+        if bytes.len() > self.instance_capacity {
+            self.instance_capacity = bytes.len().next_power_of_two();
+            self.instances = Some(buffer(
+                device,
+                self.instance_capacity,
+                "paint geometry indices",
+                wgpu::BufferUsages::STORAGE,
+            ));
+            self.indexed_bind = None;
+            allocations += 1;
+        }
+        if self.indexed_bind.is_none() {
+            self.indexed_bind = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("indexed frame paint geometry"),
+                layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: &self.uniforms,
+                            offset: 0,
+                            size: wgpu::BufferSize::new(std::mem::size_of::<Parameters>() as u64),
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: self.clips.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: self.uniforms.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: self.instances.as_ref().unwrap().as_entire_binding(),
+                    },
+                ],
+            }));
+        }
+        belt.write_buffer(
+            encoder,
+            self.instances.as_ref().unwrap(),
+            0,
+            wgpu::BufferSize::new(bytes.len() as u64).expect("background index"),
+        )
+        .copy_from_slice(bytes);
+        allocations
+    }
     pub fn upload(
         &mut self,
         device: &wgpu::Device,
@@ -220,7 +311,7 @@ impl FrameGeometry {
                 device,
                 self.uniform_capacity,
                 "paint uniforms",
-                wgpu::BufferUsages::UNIFORM,
+                wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::STORAGE,
             );
             resized = true;
             allocations += 1;
@@ -237,6 +328,7 @@ impl FrameGeometry {
             allocations += 1;
         }
         if resized {
+            self.indexed_bind = None;
             self.bind = group(device, layout, &self.uniforms, &self.clips);
         }
         belt.write_buffer(
@@ -296,4 +388,68 @@ fn group(
             },
         ],
     })
+}
+
+pub(super) fn instance_indices(indices: &mut Vec<u32>, draws: &[Draw], count: usize) {
+    indices.clear();
+    indices.resize(count, 0);
+    for draw in draws {
+        assert_eq!(
+            draw.geometry_offset as usize % std::mem::size_of::<Parameters>(),
+            0
+        );
+        indices[draw.start as usize..draw.end as usize]
+            .fill(draw.geometry_offset / std::mem::size_of::<Parameters>() as u32);
+    }
+}
+
+/// Generate only the opt-in shader. The reference WGSL stays byte-for-byte intact.
+pub(super) fn shader(indexed: bool) -> String {
+    let geometry = include_str!("paint_geometry.wgsl").replace("GEOMETRY_GROUP", "2");
+    let draw = include_str!("draw.wgsl");
+    if !indexed {
+        return geometry + draw;
+    }
+    // Flat geometry is constant within each primitive, like its old uniform.
+    // Storage lookup makes Naga conservatively reject derivatives in clip loops.
+    let geometry = geometry.replace(
+        "@group(2) @binding(0) var<uniform> geometry:PaintGeometry;",
+        "var<private> geometry:PaintGeometry;\n\
+         @group(2) @binding(2) var<storage,read> geometries:array<PaintGeometry>;\n\
+         @group(2) @binding(3) var<storage,read> geometry_indices:array<u32>;",
+    );
+    let draw = draw
+        .replace("@location(9) @interpolate(flat) knockout:vec4<f32>",
+            "@location(9) @interpolate(flat) knockout:vec4<f32>, @location(10) @interpolate(flat) geometry_index:u32")
+        .replace("@vertex fn vs(v:Vertex,@builtin(vertex_index) i:u32)->Out {",
+            "@vertex fn vs(v:Vertex,@builtin(vertex_index) i:u32,@builtin(instance_index) instance:u32)->Out {\n geometry=geometries[geometry_indices[instance]];")
+        .replace("o.knockout=v.uv;return o;", "o.knockout=v.uv;o.geometry_index=geometry_indices[instance];return o;")
+        .replace("fn shade(v:Out)->vec4<f32> {", "fn shade(v:Out)->vec4<f32> {\n geometry=geometries[v.geometry_index];");
+    "diagnostic(off, derivative_uniformity);\n".to_owned() + &geometry + &draw
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn indexed_shader_changes_only_geometry_transport() {
+        let reference = shader(false);
+        assert_eq!(
+            reference,
+            include_str!("paint_geometry.wgsl").replace("GEOMETRY_GROUP", "2")
+                + include_str!("draw.wgsl")
+        );
+        let indexed = shader(true);
+        assert!(!indexed.contains("var<uniform> geometry:PaintGeometry"));
+        for required in [
+            "@builtin(instance_index) instance:u32",
+            "@location(10) @interpolate(flat) geometry_index:u32",
+            "geometry=geometries[geometry_indices[instance]];",
+            "o.geometry_index=geometry_indices[instance];",
+            "geometry=geometries[v.geometry_index];",
+        ] {
+            assert_eq!(indexed.matches(required).count(), 1, "{required}");
+        }
+        assert_eq!(std::mem::size_of::<Parameters>(), 128);
+    }
 }

@@ -6,7 +6,7 @@ use lumine::{
     layout::LayoutOptions,
     scene::*,
 };
-use lumine_gpu::GpuRenderer;
+use lumine_gpu::{GeometryBatching, GpuRenderer};
 use std::sync::Arc;
 
 fn fixed(width: f32, height: f32) -> Style {
@@ -146,11 +146,26 @@ fn regular_full_matches_original_with_nested_clips_nearest_masks_and_mixed_shado
     let mut original = GpuRenderer::new(320, 240).unwrap();
     let mut regular = GpuRenderer::new_with_context(320, 240, &original.context()).unwrap();
     let mut specialized = GpuRenderer::new_with_context(320, 240, &original.context()).unwrap();
-    for gpu in [&mut original, &mut regular, &mut specialized] {
+    let mut indexed = GpuRenderer::new_with_context(320, 240, &original.context()).unwrap();
+    let mut merged = GpuRenderer::new_with_context(320, 240, &original.context()).unwrap();
+    indexed.debug_geometry_batching(GeometryBatching::Indexed);
+    merged.debug_geometry_batching(GeometryBatching::IndexedMerged);
+    indexed.debug_split_shading(true);
+    merged.debug_split_shading(true);
+    for gpu in [
+        &mut original,
+        &mut regular,
+        &mut specialized,
+        &mut indexed,
+        &mut merged,
+    ] {
         gpu.set_scale_factor(2.);
         gpu.set_background(Color(12, 24, 40, 255));
         // Keep this experiment independent of opaque-interior decomposition.
         gpu.debug_opaque_interiors(false);
+    }
+    for gpu in [&mut original, &mut regular, &mut specialized] {
+        gpu.debug_geometry_batching(GeometryBatching::DynamicUniform);
     }
     original.debug_split_shading(true);
     original.debug_regular_full_shader(false);
@@ -165,6 +180,8 @@ fn regular_full_matches_original_with_nested_clips_nearest_masks_and_mixed_shado
             original.debug_enable_single_pass();
             regular.debug_enable_single_pass();
             specialized.debug_enable_single_pass();
+            indexed.debug_enable_single_pass();
+            merged.debug_enable_single_pass();
         }
         let mut with_shadow = None;
         for shadows in [true, false] {
@@ -182,6 +199,12 @@ fn regular_full_matches_original_with_nested_clips_nearest_masks_and_mixed_shado
             let original_stats = original.render(&scene, &damage).unwrap();
             let regular_stats = regular.render(&scene, &damage).unwrap();
             let specialized_stats = specialized.render(&scene, &damage).unwrap();
+            let indexed_stats = indexed.render(&scene, &damage).unwrap();
+            merged.render(&scene, &damage).unwrap();
+            assert_eq!(
+                indexed_stats.draw_calls, specialized_stats.draw_calls,
+                "indexed transport must retain identical batches"
+            );
             assert_eq!(original_stats.draw_calls, specialized_stats.draw_calls);
             assert_eq!(regular_stats.draw_calls, specialized_stats.draw_calls);
             // Present before readback, which would otherwise flush deferred draws.
@@ -191,6 +214,21 @@ fn regular_full_matches_original_with_nested_clips_nearest_masks_and_mixed_shado
             let expected = original.readback().unwrap();
             let regular_pixels = regular.readback().unwrap();
             let actual = specialized.readback().unwrap();
+            for (mode, gpu) in [("indexed", &mut indexed), ("merged", &mut merged)] {
+                assert_eq!(
+                    gpu.debug_present_offscreen().unwrap(),
+                    expected_presented,
+                    "{mode} presentation, single_pass={single_pass}, shadows={shadows}"
+                );
+                assert_eq!(
+                    gpu.readback().unwrap(),
+                    expected,
+                    "{mode} retained pixels, single_pass={single_pass}, shadows={shadows}"
+                );
+                if single_pass {
+                    assert!(gpu.debug_single_pass_frames() > 0);
+                }
+            }
             assert_eq!(regular_pixels, expected, "RegularFull reference pixels");
             assert_eq!(
                 regular_presented, expected_presented,
@@ -508,4 +546,181 @@ fn clip_interiors_match_reference_at_aa_ties_fractional_dpr_and_affine_clips() {
         "fixture must run the Dither source effect"
     );
     assert!(optimized.debug_single_pass_frames() > 0);
+}
+
+#[test]
+fn indexed_geometry_matches_uniforms_across_merges_blur_segments_and_presentation() {
+    let mut scene = Scene::new(160., 120.);
+    scene.set_kind(scene.root(), NodeKind::Container(Layout::Overlay));
+    let panel = |radius, fill| NodeKind::Panel {
+        layout: Layout::Overlay,
+        quad: QuadStyle {
+            radius,
+            fill,
+            ..Default::default()
+        },
+    };
+    let outer = scene.append(
+        scene.root(),
+        panel(17., Color(0, 0, 0, 0)),
+        Style {
+            clip: true,
+            fade_edges: [5., 8.],
+            ..fixed(145., 112.)
+        },
+    );
+    scene.set_transform(outer, Transform { x: 7.25, y: 3.25 });
+    let inner = scene.append(
+        outer,
+        panel(11., Color(0, 0, 0, 0)),
+        Style {
+            clip: true,
+            ..fixed(136., 102.)
+        },
+    );
+    scene.set_transform(inner, Transform { x: 4.5, y: 5.5 });
+    let mut moving = Vec::new();
+    for segment in 0..3 {
+        for i in 0..4 {
+            let node = scene.append(
+                inner,
+                NodeKind::Quad(QuadStyle {
+                    fill: Color(40 + i * 40, 70 + segment * 50, 210, 170),
+                    radius: 6.,
+                    border_width: 1.25,
+                    border_color: Color(250, 210, 70, 200),
+                    ..Default::default()
+                }),
+                fixed(44., 29.),
+            );
+            scene.set_transform(
+                node,
+                Transform {
+                    x: 8.25 + i as f32 * 23.,
+                    y: 6.25 + segment as f32 * 27.,
+                },
+            );
+            moving.push(node);
+        }
+        if segment < 2 {
+            let glass = scene.append(inner, panel(9., Color(240, 250, 255, 35)), fixed(102., 58.));
+            scene.set_transform(
+                glass,
+                Transform {
+                    x: 12.5,
+                    y: 14.5 + segment as f32 * 21.,
+                },
+            );
+            scene.set_paint_transform_origin(glass, Affine::rotation(0.04), [0.5, 0.5]);
+            scene.set_effects(
+                glass,
+                Effects {
+                    blur_radius: 3.,
+                    opacity: 0.85,
+                    ..Default::default()
+                },
+            );
+        }
+    }
+    // A retained layer forces uploads for a different viewport before root draws.
+    let layer = scene.append(
+        scene.root(),
+        NodeKind::Container(Layout::Overlay),
+        fixed(24., 18.),
+    );
+    scene.set_transform(layer, Transform { x: 128., y: 95. });
+    scene.set_isolated(layer, true);
+    let child = scene.append(
+        layer,
+        NodeKind::Quad(QuadStyle {
+            fill: Color(230, 80, 150, 170),
+            radius: 4.,
+            ..Default::default()
+        }),
+        fixed(22., 16.),
+    );
+    scene.set_paint_transform_origin(child, Affine::rotation(-0.12), [0.5, 0.5]);
+
+    let mut reference = GpuRenderer::new(320, 240).unwrap();
+    // Force the reference even if the parent selects an experiment via env.
+    reference.debug_geometry_batching(GeometryBatching::DynamicUniform);
+    let mut indexed = GpuRenderer::new_with_context(320, 240, &reference.context()).unwrap();
+    let mut merged = GpuRenderer::new_with_context(320, 240, &reference.context()).unwrap();
+    indexed.debug_geometry_batching(GeometryBatching::Indexed);
+    merged.debug_geometry_batching(GeometryBatching::IndexedMerged);
+    for gpu in [&mut reference, &mut indexed, &mut merged] {
+        gpu.set_background(Color(12, 24, 40, 255));
+        gpu.debug_opaque_interiors(false);
+    }
+    let mut saw_merge = false;
+    for single_pass in [false, true] {
+        if single_pass {
+            for gpu in [&mut reference, &mut indexed, &mut merged] {
+                gpu.debug_enable_single_pass();
+            }
+        }
+        for scale in [1.25, 2.] {
+            for gpu in [&mut reference, &mut indexed, &mut merged] {
+                gpu.set_scale_factor(scale);
+                gpu.resize((160. * scale) as u32, (120. * scale) as u32);
+            }
+            for split in [false, true] {
+                for gpu in [&mut reference, &mut indexed, &mut merged] {
+                    gpu.debug_split_shading(split);
+                }
+                for frame in 0..2 {
+                    for (i, node) in moving.iter().enumerate() {
+                        let matrix = match i % 4 {
+                            0 => Affine::rotation(0.07 + frame as f32 * 0.04),
+                            1 => Affine::scale(-0.9, 1.1).then(Affine::rotation(-0.09)),
+                            2 => Affine {
+                                c: 0.25,
+                                ..Affine::IDENTITY
+                            },
+                            _ => Affine::scale(1.05, 0.85).then(Affine::rotation(0.19)),
+                        };
+                        scene.set_paint_transform_origin(*node, matrix, [0.5, 0.5]);
+                    }
+                    let damage = scene.flush().damage;
+                    let a = reference.render(&scene, &damage).unwrap();
+                    let b = indexed.render(&scene, &damage).unwrap();
+                    let c = merged.render(&scene, &damage).unwrap();
+                    assert_eq!(
+                        b.draw_calls, a.draw_calls,
+                        "indexed mode changes no batches"
+                    );
+                    assert_eq!(b.instances, a.instances);
+                    assert_eq!(c.instances, a.instances);
+                    assert_eq!(b.blur_passes, a.blur_passes);
+                    assert_eq!(c.blur_passes, a.blur_passes);
+                    assert_eq!(c.filtered_pixels, a.filtered_pixels);
+                    assert_eq!(c.render_passes, a.render_passes);
+                    saw_merge |= c.draw_calls < a.draw_calls;
+                    if frame == 0 {
+                        assert!(a.blur_passes > 0, "fixture must run blur segments");
+                    }
+                    let presented = reference.debug_present_offscreen().unwrap();
+                    let pixels = reference.readback().unwrap();
+                    for (mode, gpu) in [("indexed", &mut indexed), ("merged", &mut merged)] {
+                        assert_eq!(
+                            gpu.debug_present_offscreen().unwrap(),
+                            presented,
+                            "{mode} presentation: scale={scale}, single_pass={single_pass}, split={split}, frame={frame}"
+                        );
+                        assert_eq!(
+                            gpu.readback().unwrap(),
+                            pixels,
+                            "{mode} retained pixels: scale={scale}, single_pass={single_pass}, split={split}, frame={frame}"
+                        );
+                    }
+                }
+            }
+        }
+    }
+    assert!(
+        saw_merge,
+        "fixture must exercise actual geometry-only draw merging"
+    );
+    assert!(indexed.debug_single_pass_frames() > 0);
+    assert!(merged.debug_single_pass_frames() > 0);
 }

@@ -1143,6 +1143,7 @@ pub struct GpuContext {
 }
 struct GpuContextInner {
     geometry_layout: wgpu::BindGroupLayout,
+    indexed_geometry: std::cell::OnceCell<IndexedGeometryPipelines>,
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,
     device: wgpu::Device,
@@ -1157,9 +1158,6 @@ struct GpuContextInner {
     viewport_layout: wgpu::BindGroupLayout,
     /// Vertex and small uniform uploads are CPU-mapped instead of copied.
     mapped_uploads: bool,
-    /// For dual-output (single-pass presentation) pipelines.
-    quad_shader: wgpu::ShaderModule,
-    quad_layout: wgpu::PipelineLayout,
 }
 impl GpuContext {
     pub fn new() -> Result<Self, GpuError> {
@@ -1204,7 +1202,7 @@ impl GpuContext {
         }))
         .map_err(|e| GpuError(e.to_string()))?;
         let (texture_layout, viewport_layout, geometry_layout, quad_shader, quad_layout) =
-            create_quad_pipelines(&device);
+            create_quad_pipelines(&device, false);
         let quads = QuadPipelines {
             device: device.clone(),
             shader: quad_shader.clone(),
@@ -1230,10 +1228,30 @@ impl GpuContext {
                 texture_layout,
                 viewport_layout,
                 geometry_layout,
-                quad_shader,
-                quad_layout,
+                indexed_geometry: Default::default(),
                 mapped_uploads,
             }),
+        })
+    }
+    fn indexed_geometry(&self) -> &IndexedGeometryPipelines {
+        self.inner.indexed_geometry.get_or_init(|| {
+            let (_, _, geometry_layout, shader, layout) =
+                create_quad_pipelines(&self.inner.device, true);
+            IndexedGeometryPipelines {
+                geometry_layout,
+                quads: QuadPipelines {
+                    device: self.inner.device.clone(),
+                    shader,
+                    layout,
+                    full: Default::default(),
+                    regular_full: Default::default(),
+                    nearest_image: Default::default(),
+                    full_clear: Default::default(),
+                    basic: Default::default(),
+                    basic_clear: Default::default(),
+                    drawable: None,
+                },
+            }
         })
     }
     pub fn shares_device(&self, other: &Self) -> bool {
@@ -1252,7 +1270,36 @@ impl GpuError {
         self.0 == "surface is incompatible with the shared GPU adapter"
     }
 }
+/// Opt-in geometry transport experiment. The default retains dynamic uniforms.
+/// With the `benchmark` feature, `LUMINE_GPU_GEOMETRY_BATCHING=indexed|merged`
+/// selects the experiment when constructing a renderer.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum GeometryBatching {
+    #[default]
+    DynamicUniform,
+    /// Storage lookups with exactly the original draw batches.
+    Indexed,
+    /// Storage lookups, merging only contiguous geometry-only batch boundaries.
+    IndexedMerged,
+}
+impl GeometryBatching {
+    fn configured() -> Self {
+        #[cfg(feature = "benchmark")]
+        match std::env::var("LUMINE_GPU_GEOMETRY_BATCHING").as_deref() {
+            Ok("indexed") => return Self::Indexed,
+            Ok("merged") => return Self::IndexedMerged,
+            _ => {}
+        }
+        Self::DynamicUniform
+    }
+}
+struct IndexedGeometryPipelines {
+    geometry_layout: wgpu::BindGroupLayout,
+    quads: QuadPipelines,
+}
+
 pub struct GpuRenderer {
+    geometry_batching: GeometryBatching,
     geometry: paint_geometry::FrameGeometry,
     profiler: RefCell<Option<profiling::Profiler>>,
     context: GpuContext,
@@ -1543,6 +1590,7 @@ impl GpuRenderer {
             .and_then(|_| profiling::Profiler::new(&device, &queue));
         let geometry = paint_geometry::FrameGeometry::new(&device, &context.inner.geometry_layout);
         Ok(Self {
+            geometry_batching: GeometryBatching::configured(),
             geometry,
             context: context.clone(),
             profiler: RefCell::new(profiler),
@@ -3307,6 +3355,16 @@ impl GpuRenderer {
             self.belt.get_mut(),
             &mut encoder,
         );
+        if self.geometry_batching != GeometryBatching::DynamicUniform {
+            stats.paint_geometry_buffer_allocations += self.geometry.upload_instances(
+                &self.device,
+                &self.context.indexed_geometry().geometry_layout,
+                &draws,
+                quads.len(),
+                self.belt.get_mut(),
+                &mut encoder,
+            );
+        }
         for draw in &mut draws {
             draw.geometry = Some(self.geometry.bind.clone());
         }
@@ -3470,12 +3528,13 @@ impl GpuRenderer {
         for (segment, end) in splits.iter().copied().chain([draws.len()]).enumerate() {
             if defer && !diagnose && end == draws.len() {
                 stats.render_passes += 1;
+                let geometry = self.quad_geometry().clone();
                 *self.deferred.get_mut() = Some(Deferred {
                     vertices: vertices.clone(),
                     draws: draws.split_off(from),
                     regions,
                     viewport: self.viewport_bind.clone(),
-                    geometry: self.geometry.bind.clone(),
+                    geometry,
                     blur: vertical.take(),
                     clear: segment == 0,
                     disjoint: !has_blur,
@@ -3522,14 +3581,14 @@ impl GpuRenderer {
                 pass.set_vertex_buffer(0, vertices.slice(..));
                 pass.set_bind_group(0, &self.bind, &[]);
                 pass.set_bind_group(1, self.viewport_bind.as_ref(), &[]);
-                pass.set_bind_group(2, &self.geometry.bind, &[0]);
-                let quads = &self.context.inner.quads;
+                pass.set_bind_group(2, self.quad_geometry(), &[0]);
+                let quads = self.quad_pipelines();
                 for (index, (region, (x, y, w, h))) in regions.iter().enumerate() {
                     pass.set_scissor_rect(*x, *y, *w, *h);
                     let first = first[index];
                     if segment == 0 && first == 0 {
                         pass.set_pipeline(quads.clear(self.split_shading));
-                        pass.set_bind_group(2, &self.geometry.bind, &[0]);
+                        pass.set_bind_group(2, self.quad_geometry(), &[0]);
                         pass.set_bind_group(0, &self.bind, &[]);
                         pass.draw(0..6, 0..1);
                         stats.draw_calls += 1;
@@ -3741,7 +3800,7 @@ impl GpuRenderer {
                 let pipeline = self.blur_vertical(blur);
                 Self::encode_vertical(&mut pass, pipeline, blur, &mut stats);
             }
-            self.encode_damage(&mut pass, &deferred, &self.context.inner.quads, &mut stats);
+            self.encode_damage(&mut pass, &deferred, self.quad_pipelines(), &mut stats);
         }
         self.submit_profiled(pending, finish_profile);
         self.belt.borrow_mut().recall();
@@ -3832,7 +3891,8 @@ impl GpuRenderer {
         format: wgpu::TextureFormat,
     ) {
         if self.single_pass.as_ref().is_none_or(|p| p.format != format) {
-            let inner = &self.context.inner;
+            let quad_shader = self.quad_pipelines().shader.clone();
+            let quad_layout = self.quad_pipelines().layout.clone();
             let shader = self
                 .device
                 .create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -3870,8 +3930,8 @@ impl GpuRenderer {
                 format,
                 quads: QuadPipelines {
                     device: self.device.clone(),
-                    shader: inner.quad_shader.clone(),
-                    layout: inner.quad_layout.clone(),
+                    shader: quad_shader,
+                    layout: quad_layout,
                     full: Default::default(),
                     regular_full: Default::default(),
                     nearest_image: Default::default(),
@@ -3990,7 +4050,13 @@ impl GpuRenderer {
     ) {
         let mut current = None;
         let unblended = region.width * region.height * self.scale * self.scale >= SPLIT_PIXELS;
-        for batch in draw_diagnostics::batches(draws, region, first, unblended) {
+        for batch in draw_diagnostics::batches(
+            draws,
+            region,
+            first,
+            unblended,
+            self.geometry_batching == GeometryBatching::IndexedMerged,
+        ) {
             self.encode_batch(pass, pipelines, &mut current, batch, stats);
         }
     }
@@ -4024,7 +4090,11 @@ impl GpuRenderer {
             ),
             &[],
         );
-        pass.set_bind_group(2, batch.geometry.as_ref(), &[batch.geometry_offset]);
+        if self.geometry_batching == GeometryBatching::DynamicUniform {
+            pass.set_bind_group(2, batch.geometry.as_ref(), &[batch.geometry_offset]);
+        } else {
+            pass.set_bind_group(2, self.quad_geometry(), &[0]);
+        }
         pass.draw(0..6, batch.start..batch.end);
         stats.draw_calls += 1;
         stats.instances += (batch.end - batch.start) as usize;
@@ -4877,6 +4947,33 @@ impl GpuRenderer {
     pub fn debug_split_shading(&mut self, split: bool) {
         self.split_shading = split;
     }
+    /// Compare geometry lookup cost separately from geometry-only draw merging.
+    /// Flush pending presentation before switching either transport or batching.
+    pub fn debug_geometry_batching(&mut self, mode: GeometryBatching) {
+        if self.geometry_batching != mode {
+            self.flush_pending();
+            self.geometry_batching = mode;
+            self.single_pass = None;
+            self.fresh = true;
+        }
+    }
+    fn quad_pipelines(&self) -> &QuadPipelines {
+        if self.geometry_batching == GeometryBatching::DynamicUniform {
+            &self.context.inner.quads
+        } else {
+            &self.context.indexed_geometry().quads
+        }
+    }
+    fn quad_geometry(&self) -> &wgpu::BindGroup {
+        if self.geometry_batching == GeometryBatching::DynamicUniform {
+            &self.geometry.bind
+        } else {
+            self.geometry
+                .indexed_bind
+                .as_ref()
+                .expect("indexed geometry uploaded")
+        }
+    }
     /// Compare full shader specialization with identical batches and Basic/opaque paths.
     pub fn debug_regular_full_shader(&mut self, enabled: bool) {
         self.regular_full_shader = enabled;
@@ -5379,6 +5476,7 @@ pub mod text;
 
 fn create_quad_pipelines(
     device: &wgpu::Device,
+    indexed: bool,
 ) -> (
     wgpu::BindGroupLayout,
     wgpu::BindGroupLayout,
@@ -5388,11 +5486,7 @@ fn create_quad_pipelines(
 ) {
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("quads"),
-        source: wgpu::ShaderSource::Wgsl(
-            (include_str!("paint_geometry.wgsl").replace("GEOMETRY_GROUP", "2")
-                + include_str!("draw.wgsl"))
-            .into(),
-        ),
+        source: wgpu::ShaderSource::Wgsl(paint_geometry::shader(indexed).into()),
     });
     let group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("quads"),
@@ -5428,7 +5522,7 @@ fn create_quad_pipelines(
             count: None,
         }],
     });
-    let geometry_layout = paint_geometry::layout(device);
+    let geometry_layout = paint_geometry::layout(device, indexed);
     let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("quads"),
         bind_group_layouts: &[
