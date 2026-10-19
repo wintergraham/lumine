@@ -4458,6 +4458,7 @@ dependencies = [
  "resvg",
  "rustc-hash 2.1.3",
  "serde_json",
+ "simplecss",
  "unicode-segmentation",
  "wgpu",
  "winit",

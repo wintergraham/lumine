@@ -253,6 +253,88 @@ fn raw_svg_overflow_uses_svg_root_defaults_and_axis_cascade() {
     assert_eq!(policy("style='overflow-x: hidden; overflow: visible'"), [true; 2]);
     assert_eq!(policy("style='overflow: visible; overflow-y: hidden'"), [false; 2]);
     assert_eq!(policy("style='overflow: visible clip'"), [true, false]);
+    assert_eq!(policy("style='OVERFLOW: visible !important; overflow: hidden'"), [true; 2]);
     assert!(lumine_gpu::assets::svg_root_overflow(b"<svg style='overflow: inherit'/>").is_err());
-    assert!(lumine_gpu::assets::svg_root_overflow(b"<svg><style>svg{overflow:visible}</style></svg>").is_err());
+    assert_eq!(lumine_gpu::assets::svg_root_overflow(b"<svg><style>svg{overflow:visible}</style></svg>").unwrap(), [true; 2]);
+}
+
+#[test]
+fn raw_svg_stylesheet_overflow_respects_root_selectors_and_cascade() {
+    let cases = [
+        ("", "svg { overflow: visible }", [true; 2]),
+        ("overflow='visible'", "svg { overflow: hidden }", [false; 2]),
+        ("id='icon' class='icon'", "#icon { overflow: visible } .icon { overflow: hidden }", [true; 2]),
+        ("", "svg { overflow: hidden } svg { overflow: visible }", [true; 2]),
+        ("style='overflow: hidden'", "svg { overflow: visible }", [false; 2]),
+        ("style='overflow: hidden'", "svg { overflow: visible !important }", [true; 2]),
+        ("style='overflow: visible !important'", "svg { overflow: hidden !important }", [true; 2]),
+        ("id='icon'", "#icon { overflow: visible !important } svg { overflow: hidden !important }", [true; 2]),
+        ("", "svg { overflow: hidden !important; overflow: visible !important }", [true; 2]),
+        ("", "svg { overflow: visible !important; overflow: hidden }", [true; 2]),
+        ("", "path, svg > g { overflow: visible }", [false; 2]),
+        ("data-icon='yes'", "svg[data-icon='yes']:first-child { overflow: visible }", [true; 2]),
+        (r#"style='fill: url("data:image/png;a:b"); overflow: visible !important'"#, "", [true; 2]),
+    ];
+    for (attributes, css, expected) in cases {
+        let source = format!("<svg xmlns='http://www.w3.org/2000/svg' {attributes}><style>{css}</style><g><path d='M0 0H2V2Z'/></g></svg>");
+        assert_eq!(lumine_gpu::assets::svg_root_overflow(source.as_bytes()).unwrap(), expected, "{source}");
+    }
+    let source = b"<svg><style>#icon { overflow: visible }</style><style>svg { overflow: hidden }</style><svg id='icon'/></svg>";
+    assert_eq!(lumine_gpu::assets::svg_root_overflow(source).unwrap(), [false; 2]);
+    let source = b"<svg><style>svg { overflow: hidden }</style><style>svg { overflow: visible }</style></svg>";
+    assert_eq!(lumine_gpu::assets::svg_root_overflow(source).unwrap(), [true; 2]);
+}
+
+#[test]
+fn raw_svg_stylesheet_overflow_cascades_both_axes() {
+    let cases = [
+        ("overflow: visible clip", [true, false]),
+        ("overflow: clip visible", [false, true]),
+        ("overflow-x: visible; overflow-y: clip", [true, false]),
+        ("overflow-x: clip; overflow-y: visible", [false, true]),
+        ("overflow: visible; overflow-x: hidden", [false; 2]),
+        ("overflow-x: hidden; overflow: visible", [true; 2]),
+        ("overflow: visible !important; overflow-y: hidden", [true; 2]),
+        ("overflow-x: clip !important; overflow: visible", [false, true]),
+        ("overflow: visible; overflow-y: scroll", [false; 2]),
+        ("overflow: auto visible", [false; 2]),
+        ("overflow: initial", [true; 2]),
+        ("overflow: unset", [true; 2]),
+    ];
+    for (css, expected) in cases {
+        let source = format!("<svg><style>svg {{ {css} }}</style></svg>");
+        assert_eq!(lumine_gpu::assets::svg_root_overflow(source.as_bytes()).unwrap(), expected, "{css}");
+    }
+    let source = b"<svg id='icon' style='overflow-y: visible'><style>#icon { overflow-x: clip !important } svg { overflow-x: visible !important }</style></svg>";
+    assert_eq!(lumine_gpu::assets::svg_root_overflow(source).unwrap(), [false, true]);
+}
+
+#[test]
+fn raw_svg_unrelated_stylesheets_preserve_paint_and_hidden_default() {
+    let source = br##"<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4">
+        <style>/* overflow: visible */ rect { fill: #12ab34; overflow: visible }</style>
+        <style type="text/plain">svg { overflow: visible }</style>
+        <rect width="4" height="4"/>
+    </svg>"##;
+    assert_eq!(lumine_gpu::assets::svg_root_overflow(source).unwrap(), [false; 2]);
+    let image = lumine_gpu::assets::decode_svg(source, 4, 4).unwrap();
+    assert_eq!(&image.pixels()[..4], &[0x12, 0xab, 0x34, 255]);
+}
+
+#[test]
+fn raw_svg_unresolved_root_overflow_reports_the_property() {
+    for (property, value) in [("overflow", "inherit"), ("overflow-x", "var(--clip)"), ("overflow-y", "revert-layer")] {
+        let source = format!("<svg><style>svg {{ {property}: {value} }}</style></svg>");
+        let error = lumine_gpu::assets::svg_root_overflow(source.as_bytes()).unwrap_err().to_string();
+        assert!(error.contains(property) && error.contains(value), "{error}");
+    }
+    let source = b"<svg><style>path { overflow: inherit } svg { overflow: inherit; overflow: visible }</style></svg>";
+    assert_eq!(lumine_gpu::assets::svg_root_overflow(source).unwrap(), [true; 2]);
+}
+
+#[test]
+fn raw_svg_stylesheet_overflow_accepts_usvg_dtd_entities() {
+    let source = br#"<!DOCTYPE svg [<!ENTITY mode "visible">]>
+        <svg xmlns="http://www.w3.org/2000/svg" overflow="&mode;"/>"#;
+    assert_eq!(lumine_gpu::assets::svg_root_overflow(source).unwrap(), [true; 2]);
 }

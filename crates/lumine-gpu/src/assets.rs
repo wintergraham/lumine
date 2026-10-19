@@ -46,36 +46,75 @@ pub fn decode_svg(bytes: &[u8], width: u32, height: u32) -> Result<Arc<ImageData
     decode_svg_at(bytes, width, height, [width as f32, height as f32, 0., 0.], [false; 2])
 }
 /// Overflow on a collapsed raw SVG belongs to its SVG root, not its HTML holder.
-/// Raw style sheets require source-side expansion before native import.
+/// Stylesheets use the same CSS grammar and static selector matching as usvg.
 pub fn svg_root_overflow(bytes: &[u8]) -> Result<[bool; 2], GpuError> {
     if bytes.len() > 4 * 1024 * 1024 { return Err(GpuError("SVG source exceeds limit".into())); }
     let text = std::str::from_utf8(bytes).map_err(|e| GpuError(e.to_string()))?;
-    let document = resvg::usvg::roxmltree::Document::parse(text).map_err(|e| GpuError(e.to_string()))?;
+    let options = resvg::usvg::roxmltree::ParsingOptions { allow_dtd: true, ..Default::default() };
+    let document = resvg::usvg::roxmltree::Document::parse_with_options(text, options)
+        .map_err(|e| GpuError(e.to_string()))?;
     let root = document.root_element();
-    if document.descendants().any(|node| node.has_tag_name("style")) {
-        return Err(GpuError("Expand raw SVG style sheets before native import".into()));
-    }
-    let mut shorthand = root.attribute("overflow").unwrap_or("hidden");
-    let mut axes = [None; 2];
-    for declaration in root.attribute("style").unwrap_or("").split(';') {
-        let Some((key, value)) = declaration.split_once(':') else { continue; };
-        match key.trim().to_ascii_lowercase().as_str() {
-            "overflow" => { shorthand = value.trim(); axes = [None; 2]; },
-            "overflow-x" => axes[0] = Some(value.trim()),
-            "overflow-y" => axes[1] = Some(value.trim()),
-            _ => {},
+    let mut sheet = simplecss::StyleSheet::new();
+    for node in document.descendants().filter(|node| node.has_tag_name("style")) {
+        if matches!(node.attribute("type"), None | Some("text/css")) {
+            if let Some(text) = node.text() { sheet.parse_more(text); }
         }
     }
-    let mut values = shorthand.split_whitespace();
-    let x = values.next().unwrap_or("hidden");
-    let y = values.next().unwrap_or(x);
-    if values.next().is_some() { return Err(GpuError("Unsupported raw SVG overflow value".into())); }
-    let axes = [axes[0].unwrap_or(x), axes[1].unwrap_or(y)];
-    if axes.iter().any(|axis| !matches!(*axis, "visible" | "hidden" | "clip" | "scroll" | "auto")) {
-        return Err(GpuError("Resolve raw SVG overflow values before native import".into()));
+    // Presentation attributes precede author rules; absent overflow stays SVG-hidden.
+    let mut axes = [("overflow", root.attribute("overflow").unwrap_or("hidden"), false); 2];
+    // simplecss sorts stably by specificity. Later equal-priority declarations win.
+    let declarations = sheet.rules.iter()
+        .filter(|rule| rule.selector.matches(&SvgRoot(root)))
+        .flat_map(|rule| rule.declarations.iter().copied())
+        .chain(simplecss::DeclarationTokenizer::from(root.attribute("style").unwrap_or("")));
+    for declaration in declarations {
+        let (property, targets) = match declaration.name.to_ascii_lowercase().as_str() {
+            "overflow" => ("overflow", 0..2),
+            "overflow-x" => ("overflow-x", 0..1),
+            "overflow-y" => ("overflow-y", 1..2),
+            _ => continue,
+        };
+        for axis in targets {
+            if !axes[axis].2 || declaration.important {
+                axes[axis] = (property, declaration.value, declaration.important);
+            }
+        }
     }
-    Ok([axes[0] == "visible" && matches!(axes[1], "visible" | "clip"),
-        axes[1] == "visible" && matches!(axes[0], "visible" | "clip")])
+    let x = svg_overflow_axis(axes[0].0, axes[0].1, 0)?;
+    let y = svg_overflow_axis(axes[1].0, axes[1].1, 1)?;
+    Ok([x == "visible" && matches!(y, "visible" | "clip"),
+        y == "visible" && matches!(x, "visible" | "clip")])
+}
+
+// Only the document root is queried, so it has no element parent or siblings.
+struct SvgRoot<'a, 'input: 'a>(resvg::usvg::roxmltree::Node<'a, 'input>);
+impl simplecss::Element for SvgRoot<'_, '_> {
+    fn parent_element(&self) -> Option<Self> { None }
+    fn prev_sibling_element(&self) -> Option<Self> { None }
+    fn has_local_name(&self, name: &str) -> bool { self.0.tag_name().name() == name }
+    fn attribute_matches(&self, name: &str, operator: simplecss::AttributeOperator<'_>) -> bool {
+        self.0.attribute(name).is_some_and(|value| operator.matches(value))
+    }
+    fn pseudo_class_matches(&self, class: simplecss::PseudoClass<'_>) -> bool {
+        matches!(class, simplecss::PseudoClass::FirstChild)
+    }
+}
+
+fn svg_overflow_axis<'a>(property: &str, value: &'a str, axis: usize) -> Result<&'a str, GpuError> {
+    let error = || GpuError(format!("Resolve raw SVG root {property}: {value} before native import"));
+    // These CSS-wide keywords select the initial value of this non-inherited property.
+    if matches!(value, "initial" | "unset") { return Ok("visible"); }
+    let mut values = value.split_whitespace();
+    let x = values.next().ok_or_else(error)?;
+    let y = values.next();
+    if values.next().is_some() || (property != "overflow" && y.is_some()) {
+        return Err(error());
+    }
+    let keyword = if property == "overflow" && axis == 1 { y.unwrap_or(x) } else { x };
+    if !matches!(keyword, "visible" | "hidden" | "clip" | "scroll" | "auto") {
+        return Err(error());
+    }
+    Ok(keyword)
 }
 /// Inline SVG paint bounds in its original viewport, including strokes and filters.
 /// Root overflow is supplied by the host's computed CSS; ancestor clips stay in Scene.
