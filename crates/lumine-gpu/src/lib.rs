@@ -27,6 +27,8 @@ mod paint_geometry;
 mod procedural;
 pub mod profiling;
 mod draw_diagnostics;
+mod source_fill;
+mod source_fill_paint;
 mod surface;
 mod upload;
 pub use surface::PresentationStatus;
@@ -72,6 +74,15 @@ pub enum BlurAlgorithm {
     Gaussian,
     /// Approximate Gaussian using a resolution pyramid; radius changes blend smoothly.
     DualKawase,
+}
+/// Select only when the independent source backend is Chromium/Skia CPU N32.
+/// This preserves the default blend path except proven constant-fill interiors
+/// over an opaque uniform backdrop. It does not promise edge/layer parity.
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceFillCompositing {
+    #[default]
+    PreserveExisting,
+    SkiaSoftwareSrgb8OpaqueBackdrop,
 }
 #[derive(Debug)]
 pub struct GpuError(pub String);
@@ -2019,6 +2030,7 @@ pub struct GpuRenderer {
     present_stats: GpuStats,
     /// Quads use the shader their features need (see `push_draw`).
     split_shading: bool,
+    source_fill_compositing: SourceFillCompositing,
     regular_full_shader: bool,
     nearest_image_shader: bool,
     clip_interiors: bool,
@@ -2271,6 +2283,7 @@ impl GpuRenderer {
             target,
             view,
             split_shading,
+            source_fill_compositing: SourceFillCompositing::default(),
             regular_full_shader: true,
             nearest_image_shader: true,
             clip_interiors: false,
@@ -2385,6 +2398,19 @@ impl GpuRenderer {
     pub fn set_background(&mut self, color: Color) {
         if self.background != color {
             self.background = color;
+            self.fresh = true;
+        }
+    }
+    /// Explicit source-backend contract; disabled by default on every platform.
+    /// Changing it invalidates retained pixels and cached isolated layers.
+    pub fn set_source_fill_compositing(&mut self, policy: SourceFillCompositing) {
+        if self.source_fill_compositing != policy {
+            self.flush_pending();
+            self.source_fill_compositing = policy;
+            self.layers.clear();
+            self.scroll_history = None;
+            self.scroll_state = None;
+            self.copies.clear();
             self.fresh = true;
         }
     }
@@ -3215,6 +3241,15 @@ impl GpuRenderer {
         let diagnose = !self.in_layer && self.profiler.get_mut().as_mut()
             .is_some_and(|p| p.begin_draw_diagnostics());
         let mut draws = Vec::new();
+        // The contract is restricted to this RGBA8-equivalent retained target.
+        // Alternate/HDR drawable formats and isolated textures keep the old path.
+        let source_fills = self.source_fill_compositing
+            == SourceFillCompositing::SkiaSoftwareSrgb8OpaqueBackdrop
+            && !self.in_layer
+            && self.config.as_ref().is_none_or(|c| {
+                matches!(c.format, wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Rgba8Unorm)
+            });
+        let mut known_source_backdrops = FxHashMap::default();
         self.geometry.begin();
         let element_profiler = scene.profiler();
         for mut item in items {
@@ -4131,6 +4166,27 @@ impl GpuRenderer {
                         draw_clip = support_clip;
                     }
                 }
+            }
+            if source_fills {
+                source_fill_paint::resolve_interior(
+                    &mut quads,
+                    start,
+                    &draws,
+                    &known_source_backdrops,
+                    &item,
+                    clip,
+                    self.scale,
+                    self.background,
+                    viewport,
+                );
+                source_fill_paint::remember_opaque(
+                    &quads,
+                    start,
+                    &item,
+                    clip,
+                    self.scale,
+                    &mut known_source_backdrops,
+                );
             }
             if quads.len() as u32 > start || item.effects.blur_radius > 0. {
                 let draw = Draw {
