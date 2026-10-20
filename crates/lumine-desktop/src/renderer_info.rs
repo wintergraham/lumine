@@ -8,6 +8,21 @@ pub struct RendererInfoService {
     observed: Signal<Option<RendererInfo>>,
 }
 impl RendererInfoService {
+    /// Bind an existing renderer, including an offscreen capture renderer, to
+    /// this UI runtime. The observation comes only from its actual GPU target.
+    /// This service does not own the renderer: refresh after changing its scale,
+    /// target size or presentation configuration, and dispose the scoped service
+    /// with the renderer. An observation alone does not qualify source paint.
+    pub fn from_renderer(runtime: &Runtime, renderer: &lumine_gpu::GpuRenderer) -> Self {
+        let service = Self::new(runtime);
+        service.refresh_from_renderer(renderer);
+        service
+    }
+    /// Refresh from the live renderer after resize, scale or target replacement.
+    /// Requested source/capture descriptors cannot be supplied through this API.
+    pub fn refresh_from_renderer(&self, renderer: &lumine_gpu::GpuRenderer) {
+        self.publish(renderer.renderer_info());
+    }
     pub(crate) fn new(runtime: &Runtime) -> Self {
         Self {
             observed: runtime.signal(None),
