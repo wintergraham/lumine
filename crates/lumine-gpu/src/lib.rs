@@ -29,6 +29,7 @@ pub mod profiling;
 mod draw_diagnostics;
 mod source_fill;
 mod source_fill_paint;
+mod source_skia154;
 mod surface;
 mod upload;
 pub use surface::PresentationStatus;
@@ -76,8 +77,9 @@ pub enum BlurAlgorithm {
     DualKawase,
 }
 /// Select only when the independent source backend is Chromium/Skia CPU N32.
-/// This preserves the default blend path except proven constant-fill interiors
-/// over an opaque uniform backdrop. It does not promise edge/layer parity.
+/// This preserves the default path except source-pinned constant fills and
+/// analytic rims over a proven opaque backdrop. It does not qualify a backend
+/// or cover transparent destinations, isolated opacity, or partial AA clips.
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SourceFillCompositing {
     #[default]

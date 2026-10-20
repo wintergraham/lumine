@@ -1,5 +1,5 @@
-//! Explicit Chromium 154 / Skia CPU N32 constant-color contract, not a
-//! replacement for arbitrary GPU blending, layers, HDR, or antialiased edges.
+//! Explicit Chromium 154 / Skia CPU N32 constant-color and AA blit stages,
+//! not a replacement for arbitrary GPU blending, layers, or HDR.
 //! Kept dependency-free so the independently captured source corpus can be
 //! checked without initializing a GPU or rebuilding the renderer.
 pub(crate) fn over_opaque(source: [u8; 4], destination: [u8; 3]) -> [u8; 3] {
@@ -7,6 +7,34 @@ pub(crate) fn over_opaque(source: [u8; 4], destination: [u8; 3]) -> [u8; 3] {
     std::array::from_fn(|c| {
         let premul = (u32::from(source[c]) * alpha + 127) / 255;
         (premul + ((u32::from(destination[c]) * (256 - alpha)) >> 8)) as u8
+    })
+}
+
+/// Original SkARGB32 blit dispatch. Coverage is applied after source premul;
+/// its two-pixel specialization combines the terms before the final shift.
+pub(crate) fn over_opaque_coverage(
+    source: [u8; 4],
+    destination: [u8; 3],
+    coverage: u8,
+    two_pixels: bool,
+) -> [u8; 3] {
+    let alpha = u32::from(source[3]);
+    let scale = u32::from(coverage) + 1;
+    std::array::from_fn(|channel| {
+        let premul = (u32::from(source[channel]) * alpha + 127) / 255;
+        let destination = u32::from(destination[channel]);
+        let value = if !two_pixels {
+            let scaled_alpha = (alpha * scale) >> 8;
+            ((premul * scale) >> 8) + ((destination * (256 - scaled_alpha)) >> 8)
+        } else if alpha == 255 {
+            let scale = u32::from(coverage) + (u32::from(coverage) >> 7);
+            (premul * scale + destination * (256 - scale)) >> 8
+        } else {
+            let product = 65535 - alpha * scale;
+            let destination_scale = (product + (product >> 8)) >> 8;
+            (premul * scale + destination * destination_scale) >> 8
+        };
+        value.min(255) as u8
     })
 }
 
@@ -37,6 +65,24 @@ pub(crate) fn pixel_core(bounds: [f32; 4], inset: f32, scale: f32) -> Option<[f3
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn captured_source_rim_blit_stages_are_not_float_coverage() {
+        // Actual original Chromium fixture, physical (20,16), radius8.
+        // Source manifest 1f80c99abbcb9d129d8b03195dc89259c546f7b4327a7e5433c09aeeb5b491f5.
+        assert_eq!(
+            over_opaque_coverage([169, 190, 230, 20], [26, 26, 24], 56, false),
+            [27, 28, 27]
+        );
+        assert_eq!(
+            over_opaque_coverage([169, 190, 230, 255], [26, 26, 24], 56, false),
+            [57, 62, 69]
+        );
+        // Skia's opaque two-pixel interpolation is a distinct dispatch.
+        assert_ne!(
+            over_opaque_coverage([169, 190, 230, 255], [26, 26, 24], 56, true),
+            [57, 62, 69]
+        );
+    }
     #[test]
     fn captured_chromium_cpu_constant_color_corpus() {
         // Immutable actual browser outputs, recorded before this implementation.

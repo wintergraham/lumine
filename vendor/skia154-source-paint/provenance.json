@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "kind": "pinned-upstream-skia-cpu-analytic-convex-source",
+  "revision": "2466dcf3937437e217e7f284afe0e1aae15891ce",
+  "upstream": "https://skia.googlesource.com/skia",
+  "files": [
+    {
+      "upstreamPath": "src/core/SkAnalyticEdge.h",
+      "localPath": "SkAnalyticEdge.h",
+      "sha256": "a8b235eb27e5ed0693037d830e75d403ca7894c8642cb9372f8a4e54475c24ca"
+    },
+    {
+      "upstreamPath": "src/core/SkAnalyticEdge.cpp",
+      "localPath": "SkAnalyticEdge.cpp",
+      "sha256": "27420132d6c3560e32118f9dc0fc3e5cce4fd421f3da7695634e23dd38f5d963"
+    },
+    {
+      "upstreamPath": "src/core/SkScan_AAAPath.cpp",
+      "localPath": "SkScan_AAAPath.cpp",
+      "sha256": "c7a2e2f869ce0d13f882e713e477a59b0af547cb72dd134caf04b1889d22a35e"
+    },
+    {
+      "upstreamPath": "src/core/SkGeometry.cpp",
+      "localPath": "SkGeometry.cpp",
+      "sha256": "1385aead3db61b80a6ed235b9bbeab1460dac38d7f7bacc3a42a1a19a3d62485"
+    }
+  ],
+  "qualification": false,
+  "scope": "Native bounded analytic rounded-rectangle coverage and original integer blit dispatch only; no browser executor or expected pixel inputs."
+}

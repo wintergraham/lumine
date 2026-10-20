@@ -1,6 +1,6 @@
 //! Shared, opt-in CPU-source constant fills. Expectations come from actual
 //! independent Linux Chromium154 software readbacks, never this GPU renderer.
-//! AA rims and unproven/layered paint remain strict and retain existing pixels.
+//! Source AA rims remain strict; unsupported/layered paint retains existing pixels.
 use lumine::source_paint::{SourcePaintCapability, SourcePaintPolicy, SourcePaintScope};
 use lumine::{affine::Affine, scene::*};
 use lumine_gpu::{GpuRenderer, SourceFillCompositing};
@@ -121,10 +121,10 @@ fn source_root_backdrop_still_observes_unmarked_native_draws() {
         let ordinary = pixels(&mut gpu, &mut scene, false);
         scene.set_source_paint_scope(source, Some(source_scope(1)));
         let scoped = pixels(&mut gpu, &mut scene, false);
+        assert_eq!(pixel(&scoped, 48, 32), [72, 133, 195, 255]);
         if partial {
-            assert_eq!(scoped, ordinary, "native partial blocker cannot be omitted");
-        } else {
-            assert_eq!(pixel(&scoped, 48, 32), [72, 133, 195, 255]);
+            assert_eq!(pixel(&scoped, 32, 32), [36, 38, 40, 255]);
+            assert_eq!(pixel(&scoped, 4, 4), pixel(&ordinary, 4, 4));
         }
     }
 }
@@ -151,13 +151,25 @@ fn nested_source_root_conflicts_and_preserve_barriers_keep_default_pixels() {
 }
 
 #[test]
-fn three_captured_source_fills_exact_interior_and_unchanged_rims() {
+fn three_captured_source_fills_exact_interior_and_source_rim() {
     let _serial = serial();
     let mut gpu = gpu();
-    for (color, expected) in [
-        (Color(169, 190, 230, 20), [36, 38, 40, 255]),
-        (Color(187, 176, 242, 20), [38, 37, 41, 255]),
-        (Color(166, 212, 174, 20), [36, 40, 36, 255]),
+    for (color, expected, source_rim) in [
+        (
+            Color(169, 190, 230, 20),
+            [36, 38, 40, 255],
+            [27, 28, 27, 255],
+        ),
+        (
+            Color(187, 176, 242, 20),
+            [38, 37, 41, 255],
+            [28, 28, 27, 255],
+        ),
+        (
+            Color(166, 212, 174, 20),
+            [36, 40, 36, 255],
+            [27, 28, 26, 255],
+        ),
     ] {
         let mut scene = scene();
         let root = scene.root();
@@ -165,19 +177,10 @@ fn three_captured_source_fills_exact_interior_and_unchanged_rims() {
         let ordinary = pixels(&mut gpu, &mut scene, false);
         let corrected = pixels(&mut gpu, &mut scene, true);
         assert_eq!(pixel(&corrected, 48, 32), expected);
-        // Original geometry: [8,8,48,17], rounded4, DPR2. All contour
-        // pixels (and all unrelated pixels) retain exact original bytes.
-        for y in 0..160 {
-            for x in 0..192 {
-                if x < 24 || x >= 104 || y < 24 || y >= 42 {
-                    assert_eq!(
-                        pixel(&corrected, x, y),
-                        pixel(&ordinary, x, y),
-                        "rim ({x},{y})"
-                    );
-                }
-            }
-        }
+        // Independently captured original Chromium rim, not native output.
+        // Original manifest 1f80c99abbcb9d129d8b03195dc89259c546f7b4327a7e5433c09aeeb5b491f5.
+        // The separate strict 20-case differential checks every source pixel.
+        assert_eq!(pixel(&corrected, 20, 16), source_rim);
         assert_eq!(
             pixels(&mut gpu, &mut scene, false),
             ordinary,
@@ -209,7 +212,7 @@ fn actual_order_selects_last_complete_opaque_backdrop() {
 }
 
 #[test]
-fn intervening_partial_or_translucent_draw_blocks_uniform_backdrop() {
+fn opaque_partial_backdrops_resolve_per_pixel_and_unknown_translucency_falls_back() {
     let _serial = serial();
     let mut gpu = gpu();
     for color in [Color(255, 0, 0, 255), Color(255, 0, 0, 91)] {
@@ -231,7 +234,17 @@ fn intervening_partial_or_translucent_draw_blocks_uniform_backdrop() {
         }
         fill(&mut scene, root, Color(169, 190, 230, 20));
         let ordinary = pixels(&mut gpu, &mut scene, false);
-        assert_eq!(pixels(&mut gpu, &mut scene, true), ordinary);
+        let scoped = pixels(&mut gpu, &mut scene, true);
+        if color.3 == 255 {
+            // Exact original source fixture partial-opaque-backdrop center.
+            assert_eq!(pixel(&scoped, 48, 32), [248, 15, 18, 255]);
+            assert_eq!(pixel(&scoped, 32, 32), [36, 38, 40, 255]);
+        } else {
+            assert_eq!(
+                scoped, ordinary,
+                "unproven translucent draw stays unsupported"
+            );
+        }
     }
 }
 
@@ -243,11 +256,14 @@ fn rounded_ancestor_supports_only_proven_full_coverage() {
     let root = scene.root();
     let parent = scene.append(
         root,
-        NodeKind::Quad(QuadStyle {
-            fill: Color(26, 26, 24, 255),
-            radius: 4.,
-            ..Default::default()
-        }),
+        NodeKind::Panel {
+            layout: Layout::Overlay,
+            quad: QuadStyle {
+                fill: Color(26, 26, 24, 255),
+                radius: 4.,
+                ..Default::default()
+            },
+        },
         Style {
             clip: true,
             ..fixed(96., 80.)

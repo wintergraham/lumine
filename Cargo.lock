@@ -4449,6 +4449,7 @@ name = "lumine-gpu"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "cc",
  "cosmic-text",
  "gif",
  "image",

@@ -20,6 +20,9 @@ rustc-hash = "2.1"
 gif = { version = "=0.14.2", default-features = false, features = ["std"] }
 serde_json = { version = "1.0.151", optional = true }
 
+[build-dependencies]
+cc = "1.4.7"
+
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 objc2-core-foundation = "0.3.2"
