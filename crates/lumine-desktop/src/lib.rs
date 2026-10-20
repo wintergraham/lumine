@@ -43,6 +43,8 @@ mod wayland_files;
 #[cfg(target_os = "linux")]
 mod appearance_linux;
 mod window_info;
+mod renderer_info;
+pub use renderer_info::RendererInfoService;
 pub use app_menu::{
     AppMenu, AppMenuEntry, AppMenuError, MenuAccelerator, MenuAction, app_menu_bar,
     has_native_app_menu,

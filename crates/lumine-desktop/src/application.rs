@@ -435,6 +435,8 @@ pub struct WindowContext {
     /// Optional native presentation counter, independent of animation requests.
     pub frame_counter: crate::FrameCounter,
     pub performance: crate::Performance,
+    /// Actual renderer/retained target observations, pending before GPU creation.
+    pub renderer_info: crate::RendererInfoService,
     /// Last rendered frame's layout and shader work, read without polling.
     pub motion_diagnostics: lumine::motion::RenderDiagnostics,
     close_requested: Option<Box<dyn FnMut() -> bool>>,
@@ -501,7 +503,7 @@ impl WindowContext {
         let runner = lumine::compose::TaskRunner::new(move |future| {
             lumine::compose::TaskToken::new(tasks.spawn_scoped(future), |task| task.is_finished())
         });
-        self.ui.render(lumine::compose::provide(
+        self.ui.render(lumine::compose::provide(self.renderer_info.clone(), lumine::compose::provide(
             self.frames.clone(),
             lumine::compose::provide(
                 self.frame_counter.clone(),
@@ -510,7 +512,7 @@ impl WindowContext {
                     lumine::compose::provide(self.performance.clone(), lumine::compose::provide(self.performance.profiler.clone(), lumine::compose::provide(runner, view))),
                 ),
             ),
-        ))
+        )))
     }
 
     /// Return false to keep the window open, for example while asking about unsaved data.
@@ -830,7 +832,9 @@ impl Host {
             }
         });
         let performance = crate::Performance::new(ui.scene.borrow().profiler());
+        let renderer_info = crate::RendererInfoService::new(&ui.runtime);
         let context = WindowContext {
+            renderer_info,
             performance,
             window_info,
             menu_model,
@@ -1466,6 +1470,7 @@ impl Host {
             }
         }
         self.window = Some(window);
+        self.refresh_renderer_info();
         self.context
             .ui
             .set_presented(self.state.visible && !self.state.minimized && !self.native_occluded);
@@ -1538,6 +1543,7 @@ impl Host {
                     if let Some(renderer) = &mut self.renderer {
                         renderer.resize(size.width, size.height);
                     }
+                    self.refresh_renderer_info();
                     self.force = true;
                     self.presentation.expose();
                 }
@@ -1622,6 +1628,7 @@ impl Host {
         self.frame_heartbeat = None;
         self.frame_redraw_requested = false;
         self.window = None;
+        self.context.renderer_info.reset();
         self.force = true;
     }
     fn window_event(&mut self, event: WindowEvent) -> Result<(), Box<dyn Error>> {
@@ -1697,6 +1704,9 @@ impl Host {
                 self.draw()?;
             }
             WindowEvent::Resized(size) => {
+                if size.width == 0 || size.height == 0 {
+                    self.context.renderer_info.reset();
+                }
                 if size.width > 0 && size.height > 0 {
                     self.presentation.expose();
                 }
@@ -1711,6 +1721,7 @@ impl Host {
                     if let Some(renderer) = &mut self.renderer {
                         renderer.resize(size.width, size.height);
                     }
+                    self.refresh_renderer_info();
                     self.force = true;
                     // AppKit delivers live resizes synchronously and commits the
                     // new window frame when this callback returns. Paint now so
@@ -1732,6 +1743,7 @@ impl Host {
                 if let Some(renderer) = &mut self.renderer {
                     renderer.set_scale_factor(scale_factor as f32);
                 }
+                self.refresh_renderer_info();
                 // The native resize follows this notification. Applying the
                 // new scale to the old physical size creates a false logical resize.
                 self.context.ui.refresh_text_geometry();
@@ -1998,7 +2010,11 @@ impl Host {
         let uncapped = monitor.sync(self.native_focused, self.frames_presented(), self.frame_interval.as_secs_f64() * 1000.);
         if uncapped != before { self.frames.set_max_rate(if uncapped { None } else { self.options.max_frame_rate }); }
         if let Some(renderer) = &mut self.renderer {
-            if uncapped != before { renderer.set_vsync(!uncapped); self.frame_deadline = None; self.last_unpaced = None; }
+            if uncapped != before {
+                renderer.set_vsync(!uncapped);
+                self.frame_deadline = None;
+                self.last_unpaced = None;
+            }
             let profiling = monitor.enabled() && !monitor.paused();
             if profiling != self.performance_gpu_enabled {
                 let supported = renderer.set_gpu_profiling(profiling);
@@ -2006,6 +2022,17 @@ impl Host {
                 self.performance_gpu_content.clear();
                 monitor.set_gpu_status(if profiling { supported } else { monitor.gpu_supported() }, renderer.dropped_gpu_profiles());
             }
+        }
+        if uncapped != before { self.refresh_renderer_info(); }
+    }
+    fn refresh_renderer_info(&self) {
+        let available = self.window.as_ref().is_some_and(|window| {
+            let size = window.inner_size();
+            size.width > 0 && size.height > 0
+        });
+        match (&self.renderer, available) {
+            (Some(renderer), true) => self.context.renderer_info.publish(renderer.renderer_info()),
+            _ => self.context.renderer_info.reset(),
         }
     }
     fn frames_presented(&self) -> bool {
@@ -2155,6 +2182,7 @@ fn borderless_resize_never_calls_the_style_mutating_native_zoom_query() {
 
 impl Drop for Host {
     fn drop(&mut self) {
+        self.context.renderer_info.reset();
         self.unregister_file_surface();
         self.context.window.closed.store(true, Ordering::Release);
         self.context.ui.set_presented(false);
