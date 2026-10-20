@@ -24,6 +24,21 @@ pub(super) struct PremultipliedCore {
 fn contains(a: Rect, b: Rect) -> bool {
     source_fill::contains([a.x, a.y, a.width, a.height], [b.x, b.y, b.width, b.height])
 }
+fn transparent_noop(q: &Quad) -> bool {
+    q.color[3] == 0.
+        && q.options == [0.; 4]
+        && q.shape[1] == 0.
+        && q.shape[2] == 0.
+        && (q.shape[3] == 0. || q.shape[3] == 1.)
+        && q.border == [0.; 4]
+        && q.rect
+            .into_iter()
+            .chain(q.fade)
+            .chain(q.shape)
+            .chain(q.color)
+            .chain(q.mask)
+            .all(f32::is_finite)
+}
 fn backdrop(
     region: Rect,
     draws: &[Draw],
@@ -53,6 +68,12 @@ fn backdrop(
             let q = quads[index as usize];
             let rect = Rect::new(q.rect[0], q.rect[1], q.rect[2], q.rect[3]);
             if rect.intersection(region).is_none() {
+                continue;
+            }
+            // Ordinary borderless zero-alpha source-over is an exact no-op,
+            // including an authored transparent viewport Panel. Copy markers,
+            // images, layers and filters must never take this shortcut.
+            if transparent_noop(&q) {
                 continue;
             }
             if let Some(core) = known.get(&index).filter(|c| contains(c.rect, region)) {
@@ -300,6 +321,68 @@ pub(super) fn resolve_singleton_opacity(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn transparent_native_panel_preserves_the_ordered_destination_proof() {
+        let viewport = Rect::new(0., 0., 96., 80.);
+        let region = Rect::new(8., 8., 0.5, 0.5);
+        let mut quad = Quad {
+            rect: [0., 0., 96., 80.],
+            uv: [0.; 4],
+            color: [0.; 4],
+            fade: [0., 0., 96., 80.],
+            options: [0.; 4],
+            shape: [0., 0., 0., 1.],
+            border: [0.; 4],
+            mask: NO_MASK,
+        };
+        let mut draw = Draw {
+            diagnostic_source: None,
+            transform: Affine::IDENTITY,
+            geometry_offset: 0,
+            geometry_hash: 0,
+            geometry: None,
+            shading: super::super::Shading::Full,
+            blur: None,
+            blur_mask: None,
+            start: 0,
+            end: 1,
+            clip: viewport,
+            bounds: viewport,
+            image: None,
+            layer: None,
+        };
+        let known = FxHashMap::default();
+        let opaque = FxHashMap::default();
+        let prove = |draw: &Draw, quad| {
+            backdrop(
+                region,
+                std::slice::from_ref(draw),
+                &[quad],
+                &known,
+                &opaque,
+                Color(0, 0, 0, 0),
+                viewport,
+            )
+        };
+        assert_eq!(prove(&draw, quad), Some([0; 4]));
+        // Authored RGB remains harmless at zero alpha for ordinary source-over.
+        quad.color = [1., 0., 0., 0.];
+        assert_eq!(prove(&draw, quad), Some([0; 4]));
+        quad.color[3] = 91. / 255.;
+        assert_eq!(prove(&draw, quad), None);
+        quad.color = [0.; 4];
+        quad.options[1] = 2.;
+        assert_eq!(prove(&draw, quad), None);
+        quad.options = [0.; 4];
+        quad.shape[1] = 1.;
+        assert_eq!(prove(&draw, quad), None);
+        quad.shape = [0.; 4];
+        quad.options[3] = RESOLVED;
+        assert_eq!(prove(&draw, quad), None);
+        quad.options = [0.; 4];
+        draw.layer = Some(lumine::scene::Scene::new(1., 1.).root());
+        assert_eq!(prove(&draw, quad), None);
+    }
     #[test]
     fn resolved_transparent_rgba_keeps_copy_semantics_through_batching() {
         use super::super::{Shading, draw_diagnostics, shading};
