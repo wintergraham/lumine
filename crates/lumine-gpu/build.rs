@@ -36,4 +36,16 @@ fn main() {
         &tool_observation(&build.get_compiler()),
         std::path::Path::new(&std::env::var_os("OUT_DIR").expect("Cargo output directory")),
     );
+    // Preserve the original cc compile/archive execution above. The separate
+    // audit actually executes its own commands and must reproduce those bytes;
+    // it never claims to have observed the original cc command stream.
+    source_paint_build_recipe::audit_after_compile(
+        std::path::Path::new(
+            &std::env::var_os("CARGO_MANIFEST_DIR").expect("Cargo manifest directory"),
+        ),
+        std::path::Path::new(&std::env::var_os("OUT_DIR").expect("Cargo output directory")),
+        cfg!(target_os = "linux") && build.get_compiler().is_like_gnu(),
+        || build.get_compiler().to_command(),
+        || build.get_archiver(),
+    );
 }
