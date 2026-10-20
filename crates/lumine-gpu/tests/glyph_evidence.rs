@@ -210,7 +210,7 @@ fn generated_glyph_quads_record_actual_cpu_clip_culling() {
 }
 
 #[test]
-fn actual_batch_membership_excludes_glyphs_under_an_opaque_cover() {
+fn hidden_glyph_can_still_belong_to_an_actual_submitted_batch() {
     let mut gpu = renderer(FONT);
     let (mut scene, _) = scene(&gpu, "A");
     scene.resize(320., 160.);
@@ -241,8 +241,8 @@ fn actual_batch_membership_excludes_glyphs_under_an_opaque_cover() {
     assert!(quad.retained_after_cpu_clip);
     assert_eq!(
         quad.submitted,
-        Some(false),
-        "opaque full-region cover suppresses the actual batch"
+        Some(true),
+        "SDF covers have a conservative one-pixel inset; hidden fragments do not imply an omitted batch"
     );
     assert!(quad.instance_index.is_some());
 }
@@ -500,18 +500,21 @@ fn glyph_submitted_to_layer_is_excluded_when_its_composite_is_occluded() {
     let (mut scene, node) = scene(&gpu, "A");
     scene.set_isolated(node, true);
     scene.resize(320., 160.);
-    scene.append(
+    // The SDF cover must overscan: occluded_from insets its guaranteed opaque
+    // core by one physical pixel, even with zero authored corner radius.
+    let cover = scene.append(
         scene.root(),
         NodeKind::Quad(QuadStyle {
             fill: Color(0, 0, 0, 255),
             ..Default::default()
         }),
         Style {
-            width: Some(320.),
-            height: Some(160.),
+            width: Some(324.),
+            height: Some(164.),
             ..Default::default()
         },
     );
+    scene.set_transform(cover, Transform { x: -2., y: -2. });
     gpu.enable_glyph_evidence(GlyphEvidenceLimits::default());
     render(&mut gpu, &mut scene);
     let frame = gpu.glyph_evidence().unwrap().unwrap();
