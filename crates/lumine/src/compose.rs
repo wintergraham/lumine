@@ -2341,6 +2341,8 @@ fn mount_element(
                     });
                 }
                 let mut font = base.font.clone();
+                if let Some(value) = span.styles.font_variations { font.variations = value; }
+                if let Some(value) = span.styles.font_optical_sizing { font.optical_sizing = value; }
                 if let Some(value) = span.styles.font_fallbacks {
                     font.fallbacks = value;
                 }

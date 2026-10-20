@@ -20,28 +20,22 @@ fn swash_image(
     context: &mut ScaleContext,
     cache_key: CacheKey,
 ) -> Option<SwashImage> {
-    let Some(font) = font_system.get_font(cache_key.font_id, cache_key.font_weight) else {
+    let Some(font) = font_system.get_font_instance(
+        cache_key.font_id,
+        cache_key.font_weight,
+        cache_key.font_instance_id,
+    ) else {
         log::warn!("did not find font {:?}", cache_key.font_id);
         return None;
     };
-
-    let variable_width = font
-        .as_swash()
-        .variations()
-        .find_by_tag(swash::Tag::from_be_bytes(*b"wght"));
 
     // Build the scaler
     let mut scaler = context
         .builder(font.as_swash())
         .size(f32::from_bits(cache_key.font_size_bits))
-        .hint(!cache_key.flags.contains(CacheKeyFlags::DISABLE_HINTING));
-    if let Some(variation) = variable_width {
-        scaler = scaler.normalized_coords(font.as_swash().variations().normalized_coords([(
-            swash::Tag::from_be_bytes(*b"wght"),
-            f32::from(cache_key.font_weight.0).clamp(variation.min_value(), variation.max_value()),
-        )]));
-    }
-    let mut scaler = scaler.build();
+        .hint(!cache_key.flags.contains(CacheKeyFlags::DISABLE_HINTING))
+        .normalized_coords(font.normalized_coords().iter().copied())
+        .build();
 
     // Cache bins are screen-space (Y down); outline offsets use font-space (Y up).
     let offset = if cache_key.flags.contains(CacheKeyFlags::PIXEL_FONT) {
@@ -85,28 +79,22 @@ fn swash_outline_commands(
 ) -> Option<Box<[swash::zeno::Command]>> {
     use swash::zeno::PathData as _;
 
-    let Some(font) = font_system.get_font(cache_key.font_id, cache_key.font_weight) else {
+    let Some(font) = font_system.get_font_instance(
+        cache_key.font_id,
+        cache_key.font_weight,
+        cache_key.font_instance_id,
+    ) else {
         log::warn!("did not find font {:?}", cache_key.font_id);
         return None;
     };
-
-    let variable_width = font
-        .as_swash()
-        .variations()
-        .find_by_tag(swash::Tag::from_be_bytes(*b"wght"));
 
     // Build the scaler
     let mut scaler = context
         .builder(font.as_swash())
         .size(f32::from_bits(cache_key.font_size_bits))
-        .hint(!cache_key.flags.contains(CacheKeyFlags::DISABLE_HINTING));
-    if let Some(variation) = variable_width {
-        scaler = scaler.normalized_coords(font.as_swash().variations().normalized_coords([(
-            swash::Tag::from_be_bytes(*b"wght"),
-            f32::from(cache_key.font_weight.0).clamp(variation.min_value(), variation.max_value()),
-        )]));
-    }
-    let mut scaler = scaler.build();
+        .hint(!cache_key.flags.contains(CacheKeyFlags::DISABLE_HINTING))
+        .normalized_coords(font.normalized_coords().iter().copied())
+        .build();
 
     // Scale the outline
     let mut outline = scaler

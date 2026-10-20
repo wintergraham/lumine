@@ -145,6 +145,45 @@ impl FontFeatures {
         std::mem::size_of_val(self.settings())
     }
 }
+/// Explicit finite OpenType design coordinates. This type carries typography,
+/// never device scaling. Duplicate tags use the last value; order is canonical.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+pub struct FontVariations(Option<std::sync::Arc<[([u8; 4], u32)]>>);
+impl FontVariations {
+    pub fn new(values: impl IntoIterator<Item = ([u8; 4], f32)>) -> Option<Self> {
+        let mut canonical = std::collections::BTreeMap::new();
+        for (tag, value) in values {
+            if !value.is_finite() || !tag.iter().all(|v| (0x20..=0x7e).contains(v)) {
+                return None;
+            }
+            canonical.insert(tag, if value == 0. { 0 } else { value.to_bits() });
+        }
+        Some(if canonical.is_empty() {
+            Self::default()
+        } else {
+            Self(Some(canonical.into_iter().collect::<Vec<_>>().into()))
+        })
+    }
+    pub fn settings(&self) -> impl Iterator<Item = ([u8; 4], f32)> + '_ {
+        self.0
+            .as_deref()
+            .unwrap_or(&[])
+            .iter()
+            .map(|(tag, bits)| (*tag, f32::from_bits(*bits)))
+    }
+    pub fn storage_bytes(&self) -> usize {
+        std::mem::size_of_val(self.0.as_deref().unwrap_or(&[]))
+    }
+}
+/// Optical sizing is opt-in for native clients. The CSS bridge selects Auto for
+/// CSS's initial value, resolving logical font pixels before device scale.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum FontOpticalSizing {
+    #[default]
+    None,
+    Auto,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct FontStyle {
     pub family: FontFamily,
@@ -154,6 +193,8 @@ pub struct FontStyle {
     pub line_height: LineHeight,
     pub letter_spacing: LetterSpacing,
     pub features: FontFeatures,
+    pub variations: FontVariations,
+    pub optical_sizing: FontOpticalSizing,
     pub align: TextAlign,
     /// Rich paragraphs use the first run's policy for all their lines.
     pub word_wrap: WordWrap,
@@ -169,6 +210,8 @@ impl Default for FontStyle {
             line_height: LineHeight::NORMAL,
             letter_spacing: LetterSpacing::ZERO,
             features: FontFeatures::default(),
+            variations: FontVariations::default(),
+            optical_sizing: FontOpticalSizing::None,
             align: TextAlign::Start,
             word_wrap: WordWrap::default(),
             fallbacks: {
@@ -184,6 +227,7 @@ impl FontStyle {
     pub fn storage_bytes(&self) -> usize {
         self.features
             .storage_bytes()
+            .saturating_add(self.variations.storage_bytes())
             .saturating_add(std::mem::size_of_val(self.fallbacks.as_ref()))
             .saturating_add(
                 self.fallbacks
@@ -1115,5 +1159,41 @@ mod letter_spacing_tests {
                 FallbackTextLayout::measure_with_font("ab\ncd", 10., None, &font)
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod font_variation_key_tests {
+    use super::*;
+    use std::hash::{Hash, Hasher};
+    fn hash(value: &FontVariations) -> u64 {
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        value.hash(&mut h);
+        h.finish()
+    }
+    #[test]
+    fn canonical_axes_preserve_values_and_reject_nonfinite_cache_keys() {
+        let first =
+            FontVariations::new([(*b"wght", 600.), (*b"opsz", 14.), (*b"opsz", 17.)]).unwrap();
+        let same = FontVariations::new([(*b"opsz", 17.), (*b"wght", 600.)]).unwrap();
+        assert_eq!(first, same);
+        assert_eq!(hash(&first), hash(&same));
+        assert_eq!(
+            first.settings().collect::<Vec<_>>(),
+            vec![(*b"opsz", 17.), (*b"wght", 600.)]
+        );
+        assert_ne!(
+            same,
+            FontVariations::new([(*b"opsz", 14.), (*b"wght", 600.)]).unwrap()
+        );
+        assert_eq!(
+            FontVariations::new([(*b"slnt", -0.)]),
+            FontVariations::new([(*b"slnt", 0.)])
+        );
+        for value in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            assert!(FontVariations::new([(*b"opsz", value)]).is_none());
+        }
+        assert!(FontVariations::new([(*b"a\0bc", 1.)]).is_none());
+        assert_eq!(FontStyle::default().optical_sizing, FontOpticalSizing::None);
     }
 }

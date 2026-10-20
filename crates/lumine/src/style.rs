@@ -66,6 +66,8 @@ pub struct Styles {
     pub(crate) line_clamp: Option<Option<std::num::NonZeroU32>>,
     pub(crate) text_align: Option<crate::text_layout::TextAlign>,
     pub(crate) font_features: Option<crate::text_layout::FontFeatures>,
+    pub(crate) font_variations: Option<crate::text_layout::FontVariations>,
+    pub(crate) font_optical_sizing: Option<crate::text_layout::FontOpticalSizing>,
     pub(crate) font_fallbacks: Option<std::sync::Arc<[crate::text_layout::FontFamily]>>,
     pub(crate) font_weight: Option<u16>,
     pub(crate) italic: Option<bool>,
@@ -119,7 +121,10 @@ impl Styles {
             }
         }
         if let Some(Some(i)) = &mut self.clip_insets {
-            i.top*=scale; i.right*=scale; i.bottom*=scale; i.left*=scale;
+            i.top *= scale;
+            i.right *= scale;
+            i.bottom *= scale;
+            i.left *= scale;
         }
         if let Some(o) = &mut self.layout_options {
             let o = std::sync::Arc::make_mut(o);
@@ -353,6 +358,12 @@ impl Styles {
         }
         if other.text_align.is_some() {
             self.text_align = other.text_align;
+        }
+        if other.font_variations.is_some() {
+            self.font_variations = other.font_variations.clone();
+        }
+        if other.font_optical_sizing.is_some() {
+            self.font_optical_sizing = other.font_optical_sizing;
         }
         if other.font_features.is_some() {
             self.font_features = other.font_features.clone();
@@ -929,6 +940,14 @@ pub trait Styled: Sized {
         self
     }
     /// Override inherited OpenType features; an empty set restores font defaults.
+    fn font_variations(mut self, variations: crate::text_layout::FontVariations) -> Self {
+        self.styles_mut().font_variations = Some(variations);
+        self
+    }
+    fn font_optical_sizing(mut self, sizing: crate::text_layout::FontOpticalSizing) -> Self {
+        self.styles_mut().font_optical_sizing = Some(sizing);
+        self
+    }
     fn font_features(mut self, features: crate::text_layout::FontFeatures) -> Self {
         self.styles_mut().font_features = Some(features);
         self

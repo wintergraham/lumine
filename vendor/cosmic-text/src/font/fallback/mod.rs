@@ -194,6 +194,7 @@ pub struct FontFallbackIter<'a> {
     other_i: usize,
     end: bool,
     ideal_weight: fontdb::Weight,
+    variations: crate::FontVariations,
 }
 
 impl<'a> FontFallbackIter<'a> {
@@ -221,7 +222,13 @@ impl<'a> FontFallbackIter<'a> {
             other_i: 0,
             end: false,
             ideal_weight,
+            variations: crate::FontVariations::default(),
         }
+    }
+
+    pub fn variations(mut self, variations: crate::FontVariations) -> Self {
+        self.variations = variations;
+        self
     }
 
     pub fn check_missing(&self, word: &str) {
@@ -288,10 +295,11 @@ impl<'a> FontFallbackIter<'a> {
 
     fn next_item(&mut self, fallbacks: &Fallbacks) -> Option<<Self as Iterator>::Item> {
         if let Some(fallback_info) = self.font_system.monospace_fallbacks_buffer.pop_first() {
-            if let Some(font) = self
-                .font_system
-                .get_font(fallback_info.id, self.ideal_weight)
-            {
+            if let Some(font) = self.font_system.get_font_with_variations(
+                fallback_info.id,
+                self.ideal_weight,
+                &self.variations,
+            ) {
                 return Some(font);
             }
         }
@@ -340,7 +348,11 @@ impl<'a> FontFallbackIter<'a> {
                     break 'DEF_FAM;
                 }
                 (false, Some(m_key)) => {
-                    if let Some(font) = self.font_system.get_font(m_key.id, self.ideal_weight) {
+                    if let Some(font) = self.font_system.get_font_with_variations(
+                        m_key.id,
+                        self.ideal_weight,
+                        &self.variations,
+                    ) {
                         return Some(font);
                     }
                     break 'DEF_FAM;
@@ -354,16 +366,19 @@ impl<'a> FontFallbackIter<'a> {
                         // Return early if default Monospace font supports all word codepoints.
                         // Otherewise, add to fallbacks set
                         if fallback_info.codepoint_non_matches == Some(0) {
-                            if let Some(font) =
-                                self.font_system.get_font(m_key.id, self.ideal_weight)
-                            {
+                            if let Some(font) = self.font_system.get_font_with_variations(
+                                m_key.id,
+                                self.ideal_weight,
+                                &self.variations,
+                            ) {
                                 return Some(font);
                             }
                         } else {
-                            assert!(self
-                                .font_system
-                                .monospace_fallbacks_buffer
-                                .insert(fallback_info));
+                            assert!(
+                                self.font_system
+                                    .monospace_fallbacks_buffer
+                                    .insert(fallback_info)
+                            );
                         }
                     }
                 }
@@ -404,20 +419,22 @@ impl<'a> FontFallbackIter<'a> {
                                 font_weight: m_key.font_weight,
                                 id: m_key.id,
                             };
-                            assert!(self
-                                .font_system
-                                .monospace_fallbacks_buffer
-                                .insert(fallback_info));
+                            assert!(
+                                self.font_system
+                                    .monospace_fallbacks_buffer
+                                    .insert(fallback_info)
+                            );
                         }
                     }
                 }
             }
             // If default family is Monospace fallback to first monospaced font
             if let Some(fallback_info) = self.font_system.monospace_fallbacks_buffer.pop_first() {
-                if let Some(font) = self
-                    .font_system
-                    .get_font(fallback_info.id, self.ideal_weight)
-                {
+                if let Some(font) = self.font_system.get_font_with_variations(
+                    fallback_info.id,
+                    self.ideal_weight,
+                    &self.variations,
+                ) {
                     return Some(font);
                 }
             }
@@ -433,7 +450,11 @@ impl<'a> FontFallbackIter<'a> {
                 self.script_i.1 += 1;
                 for m_key in font_match_keys_iter(false) {
                     if self.face_contains_family(m_key.id, script_family) {
-                        if let Some(font) = self.font_system.get_font(m_key.id, self.ideal_weight) {
+                        if let Some(font) = self.font_system.get_font_with_variations(
+                            m_key.id,
+                            self.ideal_weight,
+                            &self.variations,
+                        ) {
                             return Some(font);
                         }
                     }
@@ -456,7 +477,11 @@ impl<'a> FontFallbackIter<'a> {
             self.common_i += 1;
             for m_key in font_match_keys_iter(false) {
                 if self.face_contains_family(m_key.id, common_family) {
-                    if let Some(font) = self.font_system.get_font(m_key.id, self.ideal_weight) {
+                    if let Some(font) = self.font_system.get_font_with_variations(
+                        m_key.id,
+                        self.ideal_weight,
+                        &self.variations,
+                    ) {
                         return Some(font);
                     }
                 }
@@ -474,7 +499,11 @@ impl<'a> FontFallbackIter<'a> {
                 .iter()
                 .all(|family_name| !self.face_contains_family(id, family_name))
             {
-                if let Some(font) = self.font_system.get_font(id, self.ideal_weight) {
+                if let Some(font) = self.font_system.get_font_with_variations(
+                    id,
+                    self.ideal_weight,
+                    &self.variations,
+                ) {
                     return Some(font);
                 }
             }

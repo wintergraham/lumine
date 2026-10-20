@@ -36,6 +36,9 @@ pub struct Font {
     metrics: Metrics,
     data: FontData,
     id: fontdb::ID,
+    instance_id: u64,
+    design_coordinates: Vec<([u8; 4], f32)>,
+    normalized_coordinates: Vec<i16>,
     monospace_fallback: Option<FontMonospaceFallback>,
     pub(crate) italic_or_oblique: bool,
 }
@@ -51,6 +54,19 @@ impl fmt::Debug for Font {
 impl Font {
     pub const fn id(&self) -> fontdb::ID {
         self.id
+    }
+
+    /// Identity of this exact variation instance (zero is the legacy instance).
+    pub fn instance_id(&self) -> u64 {
+        self.instance_id
+    }
+    /// Actual clamped design coordinates, in the font's original axis order.
+    pub fn variation_coordinates(&self) -> &[([u8; 4], f32)] {
+        &self.design_coordinates
+    }
+    /// The exact coordinates consumed by both Harfrust and Swash.
+    pub fn normalized_coords(&self) -> &[i16] {
+        &self.normalized_coordinates
     }
 
     pub fn monospace_em_width(&self) -> Option<f32> {
@@ -103,6 +119,15 @@ impl Font {
 
 impl Font {
     pub fn new(db: &fontdb::Database, id: fontdb::ID, weight: fontdb::Weight) -> Option<Self> {
+        Self::new_with_variations(db, id, weight, &crate::FontVariations::default())
+    }
+
+    pub fn new_with_variations(
+        db: &fontdb::Database,
+        id: fontdb::ID,
+        weight: fontdb::Weight,
+        variations: &crate::FontVariations,
+    ) -> Option<Self> {
         let info = db.face(id)?;
 
         let data = match &info.source {
@@ -117,9 +142,27 @@ impl Font {
         };
 
         let font_ref = FontRef::from_index((*data).as_ref(), info.index).ok()?;
-        let location = font_ref
+        let mut requested = alloc::collections::BTreeMap::new();
+        requested.insert(*b"wght", weight.0 as f32);
+        requested.extend(variations.settings());
+        let design_coordinates: Vec<_> = font_ref
             .axes()
-            .location([(Tag::new(b"wght"), weight.0 as f32)]);
+            .iter()
+            .map(|axis| {
+                let tag = axis.tag().to_be_bytes();
+                let value = requested
+                    .get(&tag)
+                    .copied()
+                    .unwrap_or(axis.default_value())
+                    .clamp(axis.min_value(), axis.max_value());
+                (tag, value)
+            })
+            .collect();
+        let location = font_ref.axes().location(
+            design_coordinates
+                .iter()
+                .map(|(tag, value)| (Tag::new(tag), *value)),
+        );
         let metrics = font_ref.metrics(Size::unscaled(), &location);
 
         let monospace_fallback = if cfg!(feature = "monospace_fallback") {
@@ -186,8 +229,22 @@ impl Font {
             )
             .build();
 
+        let normalized_coordinates = harfrust
+            .normalized_coords()
+            .iter()
+            .map(|c| c.to_bits())
+            .collect();
         Some(Self {
             id: info.id,
+            instance_id: if variations.is_empty() {
+                0
+            } else {
+                static NEXT_INSTANCE: core::sync::atomic::AtomicU64 =
+                    core::sync::atomic::AtomicU64::new(1);
+                NEXT_INSTANCE.fetch_add(1, core::sync::atomic::Ordering::Relaxed)
+            },
+            design_coordinates,
+            normalized_coordinates,
             monospace_fallback,
             #[cfg(feature = "swash")]
             swash: {

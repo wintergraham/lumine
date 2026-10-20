@@ -1,9 +1,9 @@
 //! Reusable shaped text geometry for editor hit testing, carets and bidi selections.
 pub use cosmic_text::Affinity;
 use cosmic_text::{Attrs, Buffer, Family, FontSystem, Metrics, Shaping};
+use lumine::scene::Rect;
 use std::{ops::Range, sync::Arc};
 use unicode_segmentation::UnicodeSegmentation;
-use lumine::scene::Rect;
 /// Validated TrueType/OpenType font or font collection, shared without copying
 /// its bytes between windows. Registration is additive; choose its family by name.
 #[derive(Clone, Debug)]
@@ -61,7 +61,13 @@ pub(crate) fn attrs(font: &lumine::text_layout::FontStyle, size: f32) -> Attrs<'
     for (tag, value) in font.features.settings() {
         features.set(cosmic_text::FeatureTag::new(tag), *value);
     }
+    let automatic = (font.optical_sizing == lumine::text_layout::FontOpticalSizing::Auto)
+        .then_some((*b"opsz", size));
+    let variations =
+        cosmic_text::FontVariations::new(automatic.into_iter().chain(font.variations.settings()))
+            .expect("FontStyle variations and effective font size are finite");
     let attrs = Attrs::new()
+        .font_variations(variations)
         .font_features(features)
         .family(family)
         .weight(cosmic_text::Weight(font.weight.clamp(1, 1000)))
@@ -124,7 +130,13 @@ fn fallback_spans<'a>(
                 },
                 ..Default::default()
             });
-            id.and_then(|id| fonts.get_font(id, cosmic_text::Weight(font.weight)))
+            id.and_then(|id| {
+                fonts.get_font_with_variations(
+                    id,
+                    cosmic_text::Weight(font.weight),
+                    &base.font_variations,
+                )
+            })
         })
         .collect();
     let mut ranges: Vec<(std::ops::Range<usize>, usize)> = Vec::new();
@@ -633,7 +645,7 @@ fn raster_glyph_scaled(
     scale: f32,
 ) -> cosmic_text::PhysicalGlyph {
     let original = glyph.physical((0., 0.), scale);
-    let (cache_key, x, y) = cosmic_text::CacheKey::new(
+    let (mut cache_key, x, y) = cosmic_text::CacheKey::new(
         glyph.font_id,
         glyph.glyph_id,
         glyph.font_size * scale,
@@ -644,6 +656,7 @@ fn raster_glyph_scaled(
         glyph.font_weight,
         original.cache_key.flags,
     );
+    cache_key.font_instance_id = glyph.font_instance_id;
     cosmic_text::PhysicalGlyph { cache_key, x, y }
 }
 
@@ -863,11 +876,21 @@ mod unwrapped_tests {
 
 impl CpuTextRaster {
     /// Use the native shaper's registered fonts for shader-mask dimensions.
-    pub fn measure(&mut self, text: &str, size: f32, width: Option<f32>, style: &lumine::text_layout::FontStyle) -> (f32, f32) {
+    pub fn measure(
+        &mut self,
+        text: &str,
+        size: f32,
+        width: Option<f32>,
+        style: &lumine::text_layout::FontStyle,
+    ) -> (f32, f32) {
         ShapedText::with_font(&mut self.fonts, text, size, width, style).size()
     }
     /// Measure rich text with the same registered fonts used by CPU rasterization.
-    pub fn measure_rich(&mut self, rich: &lumine::rich_text::RichText, width: Option<f32>) -> (f32, f32) {
+    pub fn measure_rich(
+        &mut self,
+        rich: &lumine::rich_text::RichText,
+        width: Option<f32>,
+    ) -> (f32, f32) {
         ShapedText::with_runs(&mut self.fonts, rich, width).size()
     }
     pub fn register_font(&mut self, font: &FontData) {
@@ -2113,7 +2136,10 @@ pub fn run_at(rich: &lumine::rich_text::RichText, index: usize) -> usize {
         .min(runs.len().saturating_sub(1))
 }
 /// Derive decoration geometry from shaped visual fragments, including bidi and wrapping.
-pub fn rich_decorations(buffer: &Buffer, rich: &lumine::rich_text::RichText) -> Vec<RichDecoration> {
+pub fn rich_decorations(
+    buffer: &Buffer,
+    rich: &lumine::rich_text::RichText,
+) -> Vec<RichDecoration> {
     rich_decorations_in(buffer.layout_runs(), &line_starts(buffer), rich)
 }
 /// `rich_decorations` over any laid-out runs, given where each line starts.
@@ -2180,4 +2206,181 @@ pub fn rich_decorations_in<'a>(
         }
     }
     output
+}
+
+#[cfg(test)]
+mod optical_variation_tests {
+    use super::*;
+    use lumine::text_layout::{FontFamily, FontOpticalSizing, FontStyle, FontVariations};
+
+    fn fonts() -> FontSystem {
+        // Exact authored MotionLab Inter: SHA256
+        // 29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031.
+        let mut db = cosmic_text::fontdb::Database::new();
+        db.load_font_data(include_bytes!("../tests/fixtures/Inter.ttf").to_vec());
+        FontSystem::new_with_locale_and_db("en-US".into(), db)
+    }
+    fn style() -> FontStyle {
+        FontStyle {
+            family: FontFamily::Named("Inter".into()),
+            weight: 600,
+            optical_sizing: FontOpticalSizing::Auto,
+            ..Default::default()
+        }
+    }
+    fn glyphs(fonts: &mut FontSystem, font: &FontStyle) -> Vec<cosmic_text::LayoutGlyph> {
+        let mut buffer = Buffer::new(fonts, Metrics::new(17., 24.));
+        buffer.set_size(None, None);
+        set_buffer_text(fonts, &mut buffer, "9:41", font, 17.);
+        buffer.shape_until_scroll(fonts, false);
+        buffer
+            .layout_runs()
+            .flat_map(|run| run.glyphs.to_vec())
+            .collect()
+    }
+
+    #[test]
+    fn source_inter_auto_and_explicit_axes_share_exact_shape_raster_cache_instance() {
+        let mut fonts = fonts();
+        let auto = glyphs(&mut fonts, &style());
+        let first = &auto[0];
+        let font = fonts
+            .get_font_instance(first.font_id, first.font_weight, first.font_instance_id)
+            .unwrap();
+        assert_ne!(font.instance_id(), 0);
+        assert_eq!(
+            font.variation_coordinates(),
+            &[(*b"opsz", 17.), (*b"wght", 600.)]
+        );
+        assert_eq!(
+            font.normalized_coords(),
+            font.shaper()
+                .normalized_coords()
+                .iter()
+                .map(|c| c.to_bits())
+                .collect::<Vec<_>>()
+        );
+        assert_ne!(
+            font.normalized_coords()[0],
+            0,
+            "opsz17 must differ from default14"
+        );
+        let explicit = FontStyle {
+            variations: FontVariations::new([(*b"opsz", 32.), (*b"opsz", 17.)]).unwrap(),
+            ..style()
+        };
+        let same = glyphs(&mut fonts, &explicit);
+        assert_eq!(
+            first.font_instance_id, same[0].font_instance_id,
+            "equivalent canonical settings share cache identity"
+        );
+        for scale in [1., 1.5, 2.] {
+            let physical = raster_glyph_scaled(first, 20., scale);
+            assert_eq!(physical.cache_key.font_instance_id, font.instance_id());
+            let actual = fonts
+                .get_font_instance(
+                    physical.cache_key.font_id,
+                    physical.cache_key.font_weight,
+                    physical.cache_key.font_instance_id,
+                )
+                .unwrap();
+            assert_eq!(
+                actual.variation_coordinates()[0],
+                (*b"opsz", 17.),
+                "DPR must not change optical size"
+            );
+        }
+        let explicit14 = FontStyle {
+            variations: FontVariations::new([(*b"opsz", 14.)]).unwrap(),
+            ..style()
+        };
+        let small = glyphs(&mut fonts, &explicit14);
+        assert_ne!(first.font_instance_id, small[0].font_instance_id);
+        assert_ne!(
+            auto.iter().map(|g| g.w).sum::<f32>(),
+            small.iter().map(|g| g.w).sum::<f32>()
+        );
+        assert_ne!(
+            first.physical((0., 0.), 1.).cache_key,
+            small[0].physical((0., 0.), 1.).cache_key
+        );
+        let none = FontStyle {
+            optical_sizing: FontOpticalSizing::None,
+            ..style()
+        };
+        let default = glyphs(&mut fonts, &none);
+        assert_eq!(
+            default[0].font_instance_id, 0,
+            "native default remains weight-only"
+        );
+        let defaultfont = fonts
+            .get_font(default[0].font_id, default[0].font_weight)
+            .unwrap();
+        assert_eq!(
+            defaultfont.variation_coordinates(),
+            &[(*b"opsz", 14.), (*b"wght", 600.)]
+        );
+        let explicit_weight = FontStyle {
+            variations: FontVariations::new([(*b"wght", 700.)]).unwrap(),
+            ..style()
+        };
+        let bold = glyphs(&mut fonts, &explicit_weight);
+        let boldfont = fonts
+            .get_font_instance(
+                bold[0].font_id,
+                bold[0].font_weight,
+                bold[0].font_instance_id,
+            )
+            .unwrap();
+        assert_eq!(
+            boldfont.variation_coordinates(),
+            &[(*b"opsz", 17.), (*b"wght", 700.)]
+        );
+        assert_eq!(
+            glyphs(&mut fonts, &style())[0].font_instance_id,
+            first.font_instance_id,
+            "interleaving cannot change a retained instance"
+        );
+    }
+
+    #[test]
+    fn inter_axis_raster_alternation_has_no_stale_coordinate_leak() {
+        let mut raster = CpuTextRaster {
+            fonts: fonts(),
+            swash: cosmic_text::SwashCache::new(),
+        };
+        let automatic = style();
+        let default = FontStyle {
+            variations: FontVariations::new([(*b"opsz", 14.)]).unwrap(),
+            ..style()
+        };
+        let render = |r: &mut CpuTextRaster, f: &FontStyle| {
+            r.rasterize_scaled("9:41", 17., 100., 40., f, 2., true)
+                .into_iter()
+                .map(|(x, y, image)| {
+                    (
+                        x,
+                        y,
+                        image.placement.left,
+                        image.placement.top,
+                        image.placement.width,
+                        image.placement.height,
+                        image.data,
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
+        let first = render(&mut raster, &automatic);
+        let different = render(&mut raster, &default);
+        assert!(!first.is_empty());
+        assert_ne!(
+            first, different,
+            "actual Inter opsz17 and14 raster ink differs"
+        );
+        assert_eq!(
+            first,
+            render(&mut raster, &automatic),
+            "returning to exact axes restores exact raster bytes"
+        );
+    }
 }

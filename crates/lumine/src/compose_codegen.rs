@@ -115,6 +115,15 @@ fn styles(s: &Styles) -> Result<String, String> {
     if let Some(v) = s.text_overflow {
         out += &format!(".text_overflow(lumine::text_layout::TextOverflow::{v:?})");
     }
+    if let Some(v) = &s.font_variations {
+        out += &format!(
+            ".font_variations(lumine::text_layout::FontVariations::new({:?}).unwrap())",
+            v.settings().collect::<Vec<_>>()
+        );
+    }
+    if let Some(v) = s.font_optical_sizing {
+        out += &format!(".font_optical_sizing(lumine::text_layout::FontOpticalSizing::{v:?})");
+    }
     if let Some(v) = &s.font_features {
         out += &format!(
             ".font_features(lumine::text_layout::FontFeatures::new({:?}))",

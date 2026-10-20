@@ -281,6 +281,41 @@ pub struct GlyphDecorationData {
     pub ascent: f32,
 }
 
+/// Canonical finite OpenType design coordinates. Last duplicate wins. Empty
+/// settings preserve the historical weight-only instance. Values are not pixels:
+/// callers must resolve optical sizing before converting logical to device size.
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
+pub struct FontVariations(Option<alloc::sync::Arc<[([u8; 4], u32)]>>);
+impl FontVariations {
+    pub fn new(settings: impl IntoIterator<Item = ([u8; 4], f32)>) -> Option<Self> {
+        let mut values = alloc::collections::BTreeMap::new();
+        for (tag, value) in settings {
+            if !value.is_finite() || !tag.iter().all(|v| (0x20..=0x7e).contains(v)) {
+                return None;
+            }
+            values.insert(tag, if value == 0. { 0 } else { value.to_bits() });
+        }
+        Some(if values.is_empty() {
+            Self::empty()
+        } else {
+            Self(Some(values.into_iter().collect::<Vec<_>>().into()))
+        })
+    }
+    pub fn settings(&self) -> impl Iterator<Item = ([u8; 4], f32)> + '_ {
+        self.0
+            .as_deref()
+            .unwrap_or(&[])
+            .iter()
+            .map(|(tag, bits)| (*tag, f32::from_bits(*bits)))
+    }
+    pub const fn empty() -> Self {
+        Self(None)
+    }
+    pub fn is_empty(&self) -> bool {
+        self.0.is_none()
+    }
+}
+
 /// Text attributes
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Attrs<'a> {
@@ -296,6 +331,7 @@ pub struct Attrs<'a> {
     /// Letter spacing (tracking) in EM
     pub letter_spacing_opt: Option<LetterSpacing>,
     pub font_features: FontFeatures,
+    pub font_variations: FontVariations,
     pub text_decoration: TextDecoration,
 }
 
@@ -315,6 +351,7 @@ impl<'a> Attrs<'a> {
             metrics_opt: None,
             letter_spacing_opt: None,
             font_features: FontFeatures::new(),
+            font_variations: FontVariations::empty(),
             text_decoration: TextDecoration::new(),
         }
     }
@@ -379,6 +416,11 @@ impl<'a> Attrs<'a> {
         self
     }
 
+    pub fn font_variations(mut self, variations: FontVariations) -> Self {
+        self.font_variations = variations;
+        self
+    }
+
     pub const fn underline(mut self, style: UnderlineStyle) -> Self {
         self.text_decoration.underline = style;
         self
@@ -415,6 +457,7 @@ impl<'a> Attrs<'a> {
             && self.stretch == other.stretch
             && self.style == other.style
             && self.weight == other.weight
+            && self.font_variations == other.font_variations
     }
 }
 
@@ -453,6 +496,7 @@ pub struct AttrsOwned {
     /// Letter spacing (tracking) in EM
     pub letter_spacing_opt: Option<LetterSpacing>,
     pub font_features: FontFeatures,
+    pub font_variations: FontVariations,
     pub text_decoration: TextDecoration,
 }
 
@@ -469,6 +513,7 @@ impl AttrsOwned {
             metrics_opt: attrs.metrics_opt,
             letter_spacing_opt: attrs.letter_spacing_opt,
             font_features: attrs.font_features.clone(),
+            font_variations: attrs.font_variations.clone(),
             text_decoration: attrs.text_decoration,
         }
     }
@@ -485,6 +530,7 @@ impl AttrsOwned {
             metrics_opt: self.metrics_opt,
             letter_spacing_opt: self.letter_spacing_opt,
             font_features: self.font_features.clone(),
+            font_variations: self.font_variations.clone(),
             text_decoration: self.text_decoration,
         }
     }

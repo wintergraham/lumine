@@ -7,8 +7,8 @@ use alloc::vec::Vec;
 use core::fmt;
 use core::ops::{Deref, DerefMut};
 use fontdb::{FaceInfo, Query, Style};
-use skrifa::raw::{ReadError, TableProvider as _};
 use skrifa::MetadataProvider;
+use skrifa::raw::{ReadError, TableProvider as _};
 
 // re-export fontdb and harfrust
 pub use fontdb;
@@ -137,7 +137,8 @@ pub struct FontSystem {
     db: fontdb::Database,
 
     /// Cache for loaded fonts from the database.
-    font_cache: HashMap<(fontdb::ID, fontdb::Weight), Option<Arc<Font>>>,
+    font_instances: HashMap<u64, Arc<Font>>,
+    font_cache: HashMap<(fontdb::ID, fontdb::Weight, crate::FontVariations), Option<Arc<Font>>>,
 
     /// Sorted unique ID's of all Monospace fonts in DB
     monospace_font_ids: Vec<fontdb::ID>,
@@ -260,6 +261,7 @@ impl FontSystem {
             db,
             monospace_font_ids,
             per_script_monospace_font_ids,
+            font_instances: HashMap::default(),
             font_cache: HashMap::default(),
             font_matches_cache: HashMap::default(),
             font_codepoint_support_info_cache: HashMap::default(),
@@ -300,24 +302,48 @@ impl FontSystem {
 
     /// Get a font by its ID and weight.
     pub fn get_font(&mut self, id: fontdb::ID, weight: fontdb::Weight) -> Option<Arc<Font>> {
-        self.font_cache
-            .entry((id, weight))
-            .or_insert_with(|| {
-                #[cfg(feature = "std")]
-                unsafe {
-                    self.db.make_shared_face_data(id);
-                }
-                if let Some(font) = Font::new(&self.db, id, weight) {
-                    Some(Arc::new(font))
-                } else {
-                    log::warn!(
-                        "failed to load font '{}'",
-                        self.db.face(id)?.post_script_name
-                    );
-                    None
-                }
-            })
-            .clone()
+        self.get_font_with_variations(id, weight, &crate::FontVariations::default())
+    }
+
+    pub fn get_font_with_variations(
+        &mut self,
+        id: fontdb::ID,
+        weight: fontdb::Weight,
+        variations: &crate::FontVariations,
+    ) -> Option<Arc<Font>> {
+        let key = (id, weight, variations.clone());
+        if let Some(font) = self.font_cache.get(&key) {
+            return font.clone();
+        }
+        #[cfg(feature = "std")]
+        unsafe {
+            self.db.make_shared_face_data(id);
+        }
+        let font = Font::new_with_variations(&self.db, id, weight, variations).map(Arc::new);
+        if let Some(font) = &font {
+            if font.instance_id() != 0 {
+                self.font_instances.insert(font.instance_id(), font.clone());
+            }
+        }
+        self.font_cache.insert(key, font.clone());
+        font
+    }
+
+    /// Retrieve the instance retained by a shaped glyph. Nonzero identities are
+    /// never reconstructed from current style or device font size.
+    pub fn get_font_instance(
+        &mut self,
+        id: fontdb::ID,
+        weight: fontdb::Weight,
+        instance_id: u64,
+    ) -> Option<Arc<Font>> {
+        if instance_id == 0 {
+            return self.get_font(id, weight);
+        }
+        self.font_instances
+            .get(&instance_id)
+            .filter(|font| font.id() == id)
+            .cloned()
     }
 
     pub fn is_monospace(&self, id: fontdb::ID) -> bool {

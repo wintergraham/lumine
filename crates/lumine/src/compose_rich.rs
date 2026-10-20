@@ -85,6 +85,14 @@ impl TextSpan {
         self.styles.font_fallbacks = Some(families.into());
         self
     }
+    pub fn font_variations(mut self, variations: crate::text_layout::FontVariations) -> Self {
+        self.styles.font_variations = Some(variations);
+        self
+    }
+    pub fn font_optical_sizing(mut self, sizing: crate::text_layout::FontOpticalSizing) -> Self {
+        self.styles.font_optical_sizing = Some(sizing);
+        self
+    }
     pub fn font_features(mut self, features: crate::text_layout::FontFeatures) -> Self {
         self.styles.font_features = Some(features);
         self

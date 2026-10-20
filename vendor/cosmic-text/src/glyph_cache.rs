@@ -29,6 +29,8 @@ pub struct CacheKey {
     pub y_bin: SubpixelBin,
     /// Font weight
     pub font_weight: fontdb::Weight,
+    /// Exact retained variation instance; zero preserves weight-only callers.
+    pub font_instance_id: u64,
     /// [`CacheKeyFlags`]
     pub flags: CacheKeyFlags,
 }
@@ -53,6 +55,7 @@ impl CacheKey {
                 y_bin,
                 flags,
                 font_weight: weight,
+                font_instance_id: 0,
             },
             x,
             y,
