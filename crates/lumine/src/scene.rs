@@ -576,6 +576,7 @@ type FontMeasurer =
     dyn Fn(&std::sync::Arc<str>, f32, Option<f32>, &crate::text_layout::FontStyle) -> (f32, f32);
 pub struct Scene {
     source_paint_scope_count: usize,
+    source_paint_capability_count: usize,
     profiler: crate::profiling::Profiler,
     identity: u64,
     tree_revision: u64,
@@ -637,6 +638,7 @@ impl Scene {
         profiler.register_root(root);
         Self {
             source_paint_scope_count: 0,
+            source_paint_capability_count: 0,
             profiler,
             identity: NEXT_SCENE_ID
                 .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1))
@@ -1417,6 +1419,8 @@ impl Scene {
         self.profiler.remove(id);
         let node = self.slots[id.index as usize].node.take().unwrap();
         self.source_paint_scope_count -= usize::from(node.source_paint_scope.is_some());
+        self.source_paint_capability_count -= usize::from(matches!(node.source_paint_scope,
+            Some(crate::source_paint::SourcePaintScope::Capability(_))));
         self.cursor_styles -= usize::from(node.cursor.is_some());
         if node.isolated {
             self.isolation_count -= 1;
@@ -3068,6 +3072,9 @@ impl Scene {
         self.source_paint_scope_count = self.source_paint_scope_count
             - usize::from(self.node(id).source_paint_scope.is_some())
             + usize::from(scope.is_some());
+        self.source_paint_capability_count = self.source_paint_capability_count
+            - usize::from(matches!(self.node(id).source_paint_scope, Some(crate::source_paint::SourcePaintScope::Capability(_))))
+            + usize::from(matches!(scope, Some(crate::source_paint::SourcePaintScope::Capability(_))));
         self.node_mut(id).source_paint_scope = scope;
         // Descendant policy and cached layer content can change without any
         // authored paint/layout changing. Invalidate all affected raster
@@ -3089,6 +3096,10 @@ impl Scene {
     }
     pub fn has_source_paint_scopes(&self) -> bool {
         self.source_paint_scope_count > 0
+    }
+    /// Preserve-only boundaries do not enable GPU backdrop bookkeeping.
+    pub fn has_source_paint_capabilities(&self) -> bool {
+        self.source_paint_capability_count > 0
     }
     fn source_paint_parent_state(&self, id: NodeId) -> crate::source_paint::SourcePaintState {
         let mut parents = self.ancestors(id).collect::<Vec<_>>();

@@ -3265,7 +3265,7 @@ impl GpuRenderer {
         // Alternate/HDR drawable formats and isolated textures keep the old path.
         let diagnostic_source_fills = self.source_fill_compositing
             == SourceFillCompositing::SkiaSoftwareSrgb8OpaqueBackdrop;
-        let source_fills = (diagnostic_source_fills || scene.has_source_paint_scopes())
+        let source_fills = (diagnostic_source_fills || scene.has_source_paint_capabilities())
             && !self.in_layer
             && self.config.as_ref().is_none_or(|c| {
                 matches!(c.format, wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Rgba8Unorm)

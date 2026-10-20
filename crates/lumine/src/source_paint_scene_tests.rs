@@ -40,6 +40,7 @@ fn source_paint_scope_only_reaches_actual_source_descendants() {
     let leaf = node(&mut scene, source);
     let error_overlay = node(&mut scene, root);
     assert!(!scene.has_source_paint_scopes());
+    assert!(!scene.has_source_paint_capabilities());
     assert!(
         scene
             .paint_items()
@@ -85,6 +86,11 @@ fn source_paint_nested_conflict_and_preserve_boundaries_are_sticky() {
     assert_eq!(observed(&scene, deep), None);
     scene.set_source_paint_scope(nested, None);
     assert_eq!(observed(&scene, deep), Some(capability(1)));
+    scene.set_source_paint_scope(source, None);
+    scene.set_source_paint_scope(deep, None);
+    scene.set_source_paint_scope(nested, Some(SourcePaintScope::PreserveExisting));
+    assert!(scene.has_source_paint_scopes());
+    assert!(!scene.has_source_paint_capabilities());
 }
 
 #[test]
@@ -128,6 +134,7 @@ fn source_paint_removal_and_slot_reuse_do_not_retain_markers() {
     assert_eq!(source.index, native.index);
     assert_ne!(source.generation, native.generation);
     assert!(!scene.has_source_paint_scopes());
+    assert!(!scene.has_source_paint_capabilities());
     assert_eq!(scene.source_paint_scope(native), None);
     assert_eq!(observed(&scene, native), None);
 }
