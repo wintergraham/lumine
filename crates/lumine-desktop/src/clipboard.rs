@@ -52,6 +52,19 @@ impl Clipboard {
         }
     }
 
+    /// Acknowledge the actual native write method, not an internal worker enqueue.
+    /// The Wayland upstream store API exposes no result/acknowledgement, so callers
+    /// requiring a native result receive an explicit unsupported error there.
+    pub(crate) fn set_text_with_result(&mut self, text: String) -> Result<()> {
+        match &mut self.backend {
+            Backend::Native(clipboard) => Ok(clipboard.set_text(text)?),
+            #[cfg(target_os = "linux")]
+            Backend::Wayland(_) => {
+                Err("native clipboard completion is unavailable on Wayland".into())
+            }
+        }
+    }
+
     /// Wayland publication is asynchronous: success means the request was
     /// submitted, not that another process has accepted or persisted its data.
     /// The upstream API does not expose a publication acknowledgement.

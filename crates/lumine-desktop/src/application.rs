@@ -95,6 +95,7 @@ enum Event {
     RequestClose(u64),
     WindowCommand(u64, WindowCommand),
     ClipboardText(u64, String),
+    ClipboardTextWithCompletion(u64, crate::clipboard_completion::Write),
 }
 /// Commands are queued onto the UI thread; the operating system may decline requests.
 #[derive(Debug)]
@@ -212,6 +213,29 @@ impl WindowHandle {
         self.proxy
             .send_event(Event::ClipboardText(self.token, text.to_owned()))
             .map_err(|_| "application event loop is closed".into())
+    }
+    /// Queue a clipboard write and receive the native backend's actual result.
+    /// `Ok` only acknowledges enqueueing. Accepted requests complete exactly once
+    /// after the UI-thread write returns, or with an error on window/application
+    /// closure. The result does not promise persistence or another process's read.
+    /// Enqueue failure returns `Err` without invoking `complete`.
+    /// A backend exposing only submission (currently Wayland) completes with an
+    /// unsupported error. Cancellation of a discarded event may settle on its drop thread.
+    pub fn set_clipboard_text_with_completion(
+        &self,
+        text: &str,
+        complete: impl FnOnce(Result<(), String>) + Send + 'static,
+    ) -> Result<(), String> {
+        if self.is_closed() { return Err("window is closed".into()); }
+        let request = crate::clipboard_completion::Write::new(text.to_owned(), complete);
+        self.proxy
+            .send_event(Event::ClipboardTextWithCompletion(self.token, request))
+            .map_err(|error| {
+                if let Event::ClipboardTextWithCompletion(_, request) = error.0 {
+                    request.reject_enqueue();
+                }
+                "application event loop is closed".into()
+            })
     }
     pub fn set_bounds(&self, bounds: crate::WindowBounds) {
         if bounds.size.0 > 0 && bounds.size.1 > 0 {
@@ -2467,6 +2491,18 @@ impl ApplicationHandler<Event> for WindowManager {
                     if let Err(error) = result {
                         eprintln!("lumine: clipboard write failed: {error}");
                     }
+                }
+            }
+            Event::ClipboardTextWithCompletion(token, request) => {
+                if self.hosts.get(&token).is_some_and(|host| !host.context.window.is_closed()) {
+                    request.execute(|text| {
+                        let mut clipboard = self.factory.clipboard.borrow_mut();
+                        clipboard.as_mut()
+                            .ok_or_else(|| "native clipboard unavailable".to_string())
+                            .and_then(|clipboard| clipboard.set_text_with_result(text).map_err(|error| error.to_string()))
+                    });
+                } else {
+                    request.reject("window is closed");
                 }
             }
             Event::Close(token) => self.close(token),
