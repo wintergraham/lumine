@@ -3986,7 +3986,7 @@ impl GpuRenderer {
                             let mut b = Buffer::new(
                                 &mut fonts,
                                 Metrics::new(
-                                    font_size.max(1.),
+                                    text::effective_font_size(font_size),
                                     item.font.line_height.resolve(font_size),
                                 ),
                             );
@@ -3999,7 +3999,7 @@ impl GpuRenderer {
                                 &mut b,
                                 text,
                                 item.font,
-                                font_size.max(1.),
+                                text::effective_font_size(font_size),
                                 text::shaping(unwrapped),
                             );
                             b.shape_until_scroll(&mut fonts, false);

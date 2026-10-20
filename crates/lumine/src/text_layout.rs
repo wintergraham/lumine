@@ -62,8 +62,8 @@ impl LineHeight {
 
     pub fn resolve(self, font_size: f32) -> f32 {
         self.pixels().unwrap_or_else(|| {
-            let size = if font_size.is_finite() {
-                font_size.max(1.)
+            let size = if font_size.is_finite() && font_size > 0. {
+                font_size
             } else {
                 1.
             };
@@ -601,7 +601,7 @@ impl FallbackTextLayout {
         font: &FontStyle,
         mut cell: impl FnMut(Range<usize>, Rect),
     ) -> (Rect, (f32, f32)) {
-        let size = if size.is_finite() { size.max(1.) } else { 1. };
+        let size = if size.is_finite() && size > 0. { size } else { 1. };
         // Extreme negative tracking collapses cells rather than reversing their
         // order. Include the final advance, consistently with native tracking.
         let advance = (size as f64 * 0.6 + font.letter_spacing.pixels() as f64)
@@ -751,6 +751,21 @@ mod tests {
             LineHeight::px(f32::from_bits(1)).pixels(),
             Some(f32::from_bits(1))
         );
+    }
+    #[test]
+    fn subpixel_fallback_and_normal_pitch_keep_positive_sizes() {
+        for size in [0.125_f32, 0.7475, 1., 13.] {
+            let layout = FallbackTextLayout::new("MMMM", size, None);
+            assert!((layout.size().0 - size * 0.6 * 4.).abs() < 0.00001);
+            assert_eq!(layout.size().1, (size * 1.4).ceil());
+        }
+        for size in [f32::from_bits(1), f32::MIN_POSITIVE] {
+            assert_eq!(LineHeight::NORMAL.resolve(size), 1.);
+        }
+        let unit = FallbackTextLayout::new("MMMM", 1., None).size();
+        for size in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY, -1., -0., 0.] {
+            assert_eq!(FallbackTextLayout::new("MMMM", size, None).size(), unit);
+        }
     }
     #[test]
     fn rounded_pitch_preserves_natural_baseline_and_cache_identity() {

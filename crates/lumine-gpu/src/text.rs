@@ -49,8 +49,14 @@ impl FontData {
             )));
     }
 }
+/// Keep logical font sizes independent of DPI/zoom. Cosmic metrics require a
+/// positive size; retain the historical 1px fallback only for invalid input.
+pub(crate) fn effective_font_size(size: f32) -> f32 {
+    if size.is_finite() && size > 0. { size } else { 1. }
+}
 pub(crate) fn attrs(font: &lumine::text_layout::FontStyle, size: f32) -> Attrs<'_> {
     use lumine::text_layout::FontFamily;
+    let size = effective_font_size(size);
     let family = match &font.family {
         FontFamily::SansSerif => Family::SansSerif,
         FontFamily::Serif => Family::Serif,
@@ -80,9 +86,13 @@ pub(crate) fn attrs(font: &lumine::text_layout::FontStyle, size: f32) -> Attrs<'
     if spacing == 0. {
         attrs
     } else {
-        // cosmic-text 0.14 accepts tracking in EM, while our public styles use
-        // logical pixels. Use the same effective size as Buffer's metrics.
-        attrs.letter_spacing(spacing / size.max(1.))
+        // cosmic-text accepts tracking in EM, while our public styles use
+        // logical pixels. Preserve subpixel sizes in the conversion as well as
+        // metrics. Only a quotient beyond f32's range saturates; computing it in
+        // f64 avoids infinity for positive subnormal sizes.
+        let em = (spacing as f64 / size as f64)
+            .clamp(-(f32::MAX as f64), f32::MAX as f64) as f32;
+        attrs.letter_spacing(em)
     }
 }
 pub(crate) fn alignment(font: &lumine::text_layout::FontStyle) -> Option<cosmic_text::Align> {
@@ -264,7 +274,7 @@ impl ShapedText {
         font: &lumine::text_layout::FontStyle,
     ) -> Self {
         let text = text.into();
-        let size = font_size.max(1.);
+        let size = effective_font_size(font_size);
         let line_height = font.line_height.resolve(size);
         let mut buffer = Buffer::new(fonts, Metrics::new(size, line_height));
         if width.is_some() {
@@ -1245,6 +1255,79 @@ mod cache_weight_tests {
 }
 
 #[cfg(test)]
+mod subpixel_font_tests {
+    use super::*;
+    use lumine::{
+        rich_text::{RichText, TextRun},
+        text_layout::{FontFamily, FontStyle, LetterSpacing, TextLayout},
+    };
+
+    #[test]
+    fn positive_subpixel_metrics_preserve_plain_rich_advances_and_pixel_tracking() {
+        let mut fonts = kerning_test_fonts();
+        let content = "MMMM";
+        let mut font = FontStyle {
+            family: FontFamily::Named("Geist".into()),
+            ..Default::default()
+        };
+        let unit = ShapedText::with_font(&mut fonts, content, 1., None, &font).size().0;
+        for size in [0.125, 0.7475, 1., 13.] {
+            let plain = ShapedText::with_font(&mut fonts, content, size, None, &font);
+            assert!((plain.size().0 - unit * size).abs() < 0.00001);
+            for row in plain.buffer.layout_runs() {
+                assert!(row.glyphs.iter().all(|g| g.font_size.to_bits() == size.to_bits()));
+            }
+            let rich = RichText::new(content, vec![TextRun {
+                range: 0..content.len(), font: font.clone(), font_size: size,
+                ..Default::default()
+            }]).unwrap();
+            let rich = ShapedText::with_runs(&mut fonts, &rich, None);
+            assert_eq!(rich.size(), plain.size());
+            font.letter_spacing = LetterSpacing::px(0.0625);
+            let tracked = ShapedText::with_font(&mut fonts, content, size, None, &font);
+            assert!((tracked.size().0 - plain.size().0 - 0.25).abs() < 0.00001);
+            font.letter_spacing = LetterSpacing::ZERO;
+        }
+    }
+
+    #[test]
+    fn physical_raster_size_applies_dpi_after_subpixel_logical_shaping() {
+        let mut fonts = kerning_test_fonts();
+        let font = FontStyle {
+            family: FontFamily::Named("Geist".into()),
+            ..Default::default()
+        };
+        let mut swash = cosmic_text::SwashCache::new();
+        for size in [0.125, 0.7475] {
+            let mut buffer = plain_buffer_unshaped(&mut fonts, "M", size, &font, true);
+            buffer.shape_until_scroll(&mut fonts, false);
+            let row = buffer.layout_runs().next().unwrap();
+            for scale in [1., 1.5, 2.] {
+                let physical = raster_glyph_scaled(&row.glyphs[0], row.line_y, scale);
+                assert_eq!(physical.cache_key.font_size_bits, (size * scale).to_bits());
+                // Empty ink is legal for tiny glyphs; a zero-size atlas image is
+                // skipped by the renderer. Never reinterpret tiny ppem as font units.
+                if let Some(image) = swash.get_image_uncached(&mut fonts, physical.cache_key) {
+                    assert!(image.placement.width <= 8 && image.placement.height <= 8);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn size_validation_keeps_positive_bits_and_tracking_attributes_finite() {
+        for size in [f32::from_bits(1), f32::MIN_POSITIVE, 0.125, 0.7475, 13., f32::MAX] {
+            assert_eq!(effective_font_size(size).to_bits(), size.to_bits());
+            let font = FontStyle { letter_spacing: LetterSpacing::px(1_000_000.), ..Default::default() };
+            assert!(attrs(&font, size).letter_spacing_opt.unwrap().0.is_finite());
+        }
+        for size in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY, -1., -0., 0.] {
+            assert_eq!(effective_font_size(size), 1.);
+        }
+    }
+}
+
+#[cfg(test)]
 mod letter_spacing_tests {
     use super::*;
     use lumine::text_layout::{FontStyle, LetterSpacing, TextLayout};
@@ -1526,7 +1609,7 @@ pub(crate) fn plain_buffer_unshaped(
     font: &lumine::text_layout::FontStyle,
     unwrapped: bool,
 ) -> Buffer {
-    let size = font_size.max(1.);
+    let size = effective_font_size(font_size);
     let mut buffer = Buffer::new(fonts, Metrics::new(size, font.line_height.resolve(size)));
     buffer.set_wrap(wrap(font.word_wrap, unwrapped));
     set_buffer_text_shaping(fonts, &mut buffer, text, font, size, shaping(unwrapped));
@@ -1539,7 +1622,7 @@ pub(crate) fn rich_buffer_unshaped(
     unwrapped: bool,
 ) -> Buffer {
     let base = rich.runs().first();
-    let size = base.map_or(1., |run| run.font_size.max(1.));
+    let size = base.map_or(1., |run| effective_font_size(run.font_size));
     let line_height = base.map_or(1., |run| run.font.line_height.resolve(size));
     let mut buffer = Buffer::new(fonts, Metrics::new(size, line_height));
     buffer.set_wrap(wrap(
@@ -1572,11 +1655,9 @@ pub(crate) fn rich_buffer_unshaped(
         {
             end += 1;
         }
-        let attributes = attrs(&run.font, run.font_size.max(1.))
-            .metrics(Metrics::new(
-                run.font_size.max(1.),
-                run.font.line_height.resolve(run.font_size.max(1.)),
-            ))
+        let run_size = effective_font_size(run.font_size);
+        let attributes = attrs(&run.font, run_size)
+            .metrics(Metrics::new(run_size, run.font.line_height.resolve(run_size)))
             .metadata(if Some(index) == ellipsis_run {
                 usize::MAX
             } else {
