@@ -11,8 +11,11 @@ struct Edges {
  void conic(SkPoint a,SkPoint b,SkPoint c,float w,int level){
   if(level==0){quad(a,b,c);return;}
   float scale=1/(1+w),newW=sqrtf(0.5f+0.5f*w);
-  SkPoint t0={a.fX*scale,a.fY*scale},t1={b.fX*(w*scale),b.fY*(w*scale)},t2={c.fX*scale,c.fY*scale};
-  SkPoint p1={t0.fX+t1.fX,t0.fY+t1.fY},p3={t1.fX+t2.fX,t1.fY+t2.fY},p2={0.5f*t0.fX+t1.fX+0.5f*t2.fX,0.5f*t0.fY+t1.fY+0.5f*t2.fY};
+  // Chromium's pinned SkUserConfig explicitly enables this legacy branch.
+  SkPoint wp1={w*b.fX,w*b.fY};
+  SkPoint p1={(a.fX+wp1.fX)*scale,(a.fY+wp1.fY)*scale};
+  SkPoint p3={(wp1.fX+c.fX)*scale,(wp1.fY+c.fY)*scale};
+  SkPoint p2={(a.fX+2*wp1.fX+c.fX)*scale*0.5f,(a.fY+2*wp1.fY+c.fY)*scale*0.5f};
   if((a.fY-b.fY)*(c.fY-b.fY)<=0){
    if((a.fY-p2.fY)*(c.fY-p2.fY)>0)p2.fY=fabsf(p2.fY-a.fY)<fabsf(p2.fY-c.fY)?a.fY:c.fY;
    if((a.fY-p1.fY)*(p2.fY-p1.fY)>0)p1.fY=a.fY;

@@ -14,6 +14,10 @@ It uses analytic convex scan conversion after conic-to-quadratic subdivision,
 accumulation. Native SDF/fwidth coverage cannot supply those bytes. `bridge.inc`
 constructs only monotonic rounded-rectangle conics and lines. It retains Skia's
 0.25-device-pixel conic approximation and monotonic subdivision guards.
+The pinned Chromium `skia/config/SkUserConfig.h` enables
+`SK_SUPPORT_LEGACY_CONIC_CHOP`; the bridge uses that original scalar-float
+subdivision branch. The generator verifies this configuration file as well as
+the original geometry and scan-conversion sources.
 
 The C ABI accepts finite bounded geometry only and returns at most 65,536
 coverage/blit spans. Rust checks every span, rejects overlap/out-of-range output,
@@ -43,6 +47,13 @@ cases, including opaque/near-opaque endpoints, square and fractional rectangles
 and all rounded rims. Independently replaying the upstream source algorithm
 also matched the original transparent badge cases; transparent native
 composition is not implemented by this opaque-destination adapter.
+
+Additional source-only diagnostic captures exposed four low-coverage corner
+pixels for an opaque physical-radius-16 shape that this subset does not yet
+reproduce. The ten original supported cases passing CPU replay therefore do
+not establish general coverage parity. This diagnostic remains a strict
+unresolved discrepancy; no threshold, pixel exception, or fitted correction
+is applied.
 
 The code is an unqualified candidate until actual GPU checks pass. Transparent
 destinations, isolated opacity/layers, partial rounded ancestor clips, small

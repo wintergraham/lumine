@@ -7,8 +7,9 @@ import hashlib,json
 root=Path(__file__).resolve().parents[1]
 source=root/'vendor/skia154-source-paint'
 manifest=json.loads((source/'provenance.json').read_text())
-for item in manifest['files']:
+for item in manifest['files']+manifest.get('blinkPaintDerivation',[]):
     assert hashlib.sha256((source/item['localPath']).read_bytes()).hexdigest()==item['sha256']
+assert '#define SK_SUPPORT_LEGACY_CONIC_CHOP' in (source/'ChromiumSkUserConfig.h').read_text()
 h=(source/'SkAnalyticEdge.h').read_text();e=(source/'SkAnalyticEdge.cpp').read_text();a=(source/'SkScan_AAAPath.cpp').read_text()
 compat=(root/'vendor/skia154-source-paint/compat.inc').read_text()
 header=h[h.index('struct SkAnalyticEdge {'):h.index('\n#endif',h.index('struct SkAnalyticCubicEdge'))]

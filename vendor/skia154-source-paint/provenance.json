@@ -39,6 +39,12 @@
       "sourceURL": "https://chromium.googlesource.com/chromium/src/+/73c14f6228d7cd537c855007e8f88678969cc0eb/third_party/blink/renderer/core/layout/geometry/physical_rect.h",
       "localPath": "ChromiumPhysicalRect.h",
       "sha256": "d24524dc420ea3b721bb1d754bac8bc744973c2c3a039cf698da487985e9fefa"
+    },
+    {
+      "revision": "73c14f6228d7cd537c855007e8f88678969cc0eb",
+      "sourceURL": "https://chromium.googlesource.com/chromium/src/+/73c14f6228d7cd537c855007e8f88678969cc0eb/skia/config/SkUserConfig.h",
+      "localPath": "ChromiumSkUserConfig.h",
+      "sha256": "27b349f45b0dad48b337c3f5cf34a3e28a1e0df855b2e7b0bee761f83489ef0f"
     }
   ]
 }
