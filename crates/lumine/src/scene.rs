@@ -3152,7 +3152,11 @@ impl Scene {
                 svg.paint_bounds(item.bounds)
             } else if let NodeKind::Image(image) = item.kind {
                 image.paint_bounds(item.bounds)
-            } else if matches!(item.kind,NodeKind::Text{..}|NodeKind::RichText{..}) {
+            } else if match item.kind {
+                NodeKind::Text{..}=>!item.font.text_shadows.is_empty(),
+                NodeKind::RichText{text}=>text.runs().iter().any(|run|!run.font.text_shadows.is_empty()),
+                _=>false,
+            } {
                 self.text_ink_bounds(item.id,item.bounds)
             } else {
                 item.bounds

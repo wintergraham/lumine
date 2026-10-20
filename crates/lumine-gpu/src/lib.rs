@@ -3552,7 +3552,7 @@ impl GpuRenderer {
                     bounds: quad_bounds(&quads[start as usize..]),
                     image: None,
                     layer: Some(item.id),
-                    blur: (item.effects.blur_radius > 0.).then_some((
+                    blur: (item.effects.blur_radius > 0. && !(has_text_shadow && !item.isolated)).then_some((
                         item.id,
                         world_bounds,
                         item.effects,
@@ -3917,6 +3917,13 @@ impl GpuRenderer {
                     });
                 }
                 kind @ (NodeKind::Text { .. } | NodeKind::RichText { .. }) => {
+                    if has_text_shadow && item.effects.blur_radius > 0. {
+                        // Backdrop processing precedes this node's entire text ink.
+                        // An empty draw retains its original allocation ROI/author clips;
+                        // the later shadow draw can overflow allocation independently.
+                        let draw=Draw {diagnostic_source:diagnose.then(||draw_diagnostics::Source::new(&item,self.geometry.clip_count(geometry_offset))),transform:item.transform,geometry_offset,geometry_hash,geometry:None,shading:Shading::Full,blur:Some((item.id,world_bounds,item.effects)),blur_mask:item.mask,start,end:start,clip,bounds:world_bounds,image:None,layer:None};
+                        push_draw(&mut draws,&quads,draw,self.split_shading,self.scale);
+                    }
                     let rich = match kind {
                         NodeKind::RichText { text } => Some(text.clone()),
                         _ => None,
