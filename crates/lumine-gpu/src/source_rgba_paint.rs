@@ -24,8 +24,12 @@ pub(super) struct PremultipliedCore {
 fn contains(a: Rect, b: Rect) -> bool {
     source_fill::contains([a.x, a.y, a.width, a.height], [b.x, b.y, b.width, b.height])
 }
-fn transparent_noop(q: &Quad) -> bool {
-    q.color[3] == 0.
+fn transparent_noop(q: &Quad, draw: &Draw) -> bool {
+    matches!(draw.shading, super::Shading::Full | super::Shading::RegularFull | super::Shading::Basic)
+        && draw.geometry_offset == 0
+        && draw.geometry.is_none()
+        && draw.blur_mask.is_none()
+        && q.color[3] == 0.
         && q.options == [0.; 4]
         && q.shape[1] == 0.
         && q.shape[2] == 0.
@@ -73,7 +77,7 @@ fn backdrop(
             // Ordinary borderless zero-alpha source-over is an exact no-op,
             // including an authored transparent viewport Panel. Copy markers,
             // images, layers and filters must never take this shortcut.
-            if transparent_noop(&q) {
+            if transparent_noop(&q, draw) {
                 continue;
             }
             if let Some(core) = known.get(&index).filter(|c| contains(c.rect, region)) {
@@ -380,6 +384,17 @@ mod tests {
         quad.options[3] = RESOLVED;
         assert_eq!(prove(&draw, quad), None);
         quad.options = [0.; 4];
+        for shading in [super::super::Shading::Opaque, super::super::Shading::PremultipliedCopy, super::super::Shading::NearestImage] {
+            draw.shading = shading;
+            assert_eq!(prove(&draw, quad), None);
+        }
+        draw.shading = super::super::Shading::Full;
+        draw.geometry_offset = 1;
+        assert_eq!(prove(&draw, quad), None);
+        draw.geometry_offset = 0;
+        draw.blur_mask = Some((viewport, [1., 1.]));
+        assert_eq!(prove(&draw, quad), None);
+        draw.blur_mask = None;
         draw.layer = Some(lumine::scene::Scene::new(1., 1.).root());
         assert_eq!(prove(&draw, quad), None);
     }
