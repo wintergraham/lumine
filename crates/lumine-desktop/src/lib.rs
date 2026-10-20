@@ -28,6 +28,8 @@ mod editor_menu;
 pub mod file_dialog;
 #[cfg(target_os = "macos")]
 mod message_pump_macos;
+#[cfg(target_os = "linux")]
+mod message_pump_linux;
 mod native_events;
 mod native_prompt;
 #[cfg(target_os = "linux")]

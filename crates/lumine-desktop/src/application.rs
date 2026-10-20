@@ -499,7 +499,7 @@ impl WindowContext {
     }
 }
 pub struct Application {
-    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
     message_pump: Option<Box<dyn FnMut()>>,
     fonts: Vec<lumine_gpu::text::FontData>,
     options: WindowOptions,
@@ -513,7 +513,7 @@ impl Application {
     pub fn new() -> Self {
         crate::reserves_scrollbar_gutters();
         Self {
-            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
             message_pump: None,
             fonts: Vec::new(),
             options: WindowOptions::default(),
@@ -572,7 +572,9 @@ impl Application {
     /// The caller must arrange wakeups while idle, for example with a timed task.
     /// On macOS a 10 ms default-mode timer invokes it outside winit callbacks;
     /// pumping pauses during native modal and tracking loops.
-    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    /// On Linux winit events run inside its external pump; the native pump runs
+    /// on the same UI thread after callbacks return, at most once per 10 ms.
+    #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
     pub fn run_with_pump(
         mut self,
         pump: impl FnMut() + 'static,
@@ -662,6 +664,13 @@ impl Application {
         let message_pump = self
             .message_pump
             .map(crate::message_pump_macos::MessagePump::new);
+        #[cfg(target_os = "linux")]
+        let result = if let Some(pump) = self.message_pump {
+            crate::message_pump_linux::run(event_loop, &mut host, pump)
+        } else {
+            event_loop.run_app(&mut host)
+        };
+        #[cfg(not(target_os = "linux"))]
         let result = event_loop.run_app(&mut host);
         #[cfg(target_os = "macos")]
         drop(message_pump);
