@@ -28,6 +28,7 @@ mod procedural;
 pub mod profiling;
 pub mod renderer_info;
 pub mod source_paint_build;
+pub mod source_raster_plan;
 mod draw_diagnostics;
 mod source_fill;
 mod source_fill_paint;
@@ -2064,6 +2065,7 @@ pub struct GpuRenderer {
     /// Quads use the shader their features need (see `push_draw`).
     split_shading: bool,
     source_fill_compositing: SourceFillCompositing,
+    manual_source_raster_plan: Option<(source_raster_plan::ManualSourceRasterPlan, u64, u64, u64)>,
     regular_full_shader: bool,
     nearest_image_shader: bool,
     clip_interiors: bool,
@@ -2317,6 +2319,7 @@ impl GpuRenderer {
             view,
             split_shading,
             source_fill_compositing: SourceFillCompositing::default(),
+            manual_source_raster_plan: None,
             regular_full_shader: true,
             nearest_image_shader: true,
             clip_interiors: false,
@@ -2430,6 +2433,7 @@ impl GpuRenderer {
     }
     pub fn set_background(&mut self, color: Color) {
         if self.background != color {
+            self.manual_source_raster_plan = None;
             self.background = color;
             self.fresh = true;
         }
@@ -2446,6 +2450,31 @@ impl GpuRenderer {
             self.copies.clear();
             self.fresh = true;
         }
+    }
+    /// Manual source-owner diagnostics only; no capability or production grant.
+    /// The caller must reinstall after each independently identified material
+    /// state. Scene/target changes revoke this binding before the next paint.
+    pub fn set_manual_source_raster_plan_from_owner_trace(
+        &mut self,
+        scene: &Scene,
+        plan: Option<source_raster_plan::ManualSourceRasterPlan>,
+    ) -> Result<(), GpuError> {
+        self.flush_pending();
+        let previous = self.manual_source_raster_plan.take();
+        let unchanged = match (&previous, &plan) {
+            (Some((old, identity, _, geometry)), Some(next)) => *identity == scene.identity() && *geometry == scene.interaction_revision() && old.same_raster_algorithm(next),
+            (None, None) => true,
+            _ => false,
+        };
+        if !unchanged { self.fresh = true; }
+        if let Some(plan) = plan {
+            if !plan.target_matches(&self.renderer_info()) {
+                self.fresh = true;
+                return Err(GpuError("manual source raster plan differs from actual target".into()));
+            }
+            self.manual_source_raster_plan = Some((plan, scene.identity(), scene.raster_revision(), scene.interaction_revision()));
+        }
+        Ok(())
     }
     pub fn adapter_info(&self) -> wgpu::AdapterInfo {
         self.info.clone()
@@ -2526,6 +2555,7 @@ impl GpuRenderer {
         };
         if self.scale != scale {
             self.flush_pending();
+            self.manual_source_raster_plan = None;
             self.scale = scale;
             self.layers.clear();
             self.shapes.clear();
@@ -2553,6 +2583,7 @@ impl GpuRenderer {
         }) {
             self.gaussian_scratch = None;
         }
+        self.manual_source_raster_plan = None;
         self.width = width;
         self.height = height;
         self.image_budget = Self::image_budget_for(width, height);
@@ -2639,6 +2670,16 @@ impl GpuRenderer {
     }
     pub fn render(&mut self, scene: &Scene, damage: &[Rect]) -> Result<GpuStats, GpuError> {
         let _ = self.flush_pending_inner(true);
+        // Offscreen diagnostic plan is checked against the actual allocation
+        // immediately before paint, including changes outside public setters.
+        // Revocation happens before retained damage/items are selected.
+        if !self.in_layer && self.manual_source_raster_plan.as_ref().is_some_and(|(plan, identity, revision, geometry)| {
+            *identity != scene.identity() || *revision != scene.raster_revision() || *geometry != scene.interaction_revision()
+                || !plan.target_matches(&self.renderer_info())
+        }) {
+            self.manual_source_raster_plan = None;
+            self.fresh = true;
+        }
         if let Some(profiler) = self.profiler.get_mut() {
             profiler.begin(&self.device);
         }
@@ -3283,6 +3324,8 @@ impl GpuRenderer {
             && self.config.as_ref().is_none_or(|c| {
                 matches!(c.format, wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Rgba8Unorm)
             });
+        let manual_raster_plan = (!self.in_layer).then(|| self.manual_source_raster_plan.as_ref()
+            .map(|(plan, _, _, _)| plan.clone())).flatten();
         let mut known_source_backdrops = FxHashMap::default();
         let mut known_source_rgba = FxHashMap::default();
         self.geometry.begin();
@@ -3386,6 +3429,8 @@ impl GpuRenderer {
                 continue;
             }
             let start = quads.len() as u32;
+            let source_raster_plan = manual_raster_plan.as_ref()
+                .filter(|plan| plan.applies_to(item.source_paint_capability));
             if item.isolated {
                 if source_fills && self.split_shading
                     && item.source_paint_capability.is_some_and(|cap| {
@@ -3394,7 +3439,7 @@ impl GpuRenderer {
                     && source_rgba_paint::resolve_singleton_opacity(
                         scene, &item, &mut quads, start, &draws,
                         &mut known_source_rgba, &known_source_backdrops,
-                        clip, self.scale, self.background, viewport,
+                        clip, self.scale, self.background, viewport, source_raster_plan,
                     ).is_some()
                 {
                     // A complete source-owned singleton draw is folded by
@@ -4242,13 +4287,13 @@ impl GpuRenderer {
                         source_rgba_paint::resolve_singleton_opacity(
                             scene, &item, &mut quads, start, &draws,
                             &mut known_source_rgba, &known_source_backdrops,
-                            clip, self.scale, self.background, viewport,
+                            clip, self.scale, self.background, viewport, source_raster_plan,
                         )
                     } else {
                         source_rgba_paint::resolve(
                             &mut quads, start, &draws, &mut known_source_rgba,
                             &known_source_backdrops, &item, clip, self.scale,
-                            self.background, viewport,
+                            self.background, viewport, source_raster_plan,
                         )
                     };
                     if resolved.is_some() {

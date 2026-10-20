@@ -47,6 +47,24 @@
       "sourceURL": "https://skia.googlesource.com/skia/+/2466dcf3937437e217e7f284afe0e1aae15891ce/src/core/SkColorData.h",
       "localPath": "SkColorData.h",
       "sha256": "bfea4affa48971d7b13660fb1b12fa65651a8c0361fb96b75a42dffc31e3ea1d"
+    },
+    {
+      "revision": "2466dcf3937437e217e7f284afe0e1aae15891ce",
+      "upstreamPath": "src/core/SkEdgeBuilder.cpp",
+      "localPath": "SkEdgeBuilder.cpp",
+      "sha256": "815bf5af8f184843f2e5ed1def55854e4c0c60c2d191ead1d95d8dcce79a30ef"
+    },
+    {
+      "revision": "2466dcf3937437e217e7f284afe0e1aae15891ce",
+      "upstreamPath": "src/core/SkScan_Path.cpp",
+      "localPath": "SkScan_Path.cpp",
+      "sha256": "3bae4771c03b7a79e5383ae40bd90ac353a6e5332f0faaaa533f50d250c7f304"
+    },
+    {
+      "revision": "2466dcf3937437e217e7f284afe0e1aae15891ce",
+      "upstreamPath": "src/core/SkBlitter.h",
+      "localPath": "SkBlitter.h",
+      "sha256": "5fc3ed0d16355d58908ae6731d91f3c13e254d95c952fcdb03082184c11743ea"
     }
   ],
   "qualification": false,

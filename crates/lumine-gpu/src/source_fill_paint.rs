@@ -243,7 +243,7 @@ pub(super) fn prepare_analytic(
     scale: f32,
     viewport: Rect,
 ) -> Option<PreparedPaint> {
-    prepare_analytic_impl(q, item, clip, scale, viewport, false)
+    prepare_analytic_impl(q, item, clip, scale, viewport, false, None)
 }
 pub(super) fn prepare_premultiplied(
     q: Quad,
@@ -251,8 +251,9 @@ pub(super) fn prepare_premultiplied(
     clip: Rect,
     scale: f32,
     viewport: Rect,
+    raster_plan: Option<&super::source_raster_plan::ManualSourceRasterPlan>,
 ) -> Option<PreparedPaint> {
-    prepare_analytic_impl(q, item, clip, scale, viewport, true)
+    prepare_analytic_impl(q, item, clip, scale, viewport, true, raster_plan)
 }
 fn prepare_analytic_impl(
     q: Quad,
@@ -261,6 +262,7 @@ fn prepare_analytic_impl(
     scale: f32,
     viewport: Rect,
     integer_square: bool,
+    raster_plan: Option<&super::source_raster_plan::ManualSourceRasterPlan>,
 ) -> Option<PreparedPaint> {
     if !eligible(item) || !scale.is_finite() || scale <= 0. {
         return None;
@@ -430,15 +432,101 @@ fn prepare_analytic_impl(
                 .collect(),
         )
     } else if let Some((_, edges)) = &clip_mask {
-        source_skia154::spans_clipped(physical, radius.max(0.) * scale, pixel_viewport, *edges)?
+        raster_spans(
+            physical,
+            radius.max(0.) * scale,
+            pixel_viewport,
+            Some(*edges),
+            raster_plan,
+        )?
     } else {
-        source_skia154::spans(physical, radius.max(0.) * scale, pixel_viewport)?
+        raster_spans(
+            physical,
+            radius.max(0.) * scale,
+            pixel_viewport,
+            None,
+            raster_plan,
+        )?
     };
     Some(PreparedPaint {
         source,
         spans,
         clip_mask,
     })
+}
+
+// Original source raster allocations may split a path before its final owned
+// pixels are composed. Keep the actual per-allocation clip/blit dispatch; the
+// plan contains geometry only and cannot supply colors, coverage, or pixels.
+fn raster_spans(
+    physical: [f32; 4],
+    radius: f32,
+    viewport: [u32; 2],
+    ancestor: Option<[i32; 4]>,
+    plan: Option<&super::source_raster_plan::ManualSourceRasterPlan>,
+) -> Option<std::sync::Arc<Vec<source_skia154::Span>>> {
+    let Some(plan) = plan else {
+        return if let Some(clip) = ancestor {
+            source_skia154::spans_clipped(physical, radius, viewport, clip)
+        } else {
+            source_skia154::spans(physical, radius, viewport)
+        };
+    };
+    let mut output = Vec::new();
+    for tile in plan.tiles() {
+        let [x, y, width, height] = tile.raster_bounds.map(|v| v as i32);
+        let mut clip = [
+            x,
+            y,
+            (x + width).min(viewport[0] as i32),
+            (y + height).min(viewport[1] as i32),
+        ];
+        if let Some(a) = ancestor {
+            clip = [
+                clip[0].max(a[0]),
+                clip[1].max(a[1]),
+                clip[2].min(a[2]),
+                clip[3].min(a[3]),
+            ];
+        }
+        if clip[2] <= clip[0]
+            || clip[3] <= clip[1]
+            || physical[0] + physical[2] <= clip[0] as f32
+            || physical[0] >= clip[2] as f32
+            || physical[1] + physical[3] <= clip[1] as f32
+            || physical[1] >= clip[3] as f32
+        {
+            continue;
+        }
+        let spans = source_skia154::spans_clipped(physical, radius, viewport, clip)?;
+        let [ox, oy, ow, oh] = tile.owned_bounds.map(|v| v as i32);
+        for span in spans.iter() {
+            if span.y < oy || span.y >= oy + oh {
+                continue;
+            }
+            let x = span.x.max(ox);
+            let right = (span.x + span.width).min(ox + ow);
+            if right > x {
+                if output.len() >= 65536 {
+                    return None;
+                }
+                output.push(source_skia154::Span {
+                    x,
+                    width: right - x,
+                    ..*span
+                });
+            }
+        }
+    }
+    output.sort_by_key(|span| (span.y, span.x));
+    if output.is_empty()
+        || output
+            .windows(2)
+            .any(|p| p[0].y == p[1].y && p[0].x + p[0].width > p[1].x)
+    {
+        return None;
+    }
+    Some(std::sync::Arc::new(output))
 }
 
 fn resolve_analytic_opaque(

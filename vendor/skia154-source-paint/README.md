@@ -169,3 +169,11 @@ selection and preservation of ordinary opaque behavior. The CPU-only
 unchanged, represents only unused GPU handles with stubs, records all source
 and compiler hashes, and renders no pixels. Its three passing tests do not
 substitute for a fresh actual GPU comparison or grant qualification.
+
+The trace-backed manual raster plan uses the pinned convex `SkEdgeBuilder` rule
+(`canCullToTheRight = !raw.isKnownToBeConvex()`) and `SkScanClipper` horizontal
+rectangle wrapper. `SkRectClipBlitter` inherits `SkBlitter::blitAntiH2`, which
+forwards ordinary AntiH; vertical-only clipping retains H2. These files are
+retained as provenance, not compiled as a separate Skia dependency. Raster tile
+allocations and owned pixel bounds come from an independent source trace,
+never a hardcoded grid or comparison image. No qualification is granted.

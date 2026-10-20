@@ -25,8 +25,10 @@ fn contains(a: Rect, b: Rect) -> bool {
     source_fill::contains([a.x, a.y, a.width, a.height], [b.x, b.y, b.width, b.height])
 }
 fn transparent_noop(q: &Quad, draw: &Draw) -> bool {
-    matches!(draw.shading, super::Shading::Full | super::Shading::RegularFull | super::Shading::Basic)
-        && draw.geometry_offset == 0
+    matches!(
+        draw.shading,
+        super::Shading::Full | super::Shading::RegularFull | super::Shading::Basic
+    ) && draw.geometry_offset == 0
         && draw.geometry.is_none()
         && draw.blur_mask.is_none()
         && q.color[3] == 0.
@@ -110,6 +112,7 @@ pub(super) fn resolve(
     scale: f32,
     background: Color,
     viewport: Rect,
+    raster_plan: Option<&super::source_raster_plan::ManualSourceRasterPlan>,
 ) -> Option<()> {
     if quads.len() != start as usize + 1 {
         return None;
@@ -120,6 +123,7 @@ pub(super) fn resolve(
         clip,
         scale,
         viewport,
+        raster_plan,
     )?;
     // An unblended output must carry no remaining fade or clip transform.
     // Every geometric ancestor was checked by shared source preparation.
@@ -223,6 +227,7 @@ pub(super) fn resolve_singleton_opacity(
     scale: f32,
     background: Color,
     viewport: Rect,
+    raster_plan: Option<&super::source_raster_plan::ManualSourceRasterPlan>,
 ) -> Option<()> {
     if !scene.children(item.id).is_empty()
         || item.source_paint_capability.is_none()
@@ -310,7 +315,17 @@ pub(super) fn resolve_singleton_opacity(
         mask: NO_MASK,
     });
     if resolve(
-        quads, start, draws, known, opaque, inner, clip, scale, background, viewport,
+        quads,
+        start,
+        draws,
+        known,
+        opaque,
+        inner,
+        clip,
+        scale,
+        background,
+        viewport,
+        raster_plan,
     )
     .is_some()
     {
@@ -384,7 +399,11 @@ mod tests {
         quad.options[3] = RESOLVED;
         assert_eq!(prove(&draw, quad), None);
         quad.options = [0.; 4];
-        for shading in [super::super::Shading::Opaque, super::super::Shading::PremultipliedCopy, super::super::Shading::NearestImage] {
+        for shading in [
+            super::super::Shading::Opaque,
+            super::super::Shading::PremultipliedCopy,
+            super::super::Shading::NearestImage,
+        ] {
             draw.shading = shading;
             assert_eq!(prove(&draw, quad), None);
         }

@@ -52,7 +52,7 @@ namespace ask_skia154 {
 static SkAlpha snapAlpha(SkAlpha alpha) { return alpha > 247 ? 0xFF : alpha < 8 ? 0x00 : alpha; }
 void safely_add_alpha(SkAlpha*a,SkAlpha b){*a=std::min(255,int(*a)+b);}
 struct Span {int32_t x,y,width,coverage,blend;};
-struct Context {std::vector<Span> spans;int width,height;bool overflow=false;
+struct Context {std::vector<Span> spans;int width,height;bool overflow=false;bool horizontal_clip=false;
  void emit(int x,int y,int n,int alpha,int blend){
   if(alpha<=0||n<=0||y<0||y>=height)return;int right=std::min(width,x+n);x=std::max(0,x);if(right<=x)return;
   if(spans.size()>=65536){overflow=true;return;}spans.push_back({x,y,right-x,alpha,blend});
@@ -71,7 +71,7 @@ struct AdditiveBlitter {
  void blitAntiH(int x,int y,const SkAlpha*alpha,const int16_t*runs){for(int i=0;runs[i];i+=runs[i])blitAntiH(x+i,y,runs[i],alpha[i]);}
  void blitH(int x,int y,int n){blitAntiH(x,y,n,255);}
  void blitV(int x,int y,int height,SkAlpha alpha){for(int j=0;j<height;j++)blitAntiH(x,y+j,alpha);}
- void blitAntiH2(int x,int y,SkAlpha left,SkAlpha right){context.emit(x,y,1,left,1);context.emit(x+1,y,1,right,1);}
+ void blitAntiH2(int x,int y,SkAlpha left,SkAlpha right){context.emit(x,y,1,left,context.horizontal_clip?0:1);context.emit(x+1,y,1,right,context.horizontal_clip?0:1);}
  void blitAntiRect(int x,int y,int width,int height,SkAlpha left,SkAlpha right){for(int j=0;j<height;j++){blitAntiH(x,y+j,left);blitH(x+1,y+j,width);blitAntiH(x+width+1,y+j,right);}}
  void flush_if_y_changed(SkFixed y,SkFixed nextY){if((y>>16)!=(nextY>>16))flush();}
 };
@@ -1587,7 +1587,8 @@ void SkChopQuadAt(const SkPoint src[3], SkPoint dst[5], SkScalar t) {
 struct SkEdgeClipper {
  std::vector<std::array<SkPoint,3>> quads;
  std::vector<std::array<SkPoint,2>> lines;
- bool canCullToTheRight(){return true;}
+ // SkEdgeBuilder selects !raw.isKnownToBeConvex(); this ABI is convex.
+ bool canCullToTheRight(){return false;}
  void appendVLine(float x,float y0,float y1,bool reverse){
   if(reverse)std::swap(y0,y1);
   lines.push_back({SkPoint{x,y0},SkPoint{x,y1}});
@@ -1857,6 +1858,9 @@ static size_t rrect_impl(
   for(size_t i=0;i<edges.list.size();i++){edges.list[i]->fPrev=i?edges.list[i-1]:&head;edges.list[i]->fNext=i+1<edges.list.size()?edges.list[i+1]:&tail;}
   tail.fPrev=edges.list.back();
   Context context;context.width=viewport_width;context.height=viewport_height;
+  // SkScanClipper uses SkRectClipBlitter only for horizontal clipping.
+  // That wrapper inherits SkBlitter::blitAntiH2, which forwards ordinary AntiH.
+  context.horizontal_clip=clip&&(clip->fLeft>left||clip->fRight<right);
   AdditiveBlitter real(context,true),additive(context,false,&real);
   int start=std::max(int(floorf(top)),clip?int(clip->fTop):0);
   int stop=std::min(int(ceilf(bottom)),clip?int(clip->fBottom):viewport_height);
