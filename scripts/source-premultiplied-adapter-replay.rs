@@ -163,8 +163,99 @@ fn reject_unknown_prior_paint() {
         assert!(known.is_empty());
     }
 }
+fn reject_partial_opacity_groups() {
+    use lumine::{scene::*, source_paint::*};
+    let mut scene = Scene::new(96., 80.);
+    scene.set_kind(scene.root(), NodeKind::Container(Layout::Overlay));
+    scene.set_source_paint_scope(
+        scene.root(),
+        Some(SourcePaintScope::Capability(SourcePaintCapability {
+            owner: std::num::NonZeroU64::new(1).unwrap(),
+            contract_sha256: [1; 32],
+            policy: SourcePaintPolicy::SkiaSoftwareSrgb8OpaqueBackdrop,
+        })),
+    );
+    let parent = scene.append(
+        scene.root(),
+        NodeKind::Panel {
+            layout: Layout::Overlay,
+            quad: QuadStyle::default(),
+        },
+        Style {
+            width: Some(96.),
+            height: Some(80.),
+            ..Default::default()
+        },
+    );
+    scene.set_effects(
+        parent,
+        Effects {
+            opacity: 0.5,
+            ..Default::default()
+        },
+    );
+    let child = scene.append(
+        parent,
+        NodeKind::Quad(QuadStyle {
+            fill: Color(169, 190, 230, 20),
+            radius: 4.,
+            ..Default::default()
+        }),
+        Style {
+            width: Some(48.),
+            height: Some(17.),
+            ..Default::default()
+        },
+    );
+    scene.set_transform(child, Transform { x: 8., y: 8. });
+    let hidden = scene.append(
+        parent,
+        NodeKind::Rect(Color(255, 0, 0, 255)),
+        Style {
+            width: Some(10.),
+            height: Some(10.),
+            ..Default::default()
+        },
+    );
+    scene.set_effects(
+        hidden,
+        Effects {
+            opacity: 0.,
+            ..Default::default()
+        },
+    );
+    scene.flush();
+    let viewport = Rect::new(0., 0., 96., 80.);
+    let opaque = rustc_hash::FxHashMap::default();
+    for item in scene
+        .layer_items(None)
+        .into_iter()
+        .filter(|item| item.id == parent || item.id == child)
+    {
+        let mut quads = Vec::new();
+        let mut known = rustc_hash::FxHashMap::default();
+        assert!(
+            source_rgba_paint::resolve_singleton_opacity(
+                &scene,
+                &item,
+                &mut quads,
+                0,
+                &[],
+                &mut known,
+                &opaque,
+                viewport,
+                2.,
+                Color(0, 0, 0, 0),
+                viewport
+            )
+            .is_none()
+        );
+        assert!(quads.is_empty() && known.is_empty());
+    }
+}
 fn main() {
     reject_unknown_prior_paint();
+    reject_partial_opacity_groups();
     use lumine::scene::*;
     let f: Vec<f32> = std::env::args()
         .skip(1)
@@ -176,6 +267,18 @@ fn main() {
     let mut scene = Scene::new(96., 80.);
     scene.set_kind(scene.root(), NodeKind::Container(Layout::Overlay));
     let mut ids = Vec::new();
+    // This explicit prebuilt Scene ABI predates the new policy variant. The
+    // CPU harness tests source ownership/algorithm only, not native policy
+    // selection; the actual GPU gate selects the distinct new variant.
+    use lumine::source_paint::{SourcePaintCapability, SourcePaintPolicy, SourcePaintScope};
+    scene.set_source_paint_scope(
+        scene.root(),
+        Some(SourcePaintScope::Capability(SourcePaintCapability {
+            owner: std::num::NonZeroU64::new(1).unwrap(),
+            contract_sha256: [1; 32],
+            policy: SourcePaintPolicy::SkiaSoftwareSrgb8OpaqueBackdrop,
+        })),
+    );
     for i in 0..count {
         let n = &f[5 + i * 12..5 + (i + 1) * 12];
         let parent = if n[0] < 0. {
@@ -231,7 +334,7 @@ fn main() {
         [background.0, background.1, background.2, background.3]
     };
     let mut image = vec![initial; 192 * 160];
-    for item in scene.paint_items() {
+    for item in scene.layer_items(None) {
         let (color, radius) = match item.kind {
             NodeKind::Quad(q) | NodeKind::Panel { quad: q, .. } => (q.fill, q.radius),
             _ => continue,
@@ -256,13 +359,20 @@ fn main() {
             uv: [0.; 4],
             mask: NO_MASK,
         };
-        quads.push(q);
         let clip = item.clip.unwrap_or(viewport);
-        if source_rgba_paint::resolve(
-            &mut quads, start, &draws, &mut known, &opaque, &item, clip, 2., background, viewport,
-        )
-        .is_none()
-        {
+        let result = if item.isolated || item.effects.opacity != 1. {
+            source_rgba_paint::resolve_singleton_opacity(
+                &scene, &item, &mut quads, start, &draws, &mut known, &opaque, clip, 2.,
+                background, viewport,
+            )
+        } else {
+            quads.push(q);
+            source_rgba_paint::resolve(
+                &mut quads, start, &draws, &mut known, &opaque, &item, clip, 2., background,
+                viewport,
+            )
+        };
+        if result.is_none() {
             std::process::exit(3);
         }
         source_fill_paint::remember_opaque(&quads, start, &item, clip, 2., &mut opaque);

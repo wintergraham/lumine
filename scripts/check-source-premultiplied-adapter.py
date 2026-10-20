@@ -17,8 +17,9 @@ def tool(value):
 cxx=tool(a.cxx);rustc=tool(a.rustc);source=a.source.resolve();manifest=source/'manifest.json'
 assert sha(manifest)==a.manifest_sha256
 contract=json.loads(manifest.read_text())
-assert contract['kind']=='independent-source-rounded-paint-fixture' and contract['sourceOnly'] and not contract['nativeComparisonPerformed']
-assert contract['logicalViewport']==[96,80] and contract['dpr']==2 and len(contract['cases'])==20
+assert contract['kind'] in ['independent-source-rounded-paint-fixture','independent-source-opacity-group-diagnostic'] and contract['sourceOnly'] and not contract['nativeComparisonPerformed']
+assert contract['logicalViewport']==[96,80] and contract['dpr']==2
+assert len(contract['cases'])==(20 if contract['kind']=='independent-source-rounded-paint-fixture' else 9)
 a.output.mkdir(parents=True,exist_ok=False);out=a.output.resolve()
 cpp=root/'crates/lumine-gpu/src/source_skia154.cpp';obj=out/'adapter.o';archive=out/'libadapter.a';binary=out/'adapter'
 commands=[[str(cxx),'-std=c++17','-O2','-ffp-contract=off','-c',str(cpp),'-o',str(obj)],['ar','crs',str(archive),str(obj)],
@@ -39,8 +40,8 @@ for case in contract['cases']:
  differences=sum(actual[i:i+4]!=expected[i:i+4]for i in range(0,len(expected),4))
  records.append({'id':case['id'],'comparedPixels':192*160,'differingPixels':differences,'sourceSHA256':sha(expected_path),'actualSHA256':hashlib.sha256(actual).hexdigest()})
 assert records and sha(manifest)==a.manifest_sha256
-inputs=['crates/lumine/src/source_paint.rs','crates/lumine-gpu/src/source_rgba_paint.rs','crates/lumine-gpu/src/source_fill_paint.rs','crates/lumine-gpu/src/source_fill.rs','crates/lumine-gpu/src/source_skia154.rs','crates/lumine-gpu/src/source_skia154.cpp','scripts/source-premultiplied-adapter-replay.rs','scripts/check-source-premultiplied-adapter.py']
-report={'version':1,'kind':'independent-source-premultiplied-adapter-cpu-replay','acceptance':False,'activationQualified':False,'nativeGPUComparisonPerformed':False,'sourceManifestSHA256':a.manifest_sha256,'pixelTolerance':0,'fontSVGExceptions':[],'transparentZeroAlphaPrimitivesOmitted':True,'negativeChecks':['unknown native translucency','unknown layer','unknown image','unknown transformed draw'],'cases':records,'unsupported':unsupported,'differingPixels':sum(c['differingPixels']for c in records),'inputs':{path:sha(root/path)for path in inputs},'compilers':{str(path):sha(path)for path in [cxx,rustc]},'explicitSceneDependencies':{str(path.resolve()):sha(path.resolve())for path in [a.lumine_rlib,a.rustc_hash_rlib]},'commands':commands}
+inputs=['crates/lumine/src/source_paint.rs','crates/lumine-gpu/src/source_rgba_paint.rs','crates/lumine-gpu/src/source_fill_paint.rs','crates/lumine-gpu/src/source_fill.rs','crates/lumine-gpu/src/source_skia154.rs','crates/lumine-gpu/src/source_skia154.cpp','scripts/source-premultiplied-adapter-replay.rs','scripts/check-source-premultiplied-adapter.py','vendor/skia154-source-paint/provenance.json']
+report={'version':1,'kind':'independent-source-premultiplied-adapter-cpu-replay','acceptance':False,'activationQualified':False,'nativeGPUComparisonPerformed':False,'nativeScopePolicySelectionTested':False,'sourceManifestSHA256':a.manifest_sha256,'pixelTolerance':0,'fontSVGExceptions':[],'transparentZeroAlphaPrimitivesOmitted':True,'negativeChecks':['unknown native translucency','unknown layer','unknown image','unknown transformed draw','partial opacity closure including hidden descendant','inherited group opacity'],'cases':records,'unsupported':unsupported,'differingPixels':sum(c['differingPixels']for c in records),'inputs':{path:sha(root/path)for path in inputs},'compilers':{str(path):sha(path)for path in [cxx,rustc]},'explicitSceneDependencies':{str(path.resolve()):sha(path.resolve())for path in [a.lumine_rlib,a.rustc_hash_rlib]},'commands':commands}
 (out/'report.json').write_text(json.dumps(report,indent=2)+'\n')
 for path in [obj,archive,binary]:path.unlink()
 print(json.dumps({'report':str(out/'report.json'),'comparedCases':len(records),'unsupportedCases':len(unsupported),'differingPixels':report['differingPixels'],'acceptance':False}))

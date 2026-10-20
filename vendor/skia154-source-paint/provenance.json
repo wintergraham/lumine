@@ -69,6 +69,30 @@
       "sourceURL": "https://chromium.googlesource.com/chromium/src/+/73c14f6228d7cd537c855007e8f88678969cc0eb/skia/config/SkUserConfig.h",
       "localPath": "ChromiumSkUserConfig.h",
       "sha256": "27b349f45b0dad48b337c3f5cf34a3e28a1e0df855b2e7b0bee761f83489ef0f"
+    },
+    {
+      "revision": "73c14f6228d7cd537c855007e8f88678969cc0eb",
+      "sourceURL": "https://chromium.googlesource.com/chromium/src/+/73c14f6228d7cd537c855007e8f88678969cc0eb/LICENSE",
+      "localPath": "ChromiumLICENSE",
+      "sha256": "368cca1106be99d39ecd32a38d8305585d802a475effb66380b91ffc9bcf709b"
+    },
+    {
+      "revision": "73c14f6228d7cd537c855007e8f88678969cc0eb",
+      "sourceURL": "https://chromium.googlesource.com/chromium/src/+/73c14f6228d7cd537c855007e8f88678969cc0eb/cc/paint/paint_op_buffer_iterator.cc",
+      "localPath": "ChromiumPaintOpBufferIterator.cc",
+      "sha256": "f4b4142ce5d6a4655c7c47ebd7b6884a812b318cb65c8e6d5251afbda073d24d"
+    },
+    {
+      "revision": "73c14f6228d7cd537c855007e8f88678969cc0eb",
+      "sourceURL": "https://chromium.googlesource.com/chromium/src/+/73c14f6228d7cd537c855007e8f88678969cc0eb/cc/paint/scoped_raster_flags.h",
+      "localPath": "ChromiumScopedRasterFlags.h",
+      "sha256": "09c15b6eaa5a26e0ad2df3a4867fdba2f26cf6594917f4434b98cc04fe95bf1d"
+    },
+    {
+      "revision": "73c14f6228d7cd537c855007e8f88678969cc0eb",
+      "sourceURL": "https://chromium.googlesource.com/chromium/src/+/73c14f6228d7cd537c855007e8f88678969cc0eb/cc/paint/paint_flags.cc",
+      "localPath": "ChromiumPaintFlags.cc",
+      "sha256": "9435cb1dab2c4663c5ef248945e1186e70e57f930aa629f61960779f914a7439"
     }
   ]
 }

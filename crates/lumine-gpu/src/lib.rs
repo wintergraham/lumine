@@ -3383,6 +3383,38 @@ impl GpuRenderer {
             }
             let start = quads.len() as u32;
             if item.isolated {
+                if source_fills && self.split_shading
+                    && item.source_paint_capability.is_some_and(|cap| {
+                        cap.policy == lumine::source_paint::SourcePaintPolicy::SkiaSoftwareSrgb8KnownPremultipliedTarget
+                    })
+                    && source_rgba_paint::resolve_singleton_opacity(
+                        scene, &item, &mut quads, start, &draws,
+                        &mut known_source_rgba, &known_source_backdrops,
+                        clip, self.scale, self.background, viewport,
+                    ).is_some()
+                {
+                    // A complete source-owned singleton draw is folded by
+                    // Chromium's original alpha rule, with no descendants or
+                    // outstanding geometry/effects. Other groups stay layers.
+                    let draw = Draw {
+                        diagnostic_source: diagnose.then(|| draw_diagnostics::Source::new(&item, 0)),
+                        transform: Affine::IDENTITY,
+                        geometry_offset: 0,
+                        geometry_hash: 0,
+                        geometry: None,
+                        shading: Shading::Opaque,
+                        blur_mask: None,
+                        layer: None,
+                        blur: None,
+                        start,
+                        end: quads.len() as u32,
+                        clip,
+                        bounds: quad_bounds(&quads[start as usize..]),
+                        image: None,
+                    };
+                    push_draw(&mut draws, &quads, draw, self.split_shading, self.scale);
+                    continue;
+                }
                 let layer = self.layers.get(&item.id).expect("prepared layer");
                 let bounds = Rect::new(
                     layer.bounds.x - self.layer_origin.0,
@@ -4202,11 +4234,20 @@ impl GpuRenderer {
                 if self.split_shading && item.source_paint_capability.is_some_and(|cap| {
                     cap.policy == lumine::source_paint::SourcePaintPolicy::SkiaSoftwareSrgb8KnownPremultipliedTarget
                 }) {
-                    if source_rgba_paint::resolve(
-                        &mut quads, start, &draws, &mut known_source_rgba,
-                        &known_source_backdrops, &item, clip, self.scale,
-                        self.background, viewport,
-                    ).is_some() {
+                    let resolved = if item.effects.opacity != 1. {
+                        source_rgba_paint::resolve_singleton_opacity(
+                            scene, &item, &mut quads, start, &draws,
+                            &mut known_source_rgba, &known_source_backdrops,
+                            clip, self.scale, self.background, viewport,
+                        )
+                    } else {
+                        source_rgba_paint::resolve(
+                            &mut quads, start, &draws, &mut known_source_rgba,
+                            &known_source_backdrops, &item, clip, self.scale,
+                            self.background, viewport,
+                        )
+                    };
+                    if resolved.is_some() {
                         geometry_offset = 0;
                         geometry_hash = 0;
                     }

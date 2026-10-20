@@ -102,8 +102,8 @@ resolved run or an independently proven opaque native core, in actual draw
 order. Any overlapping unknown native translucency, layer, image, transform,
 font or effect blocks the transaction. Background alpha initially supports
 only zero or 255. Unknown alpha is never reconstructed from scene metadata or
-expected PNGs. Isolated opacity remains unsupported; no partial descendant
-group is flattened.
+expected PNGs. Arbitrary isolated opacity groups remain unsupported; no partial
+descendant group is flattened.
 
 Only after successful full resolution does a private Quad marker select the
 existing basic pipeline with blending disabled. The ordinary shader retains
@@ -114,12 +114,36 @@ suppressing geometry; unsupported state preserves the original paint.
 
 `scripts/check-source-premultiplied-adapter.py` records a reproducible CPU-only
 replay of the actual paint helpers and native C++ ABI, with explicit genuine
-Scene/layout dependency hashes and compiler/source identities. Nineteen of
-the original twenty full source frames match every pixel; isolated opacity is
-explicitly rejected. Four negative transactions preserve the original quads
-and known-destination map: unknown native translucency, layer, image and
-transform. This CPU harness mirrors only the Draw/Quad fields consumed by the
+Scene/layout dependency hashes and compiler/source identities. All twenty
+original full source frames match every pixel after the closed-leaf alpha
+folding below. Negative transactions preserve original quads and destination
+state for unknown native translucency, layer, image, transform, a partial
+opacity closure including a hidden descendant, and inherited group opacity.
+This CPU harness mirrors only the Draw/Quad fields consumed by the
 helpers; it does not claim a GPU library ABI or observed native GPU behavior.
 The separate actual GPU manual-scope test must still compare all twenty
 original frames with zero pixel or geometry differences and preserve all
 frozen native default controls. No CPU result grants source acceptance.
+
+The last fixture sets `Effects.opacity` on a leaf; it does not explicitly set
+the native isolated cache flag. Pinned Chromium
+`PaintOpBuffer::PlaybackFoldingIterator` folds a complete
+SaveLayerAlpha/single-supported-drawing-op/Restore sequence into paint alpha.
+`ScopedRasterFlags` performs the alpha multiplication; `SkARGB32_Blitter`
+quantizes SkColor before premultiplication. Those original Chromium files,
+paint flag predicates and Chromium license are retained with exact hashes.
+
+The candidate applies that rule only to a complete own-opacity leaf: actual
+`Scene.children` must be empty, `Scene.layer_items(Some(id))` must enumerate
+exactly the same one primitive and source owner, and every opacity/effect or
+isolated ancestor is rejected. Clips, masks, transforms, borders, decorations,
+filters and shadows are rejected. A failed transaction restores the original
+quads without changing known destination state. Both cached and direct native
+leaf representations use the same source rule; arbitrary groups stay native.
+
+The separate nine-case independent opacity source cohort demonstrates why
+this restriction is necessary: a half-opacity single draw has center
+`[7,7,9,10]`, whereas the first disjoint two-draw group's center is
+`[6,7,9,10]`; nested groups differ again. The candidate matches both supported
+leaf source frames exactly and explicitly rejects all seven group cases.
+The complete twenty-case GPU test remains pending, with no production grant.

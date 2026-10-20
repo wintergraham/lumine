@@ -3,7 +3,7 @@
 use super::{Draw, NO_MASK, Quad, source_fill, source_fill_paint};
 use lumine::{
     affine::Affine,
-    scene::{Color, PaintItem, Rect},
+    scene::{Color, Effects, NodeKind, PaintItem, QuadStyle, Rect, Scene},
 };
 use rustc_hash::FxHashMap;
 
@@ -180,4 +180,119 @@ pub(super) fn resolve(
         quads.push(quad);
     }
     Some(())
+}
+
+/// Pinned Chromium folds only a complete single supported drawing operation
+/// between SaveLayerAlpha and Restore. Enumerate the actual layer closure;
+/// a descendant, source boundary, clip, decoration or other operation rejects
+/// this optimization. Arbitrary opacity groups remain on the native path.
+pub(super) fn resolve_singleton_opacity(
+    scene: &Scene,
+    item: &PaintItem<'_>,
+    quads: &mut Vec<Quad>,
+    start: u32,
+    draws: &[Draw],
+    known: &mut FxHashMap<u32, PremultipliedCore>,
+    opaque: &FxHashMap<u32, source_fill_paint::OpaqueCore>,
+    clip: Rect,
+    scale: f32,
+    background: Color,
+    viewport: Rect,
+) -> Option<()> {
+    if !scene.children(item.id).is_empty()
+        || item.source_paint_capability.is_none()
+        || item.transform != Affine::IDENTITY
+        || item.fade_transform != Affine::IDENTITY
+        || item.mask.is_some()
+        || !item.clip_regions.is_empty()
+        || !item.effects.opacity.is_finite()
+        || item.effects.opacity <= 0.
+        || item.effects.opacity == 1.
+        || item.effects.opacity > 1.
+        || item.effects.blur_radius != 0.
+        || item.effects.edge_fade != 0.
+        || (quads.len() != start as usize && quads.len() != start as usize + 1)
+    {
+        return None;
+    }
+    if scene
+        .ancestors(item.id)
+        .any(|parent| scene.effects(parent) != Effects::default() || scene.is_isolated(parent))
+    {
+        return None;
+    }
+    let style = scene.style(item.id);
+    if style.clip
+        || style.clip_insets.is_some()
+        || style.fade_edges != [0.; 2]
+        || style.layout_options.is_some()
+    {
+        return None;
+    }
+    let closure = scene.layer_items(Some(item.id));
+    if closure.len() != 1 {
+        return None;
+    }
+    let inner = &closure[0];
+    if inner.id != item.id
+        || inner.isolated
+        || inner.bounds != item.bounds
+        || inner.source_paint_capability != item.source_paint_capability
+        || inner.effects != Effects::default()
+        || inner.transform != Affine::IDENTITY
+        || !inner.clip_regions.is_empty()
+        || inner.mask.is_some()
+        || inner.fade_transform != Affine::IDENTITY
+    {
+        return None;
+    }
+    let (color, radius) = match inner.kind {
+        NodeKind::Rect(color) => (*color, 0.),
+        NodeKind::Quad(quad) | NodeKind::Panel { quad, .. } => {
+            let plain = QuadStyle {
+                fill: quad.fill,
+                radius: quad.radius,
+                ..Default::default()
+            };
+            if *quad != plain {
+                return None;
+            }
+            (quad.fill, quad.radius)
+        }
+        _ => return None,
+    };
+    // ScopedRasterFlags folds into SkPaint alpha; SkARGB32_Blitter::ctor
+    // gets the quantized SkColor before SkPreMultiplyColor. Group pixels are
+    // never individually multiplied by this alpha.
+    let alpha = ((f32::from(color.3) / 255.) * item.effects.opacity * 255.).round() as u8;
+    let folded = Color(color.0, color.1, color.2, alpha);
+    let bounds = [
+        inner.bounds.x,
+        inner.bounds.y,
+        inner.bounds.width,
+        inner.bounds.height,
+    ];
+    let original = quads[start as usize..].to_vec();
+    quads.truncate(start as usize);
+    quads.push(Quad {
+        rect: bounds,
+        fade: bounds,
+        color: super::rgba(folded, 1.),
+        uv: [0.; 4],
+        options: [0.; 4],
+        shape: [radius, 0., 0., 1.],
+        border: [0.; 4],
+        mask: NO_MASK,
+    });
+    if resolve(
+        quads, start, draws, known, opaque, inner, clip, scale, background, viewport,
+    )
+    .is_some()
+    {
+        Some(())
+    } else {
+        quads.truncate(start as usize);
+        quads.extend(original);
+        None
+    }
 }

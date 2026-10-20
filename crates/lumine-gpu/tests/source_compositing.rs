@@ -342,6 +342,36 @@ fn premultiplied_scope_rejects_unknown_unmarked_native_translucency() {
 }
 
 #[test]
+fn premultiplied_scope_does_not_fold_descendants_of_an_opacity_group() {
+    let _serial = serial();
+    let mut gpu = gpu();
+    gpu.set_background(Color(0, 0, 0, 0));
+    let mut scene = scene();
+    let root = scene.root();
+    let group = scene.append(root, NodeKind::Container(Layout::Overlay), fixed(96., 80.));
+    scene.set_effects(
+        group,
+        Effects {
+            opacity: 0.5,
+            ..Default::default()
+        },
+    );
+    fill(&mut scene, group, Color(169, 190, 230, 20));
+    let second = fill(&mut scene, group, Color(187, 176, 242, 20));
+    scene.set_transform(second, Transform { x: 16., y: 12. });
+    let ordinary = pixels(&mut gpu, &mut scene, false);
+    scene.set_source_paint_scope(
+        group,
+        Some(SourcePaintScope::Capability(SourcePaintCapability {
+            owner: std::num::NonZeroU64::new(1).unwrap(),
+            contract_sha256: [1; 32],
+            policy: SourcePaintPolicy::SkiaSoftwareSrgb8KnownPremultipliedTarget,
+        })),
+    );
+    assert_eq!(pixels(&mut gpu, &mut scene, false), ordinary);
+}
+
+#[test]
 fn opacity_rotation_layer_and_transparent_backdrops_preserve_existing_paint() {
     let _serial = serial();
     let mut gpu = gpu();
