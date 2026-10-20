@@ -1047,6 +1047,10 @@ mod execution_audit {
             {
                 return Err("audit-runtime-inventory-differs-from-production-recipe".into());
             }
+            let hash_tool_before = hasher.program(&hasher.path)?;
+            if !production_json.contains(&format!("\"hashTool\":{}", hash_tool_before.encode())) {
+                return Err("audit-hash-tool-differs-from-production-recipe".into());
+            }
             let compiler_before = command_identity(&compiler(), &cwd, hasher)?;
             let archiver_before = command_identity(&archiver(), &cwd, hasher)?;
             // This query is candidate discovery, not evidence of execution of
@@ -1209,6 +1213,7 @@ mod execution_audit {
             if !archive_matches {
                 return Err("audit-archive-not-byte-identical-to-production".into());
             }
+            let hash_tool_after = hasher.program(&hasher.path)?;
             let compiler_after = command_identity(&compiler(), &cwd, hasher)?;
             let archiver_after = command_identity(&archiver(), &cwd, hasher)?;
             self.configured_tools = object([
@@ -1216,6 +1221,8 @@ mod execution_audit {
                     "kind",
                     text("configured-command-identities-before-and-after-audit"),
                 ),
+                ("hashToolBefore", hash_tool_before.clone()),
+                ("hashToolAfter", hash_tool_after.clone()),
                 ("compilerBefore", compiler_before.clone()),
                 ("compilerAfter", compiler_after.clone()),
                 ("archiverBefore", archiver_before.clone()),
@@ -1226,7 +1233,10 @@ mod execution_audit {
                 ("before", runtime_before.clone()),
                 ("after", runtime_after.clone()),
             ]);
-            if compiler_before != compiler_after || archiver_before != archiver_after {
+            if hash_tool_before != hash_tool_after
+                || compiler_before != compiler_after
+                || archiver_before != archiver_after
+            {
                 return Err("audit-configured-tool-changed-during-audit".into());
             }
             if hasher.file(&production_object, utf8(production_object.as_os_str())?)?
@@ -1554,6 +1564,10 @@ mod tests {
             super::object([
                 ("kind", text("synthetic-unit-test-production-artifacts")),
                 ("qualification", text("unqualified")),
+                ("hashTool", {
+                    let hasher = Hasher::platform().unwrap();
+                    hasher.program(&hasher.path).unwrap()
+                }),
                 (
                     "runtimeInputs",
                     inventory(&manifest, &Hasher::platform().unwrap()).unwrap(),
