@@ -525,6 +525,11 @@ pub trait Styled: Sized {
         self.styles_mut().layout_options_mut().align_self = Some(value);
         self
     }
+    /// Grid inline-axis alignment; None explicitly restores auto.
+    fn justify_self(mut self, value: Option<Align>) -> Self {
+        self.styles_mut().layout_options_mut().justify_self = Some(value);
+        self
+    }
     fn align_content(mut self, value: crate::layout::ContentAlign) -> Self {
         self.styles_mut().layout_options_mut().align_content = Some(value);
         self

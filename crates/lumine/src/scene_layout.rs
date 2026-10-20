@@ -62,6 +62,10 @@ fn align(value: Align) -> t::AlignItems {
         Align::Stretch => t::AlignItems::Stretch,
     }
 }
+// Kept separate so the sparse auto/explicit distinction is tested directly.
+fn justify_self(value: Option<Option<Align>>) -> Option<t::JustifySelf> {
+    value.flatten().map(align)
+}
 fn content(value: ContentAlign) -> t::AlignContent {
     match value {
         ContentAlign::Start => t::AlignContent::Start,
@@ -186,6 +190,7 @@ fn style(style: &Style, layout: Layout, leaf: bool) -> t::Style {
         flex_basis: options.basis.map_or(t::Dimension::auto(), dim),
         align_items: Some(align(style.align)),
         align_self: options.align_self.map(align),
+        justify_self: justify_self(options.justify_self),
         align_content: options.align_content.map(content),
         justify_content: Some(match style.justify {
             Justify::Start => t::JustifyContent::Start,

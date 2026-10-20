@@ -82,6 +82,8 @@ pub struct LayoutOptions {
     pub reverse: Option<bool>,
     pub basis: Option<Length>,
     pub align_self: Option<Align>,
+    /// Outer None is a sparse patch; Some(None) explicitly restores CSS auto.
+    pub justify_self: Option<Option<Align>>,
     pub align_content: Option<ContentAlign>,
     pub gap_x: Option<Length>,
     pub gap_y: Option<Length>,
@@ -169,6 +171,7 @@ impl LayoutOptions {
             clip_y,
             basis,
             align_self,
+            justify_self,
             align_content,
             gap_x,
             gap_y,
@@ -190,5 +193,24 @@ impl LayoutOptions {
         self.inset.merge(other.inset);
         self.margin.merge(other.margin);
         self.padding.merge(other.padding);
+    }
+}
+
+#[cfg(test)]
+mod justify_self_tests {
+    use super::*;
+    #[test]
+    fn explicit_auto_clears_previous_self_alignment_but_sparse_patch_preserves_it() {
+        let mut value = LayoutOptions {
+            justify_self: Some(Some(Align::End)),
+            ..Default::default()
+        };
+        value.merge(LayoutOptions::default());
+        assert_eq!(value.justify_self, Some(Some(Align::End)));
+        value.merge(LayoutOptions {
+            justify_self: Some(None),
+            ..Default::default()
+        });
+        assert_eq!(value.justify_self, Some(None));
     }
 }
