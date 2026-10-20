@@ -353,6 +353,7 @@ fn variable_list<K: Eq + std::hash::Hash + Clone + 'static>(
                     extent.clone(),
                     false,
                     scrollbar,
+                    None,
                 );
             }
             let weak = ui.downgrade();
