@@ -213,6 +213,7 @@ fn generated_glyph_quads_record_actual_cpu_clip_culling() {
 fn actual_batch_membership_excludes_glyphs_under_an_opaque_cover() {
     let mut gpu = renderer(FONT);
     let (mut scene, _) = scene(&gpu, "A");
+    scene.resize(320., 160.);
     scene.append(
         scene.root(),
         NodeKind::Quad(QuadStyle {
@@ -220,8 +221,8 @@ fn actual_batch_membership_excludes_glyphs_under_an_opaque_cover() {
             ..Default::default()
         }),
         Style {
-            width: Some(200.),
-            height: Some(100.),
+            width: Some(320.),
+            height: Some(160.),
             ..Default::default()
         },
     );
@@ -498,6 +499,7 @@ fn glyph_submitted_to_layer_is_excluded_when_its_composite_is_occluded() {
     let mut gpu = renderer(FONT);
     let (mut scene, node) = scene(&gpu, "A");
     scene.set_isolated(node, true);
+    scene.resize(320., 160.);
     scene.append(
         scene.root(),
         NodeKind::Quad(QuadStyle {
@@ -505,8 +507,8 @@ fn glyph_submitted_to_layer_is_excluded_when_its_composite_is_occluded() {
             ..Default::default()
         }),
         Style {
-            width: Some(200.),
-            height: Some(100.),
+            width: Some(320.),
+            height: Some(160.),
             ..Default::default()
         },
     );
