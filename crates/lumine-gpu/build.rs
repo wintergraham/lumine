@@ -15,6 +15,7 @@ fn main() {
     println!("cargo:rerun-if-changed=src/source_skia154.cpp");
     let mut build = cc::Build::new();
     build
+        .cargo_debug(false)
         .cpp(true)
         .std("c++17")
         .flag_if_supported("-ffp-contract=off")
@@ -30,7 +31,18 @@ fn main() {
         &before,
         supported,
     );
+    let capture =
+        source_paint_build_recipe::original_command_capture_before(&before, &build.get_archiver());
+    build.cargo_debug(capture.enabled());
+    source_paint_build_recipe::original_command_capture_begin(&capture);
     build.compile("lumine_source_skia154");
+    source_paint_build_recipe::original_command_capture_finish(
+        capture,
+        &tool_observation(&build.get_compiler()),
+        &build.get_archiver(),
+        std::path::Path::new(&std::env::var_os("OUT_DIR").expect("Cargo output directory")),
+    );
+    build.cargo_debug(false);
     source_paint_build_recipe::finish(
         snapshot,
         &tool_observation(&build.get_compiler()),

@@ -338,7 +338,7 @@ fn inventory(manifest: &Path, hasher: &Hasher) -> Result<Json, String> {
             hasher.file(
                 &path,
                 utf8(
-                    path.strip_prefix(root)
+                    path.strip_prefix(&root)
                         .map_err(|_| "invalid-runtime-path")?
                         .as_os_str(),
                 )?,
@@ -544,6 +544,323 @@ pub fn audit_after_compile<C: Fn() -> Command, A: Fn() -> Command>(
     execution_audit::write(manifest, out, supported, compiler, archiver);
 }
 
+/// State for a bounded cc debug-output capture, separate from the audit.
+/// This does not certify kernel execution or grant execution closure.
+pub struct OriginalCommandCapture {
+    before: Result<Json, String>,
+}
+impl OriginalCommandCapture {
+    pub fn enabled(&self) -> bool {
+        self.before.is_ok()
+    }
+}
+const ORIGINAL_BEGIN: &str = "source-paint-original-cc-v1:BEGIN";
+const ORIGINAL_END: &str = "source-paint-original-cc-v1:END";
+pub fn original_command_capture_before(tool: &Tool, archiver: &Command) -> OriginalCommandCapture {
+    OriginalCommandCapture {
+        before: original_capture::observe(tool, archiver),
+    }
+}
+pub fn original_command_capture_begin(capture: &OriginalCommandCapture) {
+    if capture.enabled() {
+        println!("{ORIGINAL_BEGIN}");
+    }
+}
+pub fn original_command_capture_finish(
+    capture: OriginalCommandCapture,
+    tool: &Tool,
+    archiver: &Command,
+    out: &Path,
+) {
+    if capture.enabled() {
+        println!("{ORIGINAL_END}");
+    }
+    let after = original_capture::observe(tool, archiver);
+    let stable = capture.before.is_ok() && capture.before == after;
+    let receipt = object([
+        ("schema", text("source-paint-original-cc-output-v1")),
+        ("qualification", text("unqualified")),
+        ("acceptance", Json::Bool(false)),
+        ("executionClosureComplete", Json::Bool(false)),
+        ("kernelExecutionObserved", Json::Bool(false)),
+        ("originalCommandLogParsed", Json::Bool(false)),
+        ("productionCommandStatusesValidated", Json::Bool(false)),
+        ("debugCaptureEnabled", Json::Bool(capture.enabled())),
+        ("reviewedContextStable", Json::Bool(stable)),
+        (
+            "before",
+            capture.before.as_ref().cloned().unwrap_or(Json::Null),
+        ),
+        ("after", after.as_ref().cloned().unwrap_or(Json::Null)),
+        (
+            "incompleteReason",
+            text(capture.before.err().or(after.err()).unwrap_or_else(|| {
+                if stable {
+                    "compiler-shared-libraries-helpers-and-original-header-reads-unobserved".into()
+                } else {
+                    "original-command-capture-context-changed".into()
+                }
+            })),
+        ),
+        ("stdoutPathRelativeToOutDir", text("../output")),
+        (
+            "stdoutDigestAvailableOnlyAfterCargoWritesOutput",
+            Json::Bool(true),
+        ),
+        (
+            "commandGrammar",
+            text(
+                "cc-1.5.1 Command::Debug running: line immediately before spawn; actual ExitStatus after wait",
+            ),
+        ),
+        ("beginMarker", text(ORIGINAL_BEGIN)),
+        ("endMarker", text(ORIGINAL_END)),
+        ("sourceCacheOriginalCompilationAttested", Json::Bool(false)),
+    ]);
+    fs::write(
+        out.join("source-paint-original-cc-output.json"),
+        receipt.encode(),
+    )
+    .expect("write source paint original command capture context");
+}
+mod original_capture {
+    use super::*;
+    const REVIEWED_ARCHIVE: &str =
+        "f360145194ee8e21db5ee7f3fcd4fe52210864c75c985dae33218202c8bbe040";
+    const REVIEWED_ARGS: &[&str] = &[
+        "-O3",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fPIC",
+        "-g",
+        "-gdwarf-4",
+        "-fno-omit-frame-pointer",
+        "-mno-omit-leaf-frame-pointer",
+        "-m64",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-ffp-contract=off",
+    ];
+    pub(super) fn review(tool: &Tool, archiver: &Command) -> Result<(), String> {
+        let expected = REVIEWED_ARGS.iter().map(OsString::from).collect::<Vec<_>>();
+        if !cfg!(target_os = "linux")
+            || tool.arguments != expected
+            || tool.command_arguments != expected
+            || tool.command_program != tool.path.as_os_str()
+            || tool.environment != [(OsString::from("LC_ALL"), OsString::from("C"))]
+            || archiver.get_args().next().is_some()
+            || archiver.get_envs().next().is_some()
+            || archiver.get_current_dir().is_some()
+        {
+            return Err(
+                "original-debug-command-arguments-wrapper-or-environment-unreviewed".into(),
+            );
+        }
+        Ok(())
+    }
+    fn bounded(path: &Path) -> Result<Vec<u8>, String> {
+        let meta =
+            fs::symlink_metadata(path).map_err(|_| "original-capture-reference-unavailable")?;
+        if !meta.is_file() || meta.len() == 0 || meta.len() > MAX_FILE {
+            return Err("original-capture-reference-not-bounded-regular".into());
+        }
+        fs::read(path).map_err(|_| "original-capture-reference-unreadable".into())
+    }
+    // This intentionally supports only the current single cc dependency tuple.
+    // A new Cargo fingerprint shape disables capture instead of guessing.
+    pub(super) fn cc_marker(bytes: &[u8]) -> Result<u64, String> {
+        let raw = std::str::from_utf8(bytes).map_err(|_| "non-UTF8-Cargo-fingerprint")?;
+        let deps = raw
+            .split_once("\"deps\":[[")
+            .ok_or("Cargo-cc-dependency-unavailable")?
+            .1
+            .split_once("]]")
+            .ok_or("Cargo-cc-dependency-unavailable")?
+            .0;
+        let fields = deps.split(',').collect::<Vec<_>>();
+        if fields.len() != 4
+            || fields[1] != "\"cc\""
+            || fields[2] != "false"
+            || fields[0].parse::<u64>().is_err()
+        {
+            return Err("Cargo-cc-dependency-shape-unreviewed".into());
+        }
+        fields[3]
+            .parse()
+            .map_err(|_| "Cargo-cc-dependency-marker-invalid".into())
+    }
+    pub(super) fn marker(bytes: &[u8]) -> Result<u64, String> {
+        if bytes.len() != 16 || !bytes.iter().all(u8::is_ascii_hexdigit) {
+            return Err("Cargo-marker-invalid".into());
+        }
+        let mut value = [0u8; 8];
+        for (i, pair) in bytes.chunks_exact(2).enumerate() {
+            value[i] = u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16)
+                .map_err(|_| "Cargo-marker-invalid")?;
+        }
+        Ok(u64::from_le_bytes(value))
+    }
+    pub(super) fn package(hasher: &Hasher, exe: &Path) -> Result<Json, String> {
+        let unit = exe.parent().ok_or("build-script-path-unavailable")?;
+        let target = unit
+            .parent()
+            .and_then(Path::parent)
+            .ok_or("Cargo-target-directory-unavailable")?;
+        let fingerprint = target
+            .join(".fingerprint")
+            .join(unit.file_name().ok_or("Cargo-unit-unavailable")?)
+            .join("build-script-build-script-build.json");
+        let selected = cc_marker(&bounded(&fingerprint)?)?;
+        let mut matches = Vec::new();
+        for (i, entry) in fs::read_dir(target.join(".fingerprint"))
+            .map_err(|_| "Cargo-fingerprint-directory-unavailable")?
+            .enumerate()
+        {
+            if i >= 4096 {
+                return Err("Cargo-fingerprint-directory-unbounded".into());
+            }
+            let path = entry
+                .map_err(|_| "Cargo-fingerprint-entry-unavailable")?
+                .path();
+            if path
+                .file_name()
+                .is_some_and(|v| v.to_string_lossy().starts_with("cc-"))
+            {
+                let file = path.join("lib-cc");
+                if bounded(&file).ok().and_then(|v| marker(&v).ok()) == Some(selected) {
+                    matches.push(path);
+                }
+            }
+        }
+        if matches.len() != 1 {
+            return Err("selected-Cargo-cc-fingerprint-not-unique".into());
+        }
+        let cc = &matches[0];
+        let name = cc
+            .file_name()
+            .and_then(|v| v.to_str())
+            .ok_or("Cargo-cc-unit-nonUTF8")?;
+        let dep = target.join("deps").join(format!("{name}.d"));
+        let dep_bytes = bounded(&dep)?;
+        let first = dep_bytes
+            .split(|v| *v == b'\n')
+            .next()
+            .ok_or("Cargo-cc-dependencies-empty")?;
+        let sources = execution_audit::dependency_paths(first)?;
+        let roots = sources
+            .iter()
+            .filter_map(|v| {
+                let p = Path::new(v);
+                p.ends_with("src/lib.rs")
+                    .then(|| p.parent().and_then(Path::parent))
+                    .flatten()
+            })
+            .collect::<Vec<_>>();
+        if roots.len() != 1 || roots[0].file_name().and_then(|v| v.to_str()) != Some("cc-1.5.1") {
+            return Err("selected-cc-package-unreviewed".into());
+        }
+        let root = roots[0].to_owned();
+        let registry = root
+            .parent()
+            .and_then(Path::parent)
+            .and_then(Path::parent)
+            .ok_or("cc-registry-path-unavailable")?;
+        let index = root
+            .parent()
+            .and_then(Path::file_name)
+            .ok_or("cc-registry-index-unavailable")?;
+        let archive = registry.join("cache").join(index).join("cc-1.5.1.crate");
+        if hasher.hash(&archive)? != REVIEWED_ARCHIVE {
+            return Err("cc-reviewed-archive-differs".into());
+        }
+        let tar = Path::new("/usr/bin/tar");
+        let tar_before = hasher.program(tar)?;
+        let mut source_refs = Vec::new();
+        if sources.len() > 128 {
+            return Err("cc-source-inventory-unbounded".into());
+        }
+        for source in sources {
+            let source = Path::new(&source);
+            let relative = source
+                .strip_prefix(&root)
+                .map_err(|_| "cc-source-outside-package")?;
+            let member = Path::new("cc-1.5.1").join(relative);
+            let output = Command::new(tar)
+                .arg("-xOf")
+                .arg(&archive)
+                .arg(&member)
+                .output()
+                .map_err(|_| "cc-archive-member-unavailable")?;
+            if !output.status.success()
+                || output.stdout.len() > MAX_FILE as usize
+                || output.stderr.len() > 65536
+                || output.stdout != bounded(source)?
+            {
+                return Err("selected-cc-source-differs-from-reviewed-archive".into());
+            }
+            source_refs.push(hasher.file(source, utf8(source.as_os_str())?)?);
+        }
+        if hasher.program(tar)? != tar_before {
+            return Err("cc-archive-reader-changed".into());
+        }
+        let rlib = target.join("deps").join(format!("lib{name}.rlib"));
+        Ok(object([
+            ("version", text("1.5.1")),
+            ("reviewedArchiveSha256", text(REVIEWED_ARCHIVE)),
+            (
+                "archive",
+                hasher.file(&archive, utf8(archive.as_os_str())?)?,
+            ),
+            (
+                "buildScriptFingerprint",
+                hasher.file(&fingerprint, utf8(fingerprint.as_os_str())?)?,
+            ),
+            (
+                "selectedCcMarker",
+                hasher.file(&cc.join("lib-cc"), utf8(cc.join("lib-cc").as_os_str())?)?,
+            ),
+            (
+                "selectedCcFingerprint",
+                hasher.file(
+                    &cc.join("lib-cc.json"),
+                    utf8(cc.join("lib-cc.json").as_os_str())?,
+                )?,
+            ),
+            (
+                "selectedCcRlib",
+                hasher.file(&rlib, utf8(rlib.as_os_str())?)?,
+            ),
+            ("dependencyFile", hasher.file(&dep, utf8(dep.as_os_str())?)?),
+            ("compiledDependencySourceCache", Json::Array(source_refs)),
+            ("archiveReader", tar_before),
+        ]))
+    }
+    pub(super) fn observe(tool: &Tool, archiver: &Command) -> Result<Json, String> {
+        review(tool, archiver)?;
+        let hasher = Hasher::platform()?;
+        let exe = env::current_exe().map_err(|_| "actual-build-script-unavailable")?;
+        let cwd = env::current_dir().map_err(|_| "actual-build-cwd-unavailable")?;
+        let mut compiler = Command::new(&tool.command_program);
+        compiler
+            .args(&tool.command_arguments)
+            .envs(tool.environment.clone());
+        Ok(object([
+            ("actualBuildScript", hasher.program(&exe)?),
+            ("hashTool", hasher.program(&hasher.path)?),
+            ("selectedCc", package(&hasher, &exe)?),
+            (
+                "compiler",
+                execution_audit::command_identity(&compiler, &cwd, &hasher)?,
+            ),
+            (
+                "archiver",
+                execution_audit::command_identity(archiver, &cwd, &hasher)?,
+            ),
+        ]))
+    }
+}
+
 // A separate audit never claims to observe the original cc process execution.
 mod execution_audit {
     use super::*;
@@ -723,7 +1040,11 @@ mod execution_audit {
         }
         Ok(Json::Object(result))
     }
-    fn command_identity(command: &Command, cwd: &Path, hasher: &Hasher) -> Result<Json, String> {
+    pub(super) fn command_identity(
+        command: &Command,
+        cwd: &Path,
+        hasher: &Hasher,
+    ) -> Result<Json, String> {
         let arguments = command
             .get_args()
             .map(utf8)
@@ -1360,6 +1681,83 @@ mod execution_audit {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn original_cc_fingerprint_rejects_other_dependency_shapes() {
+        assert_eq!(
+            original_capture::cc_marker(br#"{"deps":[[7,"cc",false,123]]}"#).unwrap(),
+            123
+        );
+        for bytes in [
+            br#"{"deps":[[7,"cc",false,123],[8,"other",false,9]]}"#.as_slice(),
+            br#"{"deps":[[7,"cc",true,123]]}"#,
+            br#"{"deps":[[7,"other",false,123]]}"#,
+            br#"{"deps":[[7,"cc",false,-1]]}"#,
+        ] {
+            assert!(original_capture::cc_marker(bytes).is_err());
+        }
+        assert_eq!(
+            original_capture::marker(b"923653a3a534fef1").unwrap(),
+            17437432693239527058
+        );
+        assert!(original_capture::marker(b"923653a3a534fef1\n").is_err());
+    }
+    #[test]
+    fn original_debug_gate_rejects_secrets_wrappers_and_flag_drift() {
+        let args = [
+            "-O3",
+            "-ffunction-sections",
+            "-fdata-sections",
+            "-fPIC",
+            "-g",
+            "-gdwarf-4",
+            "-fno-omit-frame-pointer",
+            "-mno-omit-leaf-frame-pointer",
+            "-m64",
+            "-std=c++17",
+            "-Wall",
+            "-Wextra",
+            "-ffp-contract=off",
+        ]
+        .iter()
+        .map(OsString::from)
+        .collect::<Vec<_>>();
+        let mut tool = Tool {
+            path: PathBuf::from("c++"),
+            arguments: args.clone(),
+            command_program: OsString::from("c++"),
+            command_arguments: args,
+            environment: vec![(OsString::from("LC_ALL"), OsString::from("C"))],
+        };
+        let mut ar = Command::new("ar");
+        assert!(original_capture::review(&tool, &ar).is_ok());
+        tool.environment.push((
+            OsString::from("PRIVATE"),
+            OsString::from("secret-never-print"),
+        ));
+        let error = original_capture::review(&tool, &ar).unwrap_err();
+        assert!(!error.contains("secret-never-print"));
+        tool.environment.pop();
+        tool.command_program = OsString::from("wrapper");
+        assert!(original_capture::review(&tool, &ar).is_err());
+        tool.command_program = OsString::from("c++");
+        tool.arguments.push(OsString::from("-ffast-math"));
+        assert!(original_capture::review(&tool, &ar).is_err());
+        tool.arguments.pop();
+        ar.env("PRIVATE", "secret-never-print");
+        assert!(original_capture::review(&tool, &ar).is_err());
+    }
+    #[test]
+    #[ignore = "bounded observation of an explicit genuine cached build-script dependency; no Cargo/CXX execution"]
+    fn original_selected_cc_package_matches_reviewed_archive() {
+        let exe =
+            env::var_os("ASK_SOURCE_PAINT_CC_BUILD_SCRIPT").expect("actual build-script path");
+        let json = original_capture::package(&Hasher::platform().unwrap(), Path::new(&exe))
+            .unwrap()
+            .encode();
+        assert!(json.contains("f360145194ee8e21db5ee7f3fcd4fe52210864c75c985dae33218202c8bbe040"));
+        assert!(json.contains("selectedCcRlib"));
+        assert!(json.contains("command_helpers.rs"));
+    }
     #[test]
     fn json_preserves_controls_quotes_unicode_and_sorted_keys() {
         assert_eq!(quote("a\0\n\t\\\"é"), "\"a\\u0000\\n\\t\\\\\\\"é\"");

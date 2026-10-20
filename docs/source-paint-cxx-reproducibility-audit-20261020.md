@@ -61,3 +61,51 @@ bounds); one separately guarded tiny genuine GNU compile/archive test that also
 rejects a changed header and unreviewed secret environment value. No Cargo/GPU or
 source browser was run by the worker. The actual production audit and renderer
 regressions remain the parent's fresh native-build responsibility.
+
+
+## Original cc command stream follow-up
+
+The original `cc::Build::compile` now enables cc 1.5.1's own `cargo_debug(true)`
+only after a bounded review of the exact configured compiler arguments,
+`LC_ALL=C`, no wrapper and no explicit archiver args/environment. Unknown
+configuration disables this capture and leaves the normal compile available.
+Debug is explicitly disabled during earlier probes and the separate audit.
+Neither profile, feature, flags nor production object/archive commands change.
+
+The build script resolves its actual cc dependency through its own Cargo unit
+fingerprint and the matching little-endian cc fingerprint marker. It records
+that selected rlib, dependency file, fingerprint, reviewed cc 1.5.1 archive and
+each reported dependency source cache file. Those source cache bytes must match
+the corresponding archive members exactly. The archive's reviewed digest is
+`f360145194ee8e21db5ee7f3fcd4fe52210864c75c985dae33218202c8bbe040`.
+This binds current cache observations, not an attestation of which source bytes
+originally produced the selected rlib. Context and tool references are repeated
+after production compilation; differences leave the receipt incomplete.
+
+The new `source-paint-original-cc-output.json` records this context and fixed
+`source-paint-original-cc-v1:BEGIN` / `:END` markers around the genuine cc build.
+The reviewed cc source formats `running: {Command:?}` immediately before spawn
+and prints the actual waited `ExitStatus` through `Display` after execution.
+These are cc's actual stdout observations, not reconstructed commands, kernel
+tracing, or proof of all compiler/library/header reads. No parser or receipt
+sets validated statuses or execution closure true in this change.
+
+The GPU inspection API embeds Cargo's **completed** sibling `output` file with
+`include_bytes!` when compiling Rust, after build.rs has exited. It exposes
+`source_paint_original_cc_cargo_output_bytes() -> Option<&'static [u8]>`
+(bounded to 8 MiB) and
+`source_paint_original_cc_output_context_json() -> &'static str`.
+The trusted inspecting caller must hash those returned raw bytes with its
+existing SHA256 implementation and independently parse/check command/status
+records and all references. The build script never predicts or claims the
+final stdout digest. Full stdout includes normal Cargo metadata outside the
+markers; it is data, never a shell program. No ambient environment is dumped
+by this layer, and rejected explicit values are never formatted.
+
+Follow-up validation: ten std-only unit tests pass, including malformed Cargo
+fingerprint tuples/markers, wrapper/flag/secret-env rejection and prior audit
+bounds. A separate real-cache test resolves the explicitly supplied genuine
+Host build-script dependency and matches its current source files to the exact
+reviewed archive. build.rs type-checks against the Host-selected cached cc rlib.
+GPU inspection API metadata compilation uses a labelled compile-only fixture;
+actual Cargo output capture awaits the parent's coordinated native build.
