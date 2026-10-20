@@ -2,7 +2,7 @@
 //! The output is premultiplied BGRA8 (read back as RGBA8). Text uses cosmic-text shaping and a bounded
 //! GPU glyph atlas; stable text never reshapes on paint or compositor updates.
 use cosmic_text::{Buffer, CacheKey, FontSystem, Metrics, SwashCache, SwashContent};
-use lumine::scene::{Color, NodeId, NodeKind, Rect, Scene};
+use lumine::scene::{Affine, Color, NodeId, NodeKind, Rect, Scene};
 use rustc_hash::FxHashMap;
 use std::{
     cell::RefCell,
