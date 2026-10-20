@@ -6,6 +6,9 @@ use std::num::NonZeroU64;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SourcePaintPolicy {
     SkiaSoftwareSrgb8OpaqueBackdrop,
+    /// Separately selected source N32 composition with independently known
+    /// ordered premultiplied RGBA destinations. This is not a qualification.
+    SkiaSoftwareSrgb8KnownPremultipliedTarget,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -78,9 +81,12 @@ mod tests {
         let state = SourcePaintState::Active(cap(1));
         let mut changed_contract = cap(1);
         changed_contract.contract_sha256 = [3; 32];
+        let mut changed_policy = cap(1);
+        changed_policy.policy = SourcePaintPolicy::SkiaSoftwareSrgb8KnownPremultipliedTarget;
         for scope in [
             SourcePaintScope::Capability(cap(2)),
             SourcePaintScope::Capability(changed_contract),
+            SourcePaintScope::Capability(changed_policy),
             SourcePaintScope::PreserveExisting,
         ] {
             let blocked = state.descend(Some(scope));

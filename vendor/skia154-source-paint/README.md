@@ -72,7 +72,7 @@ cases now match every source pixel in CPU replay. This is an upstream raster
 operation, with no pixel exception or fitted correction. CPU replay still
 does not establish GPU parity or general source qualification.
 
-The code is an unqualified candidate until actual GPU checks pass. Transparent
+The opaque-backdrop code is unqualified until actual GPU checks pass. Transparent
 destinations, isolated opacity/layers, unsupported ancestor clips, small
 mask-backed source shapes (width<=32 and mask<=1024 bytes), unequal corner
 radii, borders/filters/transforms and unknown destinations retain the existing
@@ -86,3 +86,40 @@ opaque preceding draw may be resolved per pixel. Unknown translucency remains
 unsupported. Default rendering is independently compared byte-for-byte with
 frozen actual native R2 pixels; those native bytes never supply source expected
 paint or an allowance. No full GPU/Cargo build was run in the isolated worker.
+
+## Separate known premultiplied target candidate
+
+`SourcePaintPolicy::SkiaSoftwareSrgb8KnownPremultipliedTarget` is a distinct
+native-host selection. It does not expand the opaque-backdrop policy and has
+no production Host grant or qualification. It uses the same independently
+derived source spans and clip preparation, retaining all four N32 target
+channels through the original Color32 / AntiH2 integer operations. Original
+`SkBlitter_ARGB32.cpp`, `SkColorPriv.h` and `SkColorData.h` are retained with
+their pinned hashes and license to document that derivation.
+
+Every previous destination pixel must come from an actual earlier source
+resolved run or an independently proven opaque native core, in actual draw
+order. Any overlapping unknown native translucency, layer, image, transform,
+font or effect blocks the transaction. Background alpha initially supports
+only zero or 255. Unknown alpha is never reconstructed from scene metadata or
+expected PNGs. Isolated opacity remains unsupported; no partial descendant
+group is flattened.
+
+Only after successful full resolution does a private Quad marker select the
+existing basic pipeline with blending disabled. The ordinary shader retains
+alpha and multiplies the emitted straight ratios back into the known source
+premultiplied bytes. UI nodes and styles cannot request this marker. The
+candidate requires shading splitting and evaluates every active clip before
+suppressing geometry; unsupported state preserves the original paint.
+
+`scripts/check-source-premultiplied-adapter.py` records a reproducible CPU-only
+replay of the actual paint helpers and native C++ ABI, with explicit genuine
+Scene/layout dependency hashes and compiler/source identities. Nineteen of
+the original twenty full source frames match every pixel; isolated opacity is
+explicitly rejected. Four negative transactions preserve the original quads
+and known-destination map: unknown native translucency, layer, image and
+transform. This CPU harness mirrors only the Draw/Quad fields consumed by the
+helpers; it does not claim a GPU library ABI or observed native GPU behavior.
+The separate actual GPU manual-scope test must still compare all twenty
+original frames with zero pixel or geometry differences and preserve all
+frozen native default controls. No CPU result grants source acceptance.

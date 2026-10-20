@@ -321,6 +321,27 @@ fn unsupported_multiple_rounded_ancestors_keep_native_clip_coverage() {
 }
 
 #[test]
+fn premultiplied_scope_rejects_unknown_unmarked_native_translucency() {
+    let _serial = serial();
+    let mut gpu = gpu();
+    gpu.set_background(Color(0, 0, 0, 0));
+    let mut scene = scene();
+    let root = scene.root();
+    let native = scene.append(root, NodeKind::Rect(Color(255, 0, 0, 91)), fixed(6., 6.));
+    scene.set_transform(native, Transform { x: 20., y: 15. });
+    let source = scene.append(root, NodeKind::Container(Layout::Overlay), fixed(96., 80.));
+    fill(&mut scene, source, Color(169, 190, 230, 20));
+    let ordinary = pixels(&mut gpu, &mut scene, false);
+    let mut capability = match source_scope(1) {
+        SourcePaintScope::Capability(capability) => capability,
+        SourcePaintScope::PreserveExisting => unreachable!(),
+    };
+    capability.policy = SourcePaintPolicy::SkiaSoftwareSrgb8KnownPremultipliedTarget;
+    scene.set_source_paint_scope(source, Some(SourcePaintScope::Capability(capability)));
+    assert_eq!(pixels(&mut gpu, &mut scene, false), ordinary);
+}
+
+#[test]
 fn opacity_rotation_layer_and_transparent_backdrops_preserve_existing_paint() {
     let _serial = serial();
     let mut gpu = gpu();

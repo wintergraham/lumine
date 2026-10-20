@@ -38,6 +38,39 @@ pub(crate) fn over_opaque_coverage(
     })
 }
 
+/// The same original N32 blit operations with all four premultiplied target
+/// channels retained. Destination bytes must be independently known, never
+/// reconstructed from an unknown native draw or read from expected pixels.
+pub(crate) fn over_premultiplied_coverage(
+    source: [u8; 4],
+    destination: [u8; 4],
+    coverage: u8,
+    two_pixels: bool,
+) -> [u8; 4] {
+    let alpha = u32::from(source[3]);
+    let scale = u32::from(coverage) + 1;
+    std::array::from_fn(|channel| {
+        let premul = if channel == 3 {
+            alpha
+        } else {
+            (u32::from(source[channel]) * alpha + 127) / 255
+        };
+        let destination = u32::from(destination[channel]);
+        let value = if !two_pixels {
+            let scaled_alpha = (alpha * scale) >> 8;
+            ((premul * scale) >> 8) + ((destination * (256 - scaled_alpha)) >> 8)
+        } else if alpha == 255 {
+            let scale = u32::from(coverage) + (u32::from(coverage) >> 7);
+            (premul * scale + destination * (256 - scale)) >> 8
+        } else {
+            let product = 65535 - alpha * scale;
+            let destination_scale = (product + (product >> 8)) >> 8;
+            (premul * scale + destination * destination_scale) >> 8
+        };
+        value.min(255) as u8
+    })
+}
+
 pub(crate) fn contains(outer: [f32; 4], inner: [f32; 4]) -> bool {
     outer.into_iter().chain(inner).all(f32::is_finite)
         && outer[2] > 0.

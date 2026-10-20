@@ -9,8 +9,8 @@ use rustc_hash::FxHashMap;
 
 #[derive(Clone, Copy)]
 pub(super) struct OpaqueCore {
-    rect: Rect,
-    rgb: [u8; 3],
+    pub(super) rect: Rect,
+    pub(super) rgb: [u8; 3],
 }
 fn array(r: Rect) -> [f32; 4] {
     [r.x, r.y, r.width, r.height]
@@ -217,21 +217,54 @@ pub(super) fn resolve_interior(
 /// A single supported rounded ancestor is clipped by the original source
 /// edge builder and AA clip merge. Unknown/transparent destinations, layers
 /// and unsupported ancestors remain on the unchanged fallback path.
-fn resolve_analytic_opaque(
-    quads: &[Quad],
-    start: u32,
-    draws: &[Draw],
-    known: &FxHashMap<u32, OpaqueCore>,
+pub(super) struct PreparedPaint {
+    pub(super) source: [u8; 4],
+    pub(super) spans: std::sync::Arc<Vec<source_skia154::Span>>,
+    pub(super) clip_mask: Option<(std::sync::Arc<Vec<source_skia154::Span>>, [i32; 4])>,
+}
+impl PreparedPaint {
+    pub(super) fn coverage(&self, span: &source_skia154::Span, x: i32) -> (u8, bool) {
+        let Some((mask, _)) = &self.clip_mask else {
+            return (span.coverage as u8, span.blend == 1);
+        };
+        let index = mask.partition_point(|s| s.y < span.y || (s.y == span.y && s.x <= x));
+        let coverage = index
+            .checked_sub(1)
+            .and_then(|i| mask.get(i))
+            .filter(|s| s.y == span.y && x < s.x + s.width)
+            .map_or(0, |s| s.coverage);
+        (((span.coverage * coverage + 127) / 255) as u8, false)
+    }
+}
+pub(super) fn prepare_analytic(
+    q: Quad,
     item: &PaintItem<'_>,
     clip: Rect,
     scale: f32,
-    background: Color,
     viewport: Rect,
-) -> Option<(Vec<Quad>, bool)> {
-    if quads.len() != start as usize + 1 || !eligible(item) || !scale.is_finite() || scale <= 0. {
+) -> Option<PreparedPaint> {
+    prepare_analytic_impl(q, item, clip, scale, viewport, false)
+}
+pub(super) fn prepare_premultiplied(
+    q: Quad,
+    item: &PaintItem<'_>,
+    clip: Rect,
+    scale: f32,
+    viewport: Rect,
+) -> Option<PreparedPaint> {
+    prepare_analytic_impl(q, item, clip, scale, viewport, true)
+}
+fn prepare_analytic_impl(
+    q: Quad,
+    item: &PaintItem<'_>,
+    clip: Rect,
+    scale: f32,
+    viewport: Rect,
+    integer_square: bool,
+) -> Option<PreparedPaint> {
+    if !eligible(item) || !scale.is_finite() || scale <= 0. {
         return None;
     }
-    let q = quads[start as usize];
     if q.mask != NO_MASK
         || q.options[0] != 0.
         || q.options[1] != 0.
@@ -371,11 +404,62 @@ fn resolve_analytic_opaque(
     } else {
         None
     };
-    let spans = if let Some((_, edges)) = &clip_mask {
+    let spans = if integer_square && radius == 0. && clip_mask.is_none() {
+        // Pinned Draw::drawRRect delegates a square to drawRect. An integer
+        // rectangle has full coverage and ordinary Color32 source-over; no
+        // small-path mask approximation or curve dispatch is involved.
+        if pixel_viewport.into_iter().any(|v| v == 0 || v > 8191)
+            || physical[0] < 0.
+            || physical[1] < 0.
+            || physical[2] < 1.
+            || physical[3] < 1.
+            || right > 8191.
+            || bottom > 8191.
+        {
+            return None;
+        }
+        std::sync::Arc::new(
+            (top as i32..bottom as i32)
+                .map(|y| source_skia154::Span {
+                    x: left as i32,
+                    y,
+                    width: physical[2] as i32,
+                    coverage: 255,
+                    blend: 0,
+                })
+                .collect(),
+        )
+    } else if let Some((_, edges)) = &clip_mask {
         source_skia154::spans_clipped(physical, radius.max(0.) * scale, pixel_viewport, *edges)?
     } else {
         source_skia154::spans(physical, radius.max(0.) * scale, pixel_viewport)?
     };
+    Some(PreparedPaint {
+        source,
+        spans,
+        clip_mask,
+    })
+}
+
+fn resolve_analytic_opaque(
+    quads: &[Quad],
+    start: u32,
+    draws: &[Draw],
+    known: &FxHashMap<u32, OpaqueCore>,
+    item: &PaintItem<'_>,
+    clip: Rect,
+    scale: f32,
+    background: Color,
+    viewport: Rect,
+) -> Option<(Vec<Quad>, bool)> {
+    if quads.len() != start as usize + 1 {
+        return None;
+    }
+    let PreparedPaint {
+        source,
+        spans,
+        clip_mask,
+    } = prepare_analytic(quads[start as usize], item, clip, scale, viewport)?;
     let mut resolved: Vec<Quad> = Vec::new();
     let mut append = |x: i32, y: i32, width: i32, rgb: [u8; 3]| {
         let region = [

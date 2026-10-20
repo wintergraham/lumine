@@ -30,6 +30,7 @@ pub mod renderer_info;
 mod draw_diagnostics;
 mod source_fill;
 mod source_fill_paint;
+mod source_rgba_paint;
 mod source_skia154;
 mod surface;
 mod upload;
@@ -712,6 +713,11 @@ fn gaussian_shadow(quad: &Quad) -> bool {
     quad.options[2] < 0.5 && quad.shape[2] >= 0.01
 }
 fn shading(quad: &Quad, _scale: f32) -> Shading {
+    if source_rgba_paint::resolved(quad) {
+        // Private source-resolved runs carry the complete known target RGBA.
+        // The existing basic shader retains alpha; blend=None copies bytes.
+        return Shading::Opaque;
+    }
     // The basic shader preserves square-panel coverage at fractional pixels,
     // so smooth scrolling does not force backgrounds through the full shader.
     let square = quad.shape[3] > 0.5
@@ -3274,6 +3280,7 @@ impl GpuRenderer {
                 matches!(c.format, wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Rgba8Unorm)
             });
         let mut known_source_backdrops = FxHashMap::default();
+        let mut known_source_rgba = FxHashMap::default();
         self.geometry.begin();
         let element_profiler = scene.profiler();
         for mut item in items {
@@ -4192,6 +4199,18 @@ impl GpuRenderer {
                 }
             }
             if source_fills {
+                if self.split_shading && item.source_paint_capability.is_some_and(|cap| {
+                    cap.policy == lumine::source_paint::SourcePaintPolicy::SkiaSoftwareSrgb8KnownPremultipliedTarget
+                }) {
+                    if source_rgba_paint::resolve(
+                        &mut quads, start, &draws, &mut known_source_rgba,
+                        &known_source_backdrops, &item, clip, self.scale,
+                        self.background, viewport,
+                    ).is_some() {
+                        geometry_offset = 0;
+                        geometry_hash = 0;
+                    }
+                }
                 if diagnostic_source_fills || item.source_paint_capability.is_some_and(|cap| {
                     cap.policy == lumine::source_paint::SourcePaintPolicy::SkiaSoftwareSrgb8OpaqueBackdrop
                 }) {

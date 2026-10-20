@@ -29,6 +29,24 @@
       "sourceURL": "https://skia.googlesource.com/skia/+/2466dcf3937437e217e7f284afe0e1aae15891ce/src/core/SkEdgeClipper.cpp",
       "localPath": "SkEdgeClipper.cpp",
       "sha256": "10deeacb03bd13d2fbf83cdb3f817272f76f52fe883daf9f043e3b4741748b7d"
+    },
+    {
+      "revision": "2466dcf3937437e217e7f284afe0e1aae15891ce",
+      "sourceURL": "https://skia.googlesource.com/skia/+/2466dcf3937437e217e7f284afe0e1aae15891ce/src/core/SkBlitter_ARGB32.cpp",
+      "localPath": "SkBlitter_ARGB32.cpp",
+      "sha256": "c46edce92d10dbe2822f3f65c636c9a9a91b413cfd13d7434d51327e1b606d96"
+    },
+    {
+      "revision": "2466dcf3937437e217e7f284afe0e1aae15891ce",
+      "sourceURL": "https://skia.googlesource.com/skia/+/2466dcf3937437e217e7f284afe0e1aae15891ce/src/core/SkColorPriv.h",
+      "localPath": "SkColorPriv.h",
+      "sha256": "cbe432f3c5d6b50e49537bf720fa5b9968a51281f274269f236651bb67ef67c2"
+    },
+    {
+      "revision": "2466dcf3937437e217e7f284afe0e1aae15891ce",
+      "sourceURL": "https://skia.googlesource.com/skia/+/2466dcf3937437e217e7f284afe0e1aae15891ce/src/core/SkColorData.h",
+      "localPath": "SkColorData.h",
+      "sha256": "bfea4affa48971d7b13660fb1b12fa65651a8c0361fb96b75a42dffc31e3ea1d"
     }
   ],
   "qualification": false,
