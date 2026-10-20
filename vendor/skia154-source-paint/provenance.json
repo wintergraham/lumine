@@ -26,5 +26,19 @@
     }
   ],
   "qualification": false,
-  "scope": "Native bounded analytic rounded-rectangle coverage and original integer blit dispatch only; no browser executor or expected pixel inputs."
+  "scope": "Native bounded analytic rounded-rectangle coverage and original integer blit dispatch only; no browser executor or expected pixel inputs.",
+  "blinkPaintDerivation": [
+    {
+      "revision": "73c14f6228d7cd537c855007e8f88678969cc0eb",
+      "sourceURL": "https://chromium.googlesource.com/chromium/src/+/73c14f6228d7cd537c855007e8f88678969cc0eb/third_party/blink/renderer/core/paint/contoured_border_geometry.cc",
+      "localPath": "ChromiumContouredBorderGeometry.cc",
+      "sha256": "24830dab3c718f430ed4938e24202dbc51a05c0ee8632ecf5e9ab47d51ef0cb6"
+    },
+    {
+      "revision": "73c14f6228d7cd537c855007e8f88678969cc0eb",
+      "sourceURL": "https://chromium.googlesource.com/chromium/src/+/73c14f6228d7cd537c855007e8f88678969cc0eb/third_party/blink/renderer/core/layout/geometry/physical_rect.h",
+      "localPath": "ChromiumPhysicalRect.h",
+      "sha256": "d24524dc420ea3b721bb1d754bac8bc744973c2c3a039cf698da487985e9fefa"
+    }
+  ]
 }
