@@ -2365,6 +2365,7 @@ fn mount_element(
                 if let Some(value) = span.styles.font_fallbacks {
                     font.fallbacks = value;
                 }
+                if let Some(value) = span.styles.text_shadows { font.text_shadows = value; }
                 if let Some(value) = span.styles.font_features {
                     font.features = value;
                 }

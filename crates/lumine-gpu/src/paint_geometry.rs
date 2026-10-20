@@ -175,6 +175,12 @@ impl FrameGeometry {
         bytemuck::pod_read_unaligned::<Parameters>(bytes).metadata[1]
     }
     pub fn item(&mut self, item: &PaintItem<'_>, scale: f32) -> Result<(u32, u64), GpuError> {
+        self.item_inner(item,scale,true)
+    }
+    pub(super) fn item_without_text_clip(&mut self,item:&PaintItem<'_>,scale:f32)->Result<(u32,u64),GpuError>{
+        self.item_inner(item,scale,false)
+    }
+    fn item_inner(&mut self,item:&PaintItem<'_>,scale:f32,clip_text:bool)->Result<(u32,u64),GpuError>{
         if item.transform == Affine::IDENTITY
             && item.clip_regions.is_empty()
             && item.fade_transform == Affine::IDENTITY
@@ -190,7 +196,7 @@ impl FrameGeometry {
                 corners: region.corners,
             });
         }
-        if matches!(item.kind, NodeKind::Text { .. } | NodeKind::RichText { .. }) {
+        if clip_text && matches!(item.kind, NodeKind::Text { .. } | NodeKind::RichText { .. }) {
             self.regions.push(Clip {
                 inverse: rows(item.transform.inverse().unwrap_or_default()),
                 bounds: rect(item.bounds),

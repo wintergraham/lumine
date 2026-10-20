@@ -1092,10 +1092,11 @@ impl Scene {
         if self.node(id).font == font {
             return;
         }
+        let shape_changed = !self.node(id).font.same_shape(&font);
         self.damage_subtree(id);
         self.node_mut(id).font = font;
         self.invalidate(id, PAINT);
-        self.invalidate_layout(id);
+        if shape_changed { self.invalidate_layout(id); }
     }
     pub fn set_font_text_shaper(
         &mut self,
@@ -1907,7 +1908,7 @@ impl Scene {
             NodeKind::Quad(quad) | NodeKind::Panel { quad, .. } => quad.paint_bounds(bounds),
             NodeKind::Image(image) => image.paint_bounds(bounds),
             NodeKind::Svg(svg) => svg.paint_bounds(bounds),
-            NodeKind::Text { .. } | NodeKind::RichText { .. } => self.text_ink(id, bounds),
+            NodeKind::Text { .. } | NodeKind::RichText { .. } => self.text_ink_bounds(id, bounds),
             _ => bounds,
         })
     }
@@ -1916,6 +1917,15 @@ impl Scene {
     /// changes every frame (a stream in a larger box) repaints only that. Text
     /// laid out otherwise (line clamps, ellipses, padding) or right to left
     /// keeps its box.
+    /// Conservative text paint bounds, including shadows; never used as layout metrics.
+    pub fn text_ink_bounds(&self, id:NodeId, bounds:Rect)->Rect {
+        let ink=self.text_ink(id,bounds);let node=self.node(id);
+        match &node.kind {
+            NodeKind::RichText{text}=>text.runs().iter().fold(ink,|out,run|out.union(run.font.text_shadows.paint_bounds(ink))),
+            NodeKind::Text{..}=>node.font.text_shadows.paint_bounds(ink),
+            _=>bounds,
+        }
+    }
     fn text_ink(&self, id: NodeId, bounds: Rect) -> Rect {
         let node = self.node(id);
         let style = &node.style;
@@ -3142,6 +3152,8 @@ impl Scene {
                 svg.paint_bounds(item.bounds)
             } else if let NodeKind::Image(image) = item.kind {
                 image.paint_bounds(item.bounds)
+            } else if matches!(item.kind,NodeKind::Text{..}|NodeKind::RichText{..}) {
+                self.text_ink_bounds(item.id,item.bounds)
             } else {
                 item.bounds
             };

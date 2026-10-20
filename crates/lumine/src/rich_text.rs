@@ -196,7 +196,7 @@ impl RichText {
                 .runs
                 .iter()
                 .zip(other.runs.iter())
-                .all(|(a, b)| a.range == b.range && a.font == b.font && a.font_size == b.font_size)
+                .all(|(a, b)| a.range == b.range && a.font.same_shape(&b.font) && a.font_size == b.font_size)
     }
     pub fn text(&self) -> &str {
         &self.text

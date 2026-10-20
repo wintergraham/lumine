@@ -58,6 +58,7 @@ pub struct Styles {
     pub(crate) border_style: Option<crate::decoration::BorderStyle>,
     pub(crate) shadows: Option<Option<std::sync::Arc<[BoxShadow]>>>,
     pub(crate) text_color: Option<Color>,
+    pub(crate) text_shadows: Option<crate::text_shadow::TextShadows>,
     pub(crate) text_size: Option<f32>,
     pub(crate) line_height: Option<crate::text_layout::LineHeight>,
     pub(crate) letter_spacing: Option<crate::text_layout::LetterSpacing>,
@@ -347,6 +348,7 @@ impl Styles {
         if other.text_color.is_some() {
             self.text_color = other.text_color;
         }
+        if other.text_shadows.is_some() { self.text_shadows = other.text_shadows.clone(); }
         if other.font_fallbacks.is_some() {
             self.font_fallbacks = other.font_fallbacks.clone();
         }
@@ -951,6 +953,10 @@ pub trait Styled: Sized {
     }
     fn font_optical_sizing(mut self, sizing: crate::text_layout::FontOpticalSizing) -> Self {
         self.styles_mut().font_optical_sizing = Some(sizing);
+        self
+    }
+    fn text_shadows(mut self, shadows: crate::text_shadow::TextShadows) -> Self {
+        self.styles_mut().text_shadows = Some(shadows);
         self
     }
     fn font_features(mut self, features: crate::text_layout::FontFeatures) -> Self {

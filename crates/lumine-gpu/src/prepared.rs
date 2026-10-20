@@ -73,13 +73,13 @@ impl Key {
         for run in rich.runs() {
             match spans.last_mut() {
                 Some((range, font, size))
-                    if *font == run.font
+                    if font.same_shape(&run.font)
                         && *size == run.font_size
                         && range.end == run.range.start =>
                 {
                     range.end = run.range.end;
                 }
-                _ => spans.push((run.range.clone(), run.font.clone(), run.font_size)),
+                _ => spans.push((run.range.clone(), run.font.shaping_style(), run.font_size)),
             }
         }
         Self {

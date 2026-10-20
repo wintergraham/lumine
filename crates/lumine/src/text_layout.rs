@@ -195,6 +195,8 @@ pub struct FontStyle {
     pub features: FontFeatures,
     pub variations: FontVariations,
     pub optical_sizing: FontOpticalSizing,
+    /// Inherited paint only; excluded from shape and measurement keys.
+    pub text_shadows: crate::text_shadow::TextShadows,
     pub align: TextAlign,
     /// Rich paragraphs use the first run's policy for all their lines.
     pub word_wrap: WordWrap,
@@ -212,6 +214,7 @@ impl Default for FontStyle {
             features: FontFeatures::default(),
             variations: FontVariations::default(),
             optical_sizing: FontOpticalSizing::None,
+            text_shadows: crate::text_shadow::TextShadows::NONE,
             align: TextAlign::Start,
             word_wrap: WordWrap::default(),
             fallbacks: {
@@ -223,10 +226,15 @@ impl Default for FontStyle {
     }
 }
 impl FontStyle {
+    pub fn shaping_style(&self) -> Self {
+        Self { text_shadows: crate::text_shadow::TextShadows::NONE, ..self.clone() }
+    }
+    pub fn same_shape(&self, other: &Self) -> bool { self.shaping_style() == other.shaping_style() }
     /// Owned key payload, conservatively charging shared allocations per entry.
     pub fn storage_bytes(&self) -> usize {
         self.features
             .storage_bytes()
+            .saturating_add(self.text_shadows.storage_bytes())
             .saturating_add(self.variations.storage_bytes())
             .saturating_add(std::mem::size_of_val(self.fallbacks.as_ref()))
             .saturating_add(

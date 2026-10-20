@@ -29,6 +29,7 @@ pub mod motion;
 
 pub mod rich_text;
 pub mod text_layout;
+pub mod text_shadow;
 
 pub mod affine;
 pub mod background;

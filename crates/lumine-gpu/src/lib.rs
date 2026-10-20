@@ -1029,7 +1029,7 @@ fn scroll_item_bounds(
             NodeKind::Quad(quad) | NodeKind::Panel { quad, .. } => quad.paint_bounds(item.bounds),
             NodeKind::Svg(svg) => svg.paint_bounds(item.bounds),
             NodeKind::Image(image) => image.paint_bounds(item.bounds),
-            _ => item.bounds,
+            _ => scene.text_ink_bounds(item.id,item.bounds),
         }
     };
     if item.effects.opacity <= 0. {
@@ -1443,6 +1443,36 @@ mod glyph_evidence_tests {
         assert!(evidence.frame.fonts.is_empty());
     }
 }
+fn mask_quad(
+    a: AtlasEntry,
+    x: i32,
+    y: i32,
+    origin: (f32, f32),
+    scale: f32,
+    atlas_size: u32,
+    color: lumine::scene::Color,
+) -> Quad {
+    Quad {
+        rect: [
+            (x as f32 + a.left as f32 - origin.0) / scale,
+            (y as f32 - a.top as f32 - origin.1) / scale,
+            a.width as f32 / scale,
+            a.height as f32 / scale,
+        ],
+        uv: [
+            a.x as f32 / atlas_size as f32,
+            a.y as f32 / atlas_size as f32,
+            a.width as f32 / atlas_size as f32,
+            a.height as f32 / atlas_size as f32,
+        ],
+        color: rgba(color, 1.),
+        fade: [0.; 4],
+        options: [0., 1., 0., 0.],
+        shape: [0.; 4],
+        border: [0.; 4],
+        mask: NO_MASK,
+    }
+}
 struct Shaped {
     rich: Option<Arc<lumine::rich_text::RichText>>,
     text_options: lumine::text_layout::TextOptions,
@@ -1457,6 +1487,8 @@ struct Shaped {
     /// Allocated only while explicit validation evidence collection is enabled.
     glyph_metadata: Option<Vec<GlyphMetadata>>,
     quads: Vec<Quad>,
+    shadow_quads: Vec<Quad>,
+    background_quads: Vec<Quad>,
     atlas_epoch: u64,
     /// Fractional physical node origin used for the cached glyph rasters.
     raster_origin: (f32, f32),
@@ -1476,7 +1508,7 @@ impl Shaped {
                 .glyph_metadata
                 .as_ref()
                 .map_or(0, |m| m.capacity() * std::mem::size_of::<GlyphMetadata>())
-            + self.quads.capacity() * std::mem::size_of::<Quad>()
+            + (self.quads.capacity() + self.shadow_quads.capacity() + self.background_quads.capacity()) * std::mem::size_of::<Quad>()
     }
 }
 #[derive(Clone, Copy)]
@@ -2079,6 +2111,7 @@ pub struct GpuRenderer {
     atlas: wgpu::Texture,
     atlas_size: u32,
     entries: FxHashMap<CacheKey, Option<AtlasEntry>>,
+    shadow_entries: FxHashMap<(CacheKey,u32), Option<AtlasEntry>>,
     cursor: (u32, u32, u32),
     fonts: Rc<RefCell<FontSystem>>,
     text_cache: Rc<RefCell<prepared::TextCache>>,
@@ -2341,6 +2374,7 @@ impl GpuRenderer {
             atlas,
             atlas_size: 1,
             entries: FxHashMap::default(),
+            shadow_entries: FxHashMap::default(),
             cursor: (0, 0, 0),
             fonts: context.text_system(),
             text_cache: context.text_cache(),
@@ -2407,7 +2441,7 @@ impl GpuRenderer {
             shaped_nodes: self.shapes.len(),
             shaped_bytes: self.shapes.values().map(Shaped::bytes).sum(),
             cached_quads: self.shapes.values().map(|s| s.quads.len()).sum(),
-            atlas_entries: self.entries.len(),
+            atlas_entries: self.entries.len() + self.shadow_entries.len(),
             atlas_bytes: (self.atlas_size * self.atlas_size * 4) as usize,
             swash_images: self.swash.image_cache.len(),
             swash_outlines: self.swash.outline_command_cache.len(),
@@ -2560,6 +2594,7 @@ impl GpuRenderer {
             self.layers.clear();
             self.shapes.clear();
             self.entries.clear();
+            self.shadow_entries.clear();
             self.image_cells.clear();
             self.atlas_epoch = self.atlas_epoch.wrapping_add(1);
             self.cursor = (0, 0, 0);
@@ -3294,6 +3329,7 @@ impl GpuRenderer {
                 self.reset_atlas((self.atlas_size * 2).min(MAX_ATLAS));
             } else {
                 self.entries.clear();
+                self.shadow_entries.clear();
                 self.image_cells.clear();
                 self.atlas_epoch = self.atlas_epoch.wrapping_add(1);
                 self.cursor = (0, 0, 0);
@@ -3396,12 +3432,15 @@ impl GpuRenderer {
             } else {
                 item.clip.unwrap_or(viewport)
             };
-            let Some(clip) = node_clip.intersection(viewport) else {
+            let has_text_shadow = match item.kind {NodeKind::Text{..}=>!item.font.text_shadows.is_empty(),NodeKind::RichText{text}=>text.runs().iter().any(|r|!r.font.text_shadows.is_empty()),_=>false};
+            let visibility_clip=if has_text_shadow {item.clip.unwrap_or(viewport)}else{node_clip};
+            let Some(visibility_clip) = visibility_clip.intersection(viewport) else {
                 continue;
             };
 
+            let clip = node_clip.intersection(viewport).unwrap_or_default();
             if !damage.iter().any(|d| {
-                d.intersects(clip)
+                d.intersects(visibility_clip)
                     && d.intersects(if item.isolated {
                         let b = self.layers[&item.id].bounds;
                         Rect::new(
@@ -3421,14 +3460,14 @@ impl GpuRenderer {
                             } else if let NodeKind::Image(image) = item.kind {
                                 image.paint_bounds(item.bounds)
                             } else {
-                                item.bounds
+                                if matches!(item.kind,NodeKind::Text{..}|NodeKind::RichText{..}) {scene.text_ink_bounds(item.id,item.bounds)}else{item.bounds}
                             },
                         )
                     })
             }) {
                 continue;
             }
-            let start = quads.len() as u32;
+            let mut start = quads.len() as u32;
             let source_raster_plan = manual_raster_plan.as_ref()
                 .filter(|plan| plan.applies_to(item.source_paint_capability));
             if item.isolated {
@@ -3914,8 +3953,9 @@ impl GpuRenderer {
                         && shaped.height == bounds.height
                         && shaped.unwrapped == unwrapped
                         && shaped.text_options == item.text_options
-                        && shaped.font == *item.font
+                        && shaped.font.same_shape(item.font)
                     {
+                        let old_bytes=shaped.bytes();
                         for glyph in &mut shaped.glyphs {
                             glyph.color = Some(new.runs()[glyph.run].color);
                         }
@@ -3923,6 +3963,14 @@ impl GpuRenderer {
                             decoration.color = decoration.color_in(new);
                         }
                         shaped.rich = Some(new.clone());
+                        self.shaped_bytes=self.shaped_bytes.saturating_sub(old_bytes).saturating_add(shaped.bytes());
+                        shaped.atlas_epoch = self.atlas_epoch.wrapping_sub(1);
+                    }
+                    if let Some(shaped) = self.shapes.get_mut(&item.id)
+                        && shaped.font != *item.font && shaped.font.same_shape(item.font) {
+                        let old_bytes=shaped.bytes();
+                        shaped.font = item.font.clone();
+                        self.shaped_bytes=self.shaped_bytes.saturating_sub(old_bytes).saturating_add(shaped.bytes());
                         shaped.atlas_epoch = self.atlas_epoch.wrapping_sub(1);
                     }
                     let stale = self.shapes.get(&item.id).is_none_or(|s| {
@@ -4080,6 +4128,8 @@ impl GpuRenderer {
                             glyphs,
                             glyph_metadata,
                             quads: Vec::new(),
+                            shadow_quads: Vec::new(),
+                            background_quads: Vec::new(),
                             atlas_epoch: 0,
                             raster_origin: (f32::NAN, f32::NAN),
                             last_used: self.frame,
@@ -4097,7 +4147,36 @@ impl GpuRenderer {
                     );
                     if shaped.atlas_epoch != self.atlas_epoch || shaped.raster_origin != origin {
                         shaped.quads.clear();
-                        shaped.quads.extend(
+                        shaped.shadow_quads.clear();
+                        shaped.background_quads.clear();
+                        // The first CSS shadow is topmost. Shadows precede ALL foreground glyphs.
+                        let count = shaped.rich.as_ref().map_or(shaped.font.text_shadows.shadows().len(), |r| r.runs().iter().map(|run| run.font.text_shadows.shadows().len()).max().unwrap_or(0));
+                        for index in (0..count).rev() {
+                            for glyph in &shaped.glyphs {
+                                let font = shaped.rich.as_ref().map_or(&shaped.font, |r| &r.runs()[glyph.run].font);
+                                let Some(shadow) = font.text_shadows.shadows().get(index).copied().filter(|s|s.color().3>0) else {continue};
+                                let offset = shadow.offset();
+                                let (key,x,y) = glyph.at((origin.0+offset.x*self.scale,origin.1+offset.y*self.scale));
+                                if let Some(a) = self.shadow_glyph(key,shadow.sigma()*self.scale,&mut stats)? {
+                                    shaped.shadow_quads.push(mask_quad(a,x,y,origin,self.scale,self.atlas_size,shadow.color()));
+                                }
+                            }
+                            for decoration in shaped.decorations.iter().filter(|d|!d.background) {
+                                let font = shaped.rich.as_ref().map_or(&shaped.font, |r| &r.runs()[decoration.run].font);
+                                let Some(shadow) = font.text_shadows.shadows().get(index).copied().filter(|s|s.color().3>0) else {continue};
+                                let offset=shadow.offset();let rect=decoration.bounds;
+                                let x=(rect.x+offset.x)*self.scale+origin.0;let y=(rect.y+offset.y)*self.scale+origin.1;
+                                let right=x+rect.width*self.scale;let bottom=y+rect.height*self.scale;
+                                let (left,top)=(x.floor(),y.floor());let (w,h)=((right.ceil()-left)as u32,(bottom.ceil()-top)as u32);
+                                if w==0||h==0{continue}if w as usize*h as usize>text_shadow::MAX_PIXELS{return Err(GpuError("text shadow decoration mask exceeds pixel budget".into()))}
+                                let mut alpha=vec![0;w as usize*h as usize];
+                                for py in 0..h {for px in 0..w {let coverage=(right.min(left+px as f32+1.)-x.max(left+px as f32)).clamp(0.,1.)*(bottom.min(top+py as f32+1.)-y.max(top+py as f32)).clamp(0.,1.);alpha[(py*w+px)as usize]=(coverage*255.).round()as u8;}}
+                                let mask=text_shadow::blur(&alpha,w,h,shadow.sigma()*self.scale).map_err(|e|GpuError(e.into()))?;
+                                let a=self.upload_shadow_mask(mask,left as i32,-(top as i32),&mut stats)?;
+                                shaped.shadow_quads.push(mask_quad(a,0,0,origin,self.scale,self.atlas_size,shadow.color()));
+                            }
+                        }
+                        shaped.background_quads.extend(
                             shaped
                                 .decorations
                                 .iter()
@@ -4151,6 +4230,30 @@ impl GpuRenderer {
                         shaped.atlas_epoch = self.atlas_epoch;
                         shaped.raster_origin = origin;
                         stats.geometry_rebuilds += 1;
+                    }
+                    if !shaped.background_quads.is_empty() {
+                        for cached in &shaped.background_quads {
+                            let mut quad=*cached;quad.rect[0]+=bounds.x;quad.rect[1]+=bounds.y;
+                            quad.color[3]*=item.effects.opacity;quad.fade=fade;quad.options[0]=item.effects.edge_fade;
+                            if let Some((rect,bands))=item.mask {quad.mask=fade_parameters(rect,bands);}
+                            quads.push(quad);
+                        }
+                        let draw=Draw {diagnostic_source:diagnose.then(||draw_diagnostics::Source::new(&item,self.geometry.clip_count(geometry_offset))),transform:item.transform,geometry_offset,geometry_hash,geometry:None,shading:Shading::Full,blur:None,blur_mask:None,start,end:quads.len()as u32,clip,bounds:item.transform.bounds(quad_bounds(&quads[start as usize..])),image:None,layer:None};
+                        push_draw(&mut draws,&quads,draw,self.split_shading,self.scale);
+                        start=quads.len()as u32;
+                    }
+                    if !shaped.shadow_quads.is_empty() {
+                        let (offset,hash)=self.geometry.item_without_text_clip(&item,self.scale)?;
+                        for cached in &shaped.shadow_quads {
+                            let mut quad=*cached;quad.rect[0]+=bounds.x;quad.rect[1]+=bounds.y;
+                            quad.color[3]*=item.effects.opacity;quad.fade=fade;quad.options[0]=item.effects.edge_fade;
+                            if let Some((rect,bands))=item.mask {quad.mask=fade_parameters(rect,bands);}
+                            quads.push(quad);
+                        }
+                        let shadow_clip=item.clip.unwrap_or(viewport).intersection(viewport).unwrap_or_default();
+                        let draw=Draw {diagnostic_source:diagnose.then(||draw_diagnostics::Source::new(&item,0)),transform:item.transform,geometry_offset:offset,geometry_hash:hash,geometry:None,shading:Shading::Full,blur:None,blur_mask:None,start,end:quads.len()as u32,clip:shadow_clip,bounds:item.transform.bounds(quad_bounds(&quads[start as usize..])),image:None,layer:None};
+                        push_draw(&mut draws,&quads,draw,self.split_shading,self.scale);
+                        start=quads.len()as u32;
                     }
                     for cached in &shaped.quads {
                         let mut quad = *cached;
@@ -5640,9 +5743,111 @@ impl GpuRenderer {
         self.atlas_size = size;
         self.bind = self.texture_bind(&self.atlas.create_view(&Default::default()), "glyph atlas");
         self.entries.clear();
+        self.shadow_entries.clear();
         self.image_cells.clear();
         self.cursor = (0, 0, 0);
         self.atlas_epoch = self.atlas_epoch.wrapping_add(1);
+    }
+    fn upload_shadow_mask(
+        &mut self,
+        mask: text_shadow::Mask,
+        left: i32,
+        top: i32,
+        stats: &mut GpuStats,
+    ) -> Result<AtlasEntry, GpuError> {
+        let width = mask.width;
+        let height = mask.height;
+        let border = mask.border;
+        let (x, y) = self.atlas_cell(width, height, |rgba| {
+            for row in 0..height as usize {
+                for col in 0..width as usize {
+                    let dst = ((row + 1) * (width as usize + 2) + col + 1) * 4;
+                    rgba[dst..dst + 4].copy_from_slice(&[
+                        255,
+                        255,
+                        255,
+                        mask.alpha[row * width as usize + col],
+                    ]);
+                }
+            }
+        })?;
+        stats.glyph_uploads += 1;
+        Ok(AtlasEntry {
+            x,
+            y,
+            width,
+            height,
+            left: left - border,
+            top: top + border,
+        })
+    }
+    fn shadow_glyph(
+        &mut self,
+        key: CacheKey,
+        sigma: f32,
+        stats: &mut GpuStats,
+    ) -> Result<Option<AtlasEntry>, GpuError> {
+        if !sigma.is_finite() || !(0. ..=64.).contains(&sigma) {
+            return Err(GpuError(
+                "text shadow physical sigma exceeds 0..=64px".into(),
+            ));
+        }
+        let cache_key = (key, sigma.to_bits());
+        if let Some(entry) = self.shadow_entries.get(&cache_key) {
+            return Ok(*entry);
+        }
+        if self.shadow_entries.len() >= 8192 {
+            return Err(GpuError(
+                "text shadow atlas metadata exceeds 8192 entries".into(),
+            ));
+        }
+        let size = f32::from_bits(key.font_size_bits);
+        if !size.is_finite() || size <= 0. || size > MAX_ATLAS as f32 {
+            return Err(GpuError(
+                "text shadow glyph size outside atlas limit".into(),
+            ));
+        }
+        let image = self
+            .swash
+            .get_image_uncached(&mut self.fonts.borrow_mut(), key);
+        let result = if let Some(image) = image {
+            let p = image.placement;
+            if p.width == 0 || p.height == 0 {
+                None
+            } else {
+                let pixels = p.width as usize * p.height as usize;
+                if pixels > text_shadow::MAX_PIXELS {
+                    return Err(GpuError(
+                        "text shadow glyph mask exceeds pixel budget".into(),
+                    ));
+                }
+                let alpha = match image.content {
+                    SwashContent::Mask => {
+                        if image.data.len() != pixels {
+                            return Err(GpuError("invalid A8 glyph shadow mask".into()));
+                        }
+                        image.data
+                    }
+                    SwashContent::Color => {
+                        if image.data.len() != pixels * 4 {
+                            return Err(GpuError("invalid color glyph shadow mask".into()));
+                        }
+                        image.data.chunks_exact(4).map(|p| p[3]).collect()
+                    }
+                    SwashContent::SubpixelMask => return Err(GpuError(
+                        "text shadow subpixel glyph coverage requires explicit A8 rasterization"
+                            .into(),
+                    )),
+                };
+                let mask = text_shadow::blur(&alpha, p.width, p.height, sigma)
+                    .map_err(|e| GpuError(e.into()))?;
+                Some(self.upload_shadow_mask(mask, p.left, p.top, stats)?)
+            }
+        } else {
+            None
+        };
+        self.shadow_entries.insert(cache_key, result);
+        Ok(result)
     }
     fn glyph(
         &mut self,
@@ -6664,6 +6869,7 @@ pub mod assets;
 
 pub mod prepared;
 pub mod text;
+mod text_shadow;
 
 fn create_quad_pipelines(
     device: &wgpu::Device,

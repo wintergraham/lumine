@@ -1649,7 +1649,7 @@ pub(crate) fn rich_buffer_unshaped(
         while end < runs.len()
             && Some(end) != ellipsis_run
             && Some(index) != ellipsis_run
-            && runs[end].font == run.font
+            && runs[end].font.same_shape(&run.font)
             && runs[end].font_size == run.font_size
             && runs[end].range.start == runs[end - 1].range.end
         {
