@@ -23,6 +23,12 @@
       "upstreamPath": "src/core/SkGeometry.cpp",
       "localPath": "SkGeometry.cpp",
       "sha256": "1385aead3db61b80a6ed235b9bbeab1460dac38d7f7bacc3a42a1a19a3d62485"
+    },
+    {
+      "revision": "2466dcf3937437e217e7f284afe0e1aae15891ce",
+      "sourceURL": "https://skia.googlesource.com/skia/+/2466dcf3937437e217e7f284afe0e1aae15891ce/src/core/SkEdgeClipper.cpp",
+      "localPath": "SkEdgeClipper.cpp",
+      "sha256": "10deeacb03bd13d2fbf83cdb3f817272f76f52fe883daf9f043e3b4741748b7d"
     }
   ],
   "qualification": false,

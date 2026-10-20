@@ -24,17 +24,60 @@ unsafe extern "C" {
         output: *mut Span,
         capacity: usize,
     ) -> usize;
+    fn lumine_source_skia154_rrect_clipped(
+        left: f32,
+        top: f32,
+        width: f32,
+        height: f32,
+        radius: f32,
+        viewport_width: i32,
+        viewport_height: i32,
+        clip_left: i32,
+        clip_top: i32,
+        clip_right: i32,
+        clip_bottom: i32,
+        output: *mut Span,
+        capacity: usize,
+    ) -> usize;
 }
 #[derive(Default)]
 struct Cache {
-    values: HashMap<[u32; 7], Arc<Vec<Span>>>,
+    values: HashMap<[u32; 12], Arc<Vec<Span>>>,
     bytes: usize,
 }
 thread_local! { static CACHE: RefCell<Cache> = RefCell::new(Cache::default()); }
 
 pub(super) fn spans(rect: [f32; 4], radius: f32, viewport: [u32; 2]) -> Option<Arc<Vec<Span>>> {
+    spans_impl(rect, radius, viewport, None)
+}
+
+pub(super) fn spans_clipped(
+    rect: [f32; 4],
+    radius: f32,
+    viewport: [u32; 2],
+    clip: [i32; 4],
+) -> Option<Arc<Vec<Span>>> {
+    spans_impl(rect, radius, viewport, Some(clip))
+}
+
+fn spans_impl(
+    rect: [f32; 4],
+    radius: f32,
+    viewport: [u32; 2],
+    clipping: Option<[i32; 4]>,
+) -> Option<Arc<Vec<Span>>> {
     if !rect.into_iter().chain([radius]).all(f32::is_finite)
         || viewport.into_iter().any(|v| v == 0 || v > 8191)
+    {
+        return None;
+    }
+    let clip = clipping.unwrap_or([0, 0, viewport[0] as i32, viewport[1] as i32]);
+    if clip[0] < 0
+        || clip[1] < 0
+        || clip[2] > viewport[0] as i32
+        || clip[3] > viewport[1] as i32
+        || clip[2] <= clip[0]
+        || clip[3] <= clip[1]
     {
         return None;
     }
@@ -46,6 +89,11 @@ pub(super) fn spans(rect: [f32; 4], radius: f32, viewport: [u32; 2]) -> Option<A
         radius.to_bits(),
         viewport[0],
         viewport[1],
+        clip[0] as u32,
+        clip[1] as u32,
+        clip[2] as u32,
+        clip[3] as u32,
+        u32::from(clipping.is_some()),
     ];
     CACHE.with(|cache| {
         if let Some(spans) = cache.borrow().values.get(&key) {
@@ -54,6 +102,23 @@ pub(super) fn spans(rect: [f32; 4], radius: f32, viewport: [u32; 2]) -> Option<A
         // Two calls keep the ABI allocation bounded and avoid handing C++ any
         // Rust allocator ownership. Unsupported geometry returns zero.
         let invoke = |out, capacity| unsafe {
+            if clipping.is_some() {
+                return lumine_source_skia154_rrect_clipped(
+                    rect[0],
+                    rect[1],
+                    rect[2],
+                    rect[3],
+                    radius,
+                    viewport[0] as i32,
+                    viewport[1] as i32,
+                    clip[0],
+                    clip[1],
+                    clip[2],
+                    clip[3],
+                    out,
+                    capacity,
+                );
+            }
             lumine_source_skia154_rrect(
                 rect[0],
                 rect[1],

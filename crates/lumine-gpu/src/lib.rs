@@ -80,7 +80,7 @@ pub enum BlurAlgorithm {
 /// Select only when the independent source backend is Chromium/Skia CPU N32.
 /// This preserves the default path except source-pinned constant fills and
 /// analytic rims over a proven opaque backdrop. It does not qualify a backend
-/// or cover transparent destinations, isolated opacity, or partial AA clips.
+/// or cover transparent destinations, isolated opacity, or unsupported AA clips.
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SourceFillCompositing {
     #[default]
@@ -3330,7 +3330,7 @@ impl GpuRenderer {
             if item.transform.inverse().is_none() {
                 continue;
             }
-            let (geometry_offset, geometry_hash) = self.geometry.item(&item, self.scale)?;
+            let (mut geometry_offset, mut geometry_hash) = self.geometry.item(&item, self.scale)?;
             let node_clip = if geometry_offset == 0
                 && !item.isolated
                 && matches!(item.kind, NodeKind::Text { .. } | NodeKind::RichText { .. })
@@ -4195,7 +4195,7 @@ impl GpuRenderer {
                 if diagnostic_source_fills || item.source_paint_capability.is_some_and(|cap| {
                     cap.policy == lumine::source_paint::SourcePaintPolicy::SkiaSoftwareSrgb8OpaqueBackdrop
                 }) {
-                    source_fill_paint::resolve_interior(
+                    let source_clips_resolved = source_fill_paint::resolve_interior(
                         &mut quads,
                         start,
                         &draws,
@@ -4206,6 +4206,14 @@ impl GpuRenderer {
                         self.background,
                         viewport,
                     );
+                    if source_clips_resolved {
+                        // The bounded native source resolver evaluated every
+                        // ancestor clip before returning true. Its emitted
+                        // opaque device-pixel runs already include that
+                        // coverage and must not receive native SDF AA again.
+                        geometry_offset = 0;
+                        geometry_hash = 0;
+                    }
                 }
                 // Native/unmarked draws still participate in the actual ordered
                 // backdrop proof, and can block a later source-root correction.

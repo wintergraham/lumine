@@ -12,6 +12,9 @@
 #include <cstdlib>
 #include <climits>
 #include <iterator>
+#include <array>
+#include <cstring>
+#include <optional>
 using SkFixed=int32_t;using SkFDot6=int32_t;using SkScalar=float;using SkAlpha=uint8_t;
 #define SkASSERT(condition) ((void)0)
 #define SkDEBUGCODE(x)
@@ -1472,15 +1475,332 @@ END_WALK:;
 static void update_next_next_y(SkFixed y, SkFixed nextY, SkFixed* nextNextY) {
     *nextNextY = y > nextY && y < *nextNextY ? y : *nextNextY;
 }
+// Bounded rrect-only compatibility for the original clipping functions.
+// Quarter conic subdivisions are monotonic in both axes; cubic/general path
+// parsing is intentionally outside this ABI.
+#define SkASSERTF(...) ((void)0)
+#define SK_Scalar1 1.f
+#define SkIsNaN std::isnan
+#define SkIsFinite std::isfinite
+#define SkDoubleToScalar float
+struct SkRect {float fLeft,fTop,fRight,fBottom;};
+struct float2 {
+ float x,y;
+ explicit float2(float s):x(s),y(s){}
+ float2(float a,float b):x(a),y(b){}
+};
+float2 operator+(float2 a,float2 b){return {a.x+b.x,a.y+b.y};}
+float2 operator-(float2 a,float2 b){return {a.x-b.x,a.y-b.y};}
+float2 operator*(float2 a,float2 b){return {a.x*b.x,a.y*b.y};}
+float2 from_point(SkPoint a){return {a.fX,a.fY};}
+SkPoint to_point(float2 a){return {a.x,a.y};}
+int valid_unit_divide(SkScalar numer, SkScalar denom, SkScalar* ratio) {
+    SkASSERT(ratio);
+
+    if (numer < 0) {
+        numer = -numer;
+        denom = -denom;
+    }
+
+    if (denom == 0 || numer == 0 || numer >= denom) {
+        return 0;
+    }
+
+    SkScalar r = numer / denom;
+    if (SkIsNaN(r)) {
+        return 0;
+    }
+    SkASSERTF(r >= 0 && r < SK_Scalar1, "numer %f, denom %f, r %f", numer, denom, r);
+    if (r == 0) { // catch underflow if numer <<<< denom
+        return 0;
+    }
+    *ratio = r;
+    return 1;
+}
+
+// Just returns its argument, but makes it easy to set a break-point to know when
+// SkFindUnitQuadRoots is going to return 0 (an error).
+int return_check_zero(int value) {
+    if (value == 0) {
+        return 0;
+    }
+    return value;
+}
+
+int SkFindUnitQuadRoots(SkScalar A, SkScalar B, SkScalar C, SkScalar roots[2]) {
+    SkASSERT(roots);
+
+    if (A == 0) {
+        return return_check_zero(valid_unit_divide(-C, B, roots));
+    }
+
+    SkScalar* r = roots;
+
+    // use doubles so we don't overflow temporarily trying to compute R
+    double dr = (double)B * B - 4 * (double)A * C;
+    if (dr < 0) {
+        return return_check_zero(0);
+    }
+    dr = sqrt(dr);
+    SkScalar R = SkDoubleToScalar(dr);
+    if (!SkIsFinite(R)) {
+        return return_check_zero(0);
+    }
+
+    SkScalar Q = (B < 0) ? -(B-R)/2 : -(B+R)/2;
+    r += valid_unit_divide(Q, A, r);
+    r += valid_unit_divide(C, Q, r);
+    if (r - roots == 2) {
+        if (roots[0] > roots[1]) {
+            using std::swap;
+            swap(roots[0], roots[1]);
+        } else if (roots[0] == roots[1]) { // nearly-equal?
+            r -= 1; // skip the double root
+        }
+    }
+    return return_check_zero((int)(r - roots));
+}
+static inline float2 interp(const float2& v0,
+                            const float2& v1,
+                            const float2& t) {
+    return v0 + (v1 - v0) * t;
+}
+
+void SkChopQuadAt(const SkPoint src[3], SkPoint dst[5], SkScalar t) {
+    SkASSERT(t > 0 && t < SK_Scalar1);
+
+    float2 p0 = from_point(src[0]);
+    float2 p1 = from_point(src[1]);
+    float2 p2 = from_point(src[2]);
+    float2 tt(t);
+
+    float2 p01 = interp(p0, p1, tt);
+    float2 p12 = interp(p1, p2, tt);
+
+    dst[0] = to_point(p0);
+    dst[1] = to_point(p01);
+    dst[2] = to_point(interp(p01, p12, tt));
+    dst[3] = to_point(p12);
+    dst[4] = to_point(p2);
+}
+
+struct SkEdgeClipper {
+ std::vector<std::array<SkPoint,3>> quads;
+ std::vector<std::array<SkPoint,2>> lines;
+ bool canCullToTheRight(){return true;}
+ void appendVLine(float x,float y0,float y1,bool reverse){
+  if(reverse)std::swap(y0,y1);
+  lines.push_back({SkPoint{x,y0},SkPoint{x,y1}});
+ }
+ void appendQuad(const SkPoint p[3],bool reverse){
+  quads.push_back({p[reverse?2:0],p[1],p[reverse?0:2]});
+ }
+ void clipMonoQuad(const SkPoint[],const SkRect&);
+};
+static inline void clamp_le(SkScalar& value, SkScalar max) {
+    if (value > max) {
+        value = max;
+    }
+}
+
+static inline void clamp_ge(SkScalar& value, SkScalar min) {
+    if (value < min) {
+        value = min;
+    }
+}
+
+/*  src[] must be monotonic in Y. This routine copies src into dst, and sorts
+ it to be increasing in Y. If it had to reverse the order of the points,
+ it returns true, otherwise it returns false
+ */
+static bool sort_increasing_Y(SkPoint dst[], const SkPoint src[], int count) {
+    // we need the data to be monotonically increasing in Y
+    if (src[0].fY > src[count - 1].fY) {
+        for (int i = 0; i < count; i++) {
+            dst[i] = src[count - i - 1];
+        }
+        return true;
+    } else {
+        memcpy(dst, src, count * sizeof(SkPoint));
+        return false;
+    }
+}
+static bool chopMonoQuadAt(SkScalar c0, SkScalar c1, SkScalar c2,
+                           SkScalar target, SkScalar* t) {
+    /* Solve F(t) = y where F(t) := [0](1-t)^2 + 2[1]t(1-t) + [2]t^2
+     *  We solve for t, using quadratic equation, hence we have to rearrange
+     * our cooefficents to look like At^2 + Bt + C
+     */
+    SkScalar A = c0 - c1 - c1 + c2;
+    SkScalar B = 2*(c1 - c0);
+    SkScalar C = c0 - target;
+
+    SkScalar roots[2];  // we only expect one, but make room for 2 for safety
+    int count = SkFindUnitQuadRoots(A, B, C, roots);
+    if (count) {
+        *t = roots[0];
+        return true;
+    }
+    return false;
+}
+
+static bool chopMonoQuadAtY(SkPoint pts[3], SkScalar y, SkScalar* t) {
+    return chopMonoQuadAt(pts[0].fY, pts[1].fY, pts[2].fY, y, t);
+}
+
+static bool chopMonoQuadAtX(SkPoint pts[3], SkScalar x, SkScalar* t) {
+    return chopMonoQuadAt(pts[0].fX, pts[1].fX, pts[2].fX, x, t);
+}
+
+// Modify pts[] in place so that it is clipped in Y to the clip rect
+static void chop_quad_in_Y(SkPoint pts[3], const SkRect& clip) {
+    SkScalar t;
+    SkPoint tmp[5]; // for SkChopQuadAt
+
+    // are we partially above
+    if (pts[0].fY < clip.fTop) {
+        if (chopMonoQuadAtY(pts, clip.fTop, &t)) {
+            // take the 2nd chopped quad
+            SkChopQuadAt(pts, tmp, t);
+            // clamp to clean up imprecise numerics in the chop
+            tmp[2].fY = clip.fTop;
+            clamp_ge(tmp[3].fY, clip.fTop);
+
+            pts[0] = tmp[2];
+            pts[1] = tmp[3];
+        } else {
+            // if chopMonoQuadAtY failed, then we may have hit inexact numerics
+            // so we just clamp against the top
+            for (int i = 0; i < 3; i++) {
+                if (pts[i].fY < clip.fTop) {
+                    pts[i].fY = clip.fTop;
+                }
+            }
+        }
+    }
+
+    // are we partially below
+    if (pts[2].fY > clip.fBottom) {
+        if (chopMonoQuadAtY(pts, clip.fBottom, &t)) {
+            SkChopQuadAt(pts, tmp, t);
+            // clamp to clean up imprecise numerics in the chop
+            clamp_le(tmp[1].fY, clip.fBottom);
+            tmp[2].fY = clip.fBottom;
+
+            pts[1] = tmp[1];
+            pts[2] = tmp[2];
+        } else {
+            // if chopMonoQuadAtY failed, then we may have hit inexact numerics
+            // so we just clamp against the bottom
+            for (int i = 0; i < 3; i++) {
+                if (pts[i].fY > clip.fBottom) {
+                    pts[i].fY = clip.fBottom;
+                }
+            }
+        }
+    }
+}
+
+// srcPts[] must be monotonic in X and Y
+void SkEdgeClipper::clipMonoQuad(const SkPoint srcPts[3], const SkRect& clip) {
+    SkPoint pts[3];
+    bool reverse = sort_increasing_Y(pts, srcPts, 3);
+
+    // are we completely above or below
+    if (pts[2].fY <= clip.fTop || pts[0].fY >= clip.fBottom) {
+        return;
+    }
+
+    // Now chop so that pts is contained within clip in Y
+    chop_quad_in_Y(pts, clip);
+
+    if (pts[0].fX > pts[2].fX) {
+        using std::swap;
+        swap(pts[0], pts[2]);
+        reverse = !reverse;
+    }
+    SkASSERT(pts[0].fX <= pts[1].fX);
+    SkASSERT(pts[1].fX <= pts[2].fX);
+
+    // Now chop in X has needed, and record the segments
+
+    if (pts[2].fX <= clip.fLeft) {  // wholly to the left
+        this->appendVLine(clip.fLeft, pts[0].fY, pts[2].fY, reverse);
+        return;
+    }
+    if (pts[0].fX >= clip.fRight) {  // wholly to the right
+        if (!this->canCullToTheRight()) {
+            this->appendVLine(clip.fRight, pts[0].fY, pts[2].fY, reverse);
+        }
+        return;
+    }
+
+    SkScalar t;
+    SkPoint tmp[5]; // for SkChopQuadAt
+
+    // are we partially to the left
+    if (pts[0].fX < clip.fLeft) {
+        if (chopMonoQuadAtX(pts, clip.fLeft, &t)) {
+            SkChopQuadAt(pts, tmp, t);
+            this->appendVLine(clip.fLeft, tmp[0].fY, tmp[2].fY, reverse);
+            // clamp to clean up imprecise numerics in the chop
+            tmp[2].fX = clip.fLeft;
+            clamp_ge(tmp[3].fX, clip.fLeft);
+
+            pts[0] = tmp[2];
+            pts[1] = tmp[3];
+        } else {
+            // if chopMonoQuadAtY failed, then we may have hit inexact numerics
+            // so we just clamp against the left
+            this->appendVLine(clip.fLeft, pts[0].fY, pts[2].fY, reverse);
+            return;
+        }
+    }
+
+    // are we partially to the right
+    if (pts[2].fX > clip.fRight) {
+        if (chopMonoQuadAtX(pts, clip.fRight, &t)) {
+            SkChopQuadAt(pts, tmp, t);
+            // clamp to clean up imprecise numerics in the chop
+            clamp_le(tmp[1].fX, clip.fRight);
+            tmp[2].fX = clip.fRight;
+
+            this->appendQuad(tmp, reverse);
+            this->appendVLine(clip.fRight, tmp[2].fY, tmp[4].fY, reverse);
+        } else {
+            // if chopMonoQuadAtY failed, then we may have hit inexact numerics
+            // so we just clamp against the right
+            pts[1].fX = std::min(pts[1].fX, clip.fRight);
+            pts[2].fX = std::min(pts[2].fX, clip.fRight);
+            this->appendQuad(pts, reverse);
+        }
+    } else {    // wholly inside the clip
+        this->appendQuad(pts, reverse);
+    }
+}
+
 // Cubics are unreachable: this ABI constructs only rrect lines and conics.
 bool SkAnalyticCubicEdge::updateCubic(){return false;}
 struct Edges {
+ const SkRect* clip;
+ explicit Edges(const SkRect* bounds):clip(bounds){}
  std::vector<SkAnalyticEdge*> list;
  std::vector<SkAnalyticQuadraticEdge*> quads;
  std::vector<SkAnalyticEdge*> lines;
  ~Edges(){for(auto*p:quads)delete p;for(auto*p:lines)delete p;}
- void quad(SkPoint a,SkPoint b,SkPoint c){auto*q=new SkAnalyticQuadraticEdge{};quads.push_back(q);SkPoint p[]={a,b,c};if(q->setQuadratic(p))list.push_back(q);}
- void line(SkPoint a,SkPoint b){auto*q=new SkAnalyticEdge{};lines.push_back(q);if(q->setLine(a,b))list.push_back(q);}
+ void raw_quad(SkPoint a,SkPoint b,SkPoint c){auto*q=new SkAnalyticQuadraticEdge{};quads.push_back(q);SkPoint p[]={a,b,c};if(q->setQuadratic(p))list.push_back(q);}
+ void quad(SkPoint a,SkPoint b,SkPoint c){
+  if(!clip){raw_quad(a,b,c);return;}
+  SkPoint p[]={a,b,c};SkEdgeClipper clipped;clipped.clipMonoQuad(p,*clip);
+  for(auto q:clipped.quads)raw_quad(q[0],q[1],q[2]);
+  for(auto l:clipped.lines)line(l[0],l[1]);
+ }
+ // Only vertical rrect sides reach this method. Clamping their endpoint
+ // coordinates is exactly the vertical specialization of SkLineClipper.
+ void line(SkPoint a,SkPoint b){
+  if(clip){a.fX=std::clamp(a.fX,clip->fLeft,clip->fRight);b.fX=std::clamp(b.fX,clip->fLeft,clip->fRight);a.fY=std::clamp(a.fY,clip->fTop,clip->fBottom);b.fY=std::clamp(b.fY,clip->fTop,clip->fBottom);}
+  auto*q=new SkAnalyticEdge{};lines.push_back(q);if(q->setLine(a,b))list.push_back(q);
+ }
  // SkGeometry.cpp SkConic::chop and subdivide, with scalar float2 lanes.
  void conic(SkPoint a,SkPoint b,SkPoint c,float w,int level){
   if(level==0){quad(a,b,c);return;}
@@ -1506,9 +1826,10 @@ struct Edges {
  }
 };
 } // namespace ask_skia154
-extern "C" size_t lumine_source_skia154_rrect(
+static size_t rrect_impl(
  float left,float top,float width,float height,float radius,
- int viewport_width,int viewport_height,ask_skia154::Span* output,size_t capacity) noexcept {
+ int viewport_width,int viewport_height,const ask_skia154::SkRect* clip,
+ ask_skia154::Span* output,size_t capacity) noexcept {
  using namespace ask_skia154;
  // The original scan algorithm uses 16.16 coordinates and short run lengths.
  // Out-of-slice geometry explicitly falls back; it never reaches unsafe casts.
@@ -1520,7 +1841,8 @@ extern "C" size_t lumine_source_skia154_rrect(
  try {
   float right=left+width,bottom=top+height;
   radius=std::min(radius,std::min(width,height)*0.5f);
-  Edges edges;
+  const bool contained=!clip||(clip->fLeft<=left&&clip->fTop<=top&&clip->fRight>=right&&clip->fBottom>=bottom);
+  Edges edges(contained?nullptr:clip);
   if(radius>0){
    edges.corner({left,top+radius},{left,top},{left+radius,top});
    edges.corner({right-radius,top},{right,top},{right,top+radius});
@@ -1536,10 +1858,27 @@ extern "C" size_t lumine_source_skia154_rrect(
   tail.fPrev=edges.list.back();
   Context context;context.width=viewport_width;context.height=viewport_height;
   AdditiveBlitter real(context,true),additive(context,false,&real);
-  aaa_walk_convex_edges(&head,&additive,floorf(top),ceilf(bottom),0,SkIntToFixed(viewport_width),false);
+  int start=std::max(int(floorf(top)),clip?int(clip->fTop):0);
+  int stop=std::min(int(ceilf(bottom)),clip?int(clip->fBottom):viewport_height);
+  aaa_walk_convex_edges(&head,&additive,start,stop,
+   SkIntToFixed(clip?int(clip->fLeft):0),SkIntToFixed(clip?int(clip->fRight):viewport_width),false);
   additive.flush();
   if(context.overflow)return 0;
   if(output&&capacity>=context.spans.size())std::copy(context.spans.begin(),context.spans.end(),output);
   return context.spans.size();
  }catch(...){return 0;}
+}
+extern "C" size_t lumine_source_skia154_rrect(
+ float left,float top,float width,float height,float radius,
+ int viewport_width,int viewport_height,ask_skia154::Span* output,size_t capacity) noexcept {
+ return rrect_impl(left,top,width,height,radius,viewport_width,viewport_height,nullptr,output,capacity);
+}
+extern "C" size_t lumine_source_skia154_rrect_clipped(
+ float left,float top,float width,float height,float radius,
+ int viewport_width,int viewport_height,int clip_left,int clip_top,int clip_right,int clip_bottom,
+ ask_skia154::Span* output,size_t capacity) noexcept {
+ if(clip_left<0||clip_top<0||clip_right>viewport_width||clip_bottom>viewport_height||
+    clip_right<=clip_left||clip_bottom<=clip_top)return 0;
+ ask_skia154::SkRect clip{float(clip_left),float(clip_top),float(clip_right),float(clip_bottom)};
+ return rrect_impl(left,top,width,height,radius,viewport_width,viewport_height,&clip,output,capacity);
 }

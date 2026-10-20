@@ -262,7 +262,7 @@ fn opaque_partial_backdrops_resolve_per_pixel_and_unknown_translucency_falls_bac
 }
 
 #[test]
-fn rounded_ancestor_supports_only_proven_full_coverage() {
+fn rounded_ancestor_supports_proven_full_coverage() {
     let _serial = serial();
     let mut gpu = gpu();
     let mut scene = scene();
@@ -287,6 +287,37 @@ fn rounded_ancestor_supports_only_proven_full_coverage() {
         pixel(&pixels(&mut gpu, &mut scene, true), 48, 32),
         [36, 38, 40, 255]
     );
+}
+
+#[test]
+fn unsupported_multiple_rounded_ancestors_keep_native_clip_coverage() {
+    let _serial = serial();
+    let mut gpu = gpu();
+    let mut scene = scene();
+    let mut parent = scene.root();
+    for _ in 0..2 {
+        let next = scene.append(
+            parent,
+            NodeKind::Panel {
+                layout: Layout::Overlay,
+                quad: QuadStyle {
+                    fill: Color(0, 0, 0, 0),
+                    radius: 8.,
+                    ..Default::default()
+                },
+            },
+            Style {
+                clip: true,
+                ..fixed(56., 30.)
+            },
+        );
+        scene.set_transform(next, Transform { x: 4., y: 4. });
+        parent = next;
+    }
+    let child = fill(&mut scene, parent, Color(169, 190, 230, 20));
+    scene.set_transform(child, Transform { x: -2., y: -2. });
+    let ordinary = pixels(&mut gpu, &mut scene, false);
+    assert_eq!(pixels(&mut gpu, &mut scene, true), ordinary);
 }
 
 #[test]

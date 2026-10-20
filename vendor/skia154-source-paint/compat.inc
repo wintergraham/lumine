@@ -8,6 +8,9 @@
 #include <cstdlib>
 #include <climits>
 #include <iterator>
+#include <array>
+#include <cstring>
+#include <optional>
 using SkFixed=int32_t;using SkFDot6=int32_t;using SkScalar=float;using SkAlpha=uint8_t;
 #define SkASSERT(condition) ((void)0)
 #define SkDEBUGCODE(x)

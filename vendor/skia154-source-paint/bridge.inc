@@ -1,12 +1,25 @@
 // Cubics are unreachable: this ABI constructs only rrect lines and conics.
 bool SkAnalyticCubicEdge::updateCubic(){return false;}
 struct Edges {
+ const SkRect* clip;
+ explicit Edges(const SkRect* bounds):clip(bounds){}
  std::vector<SkAnalyticEdge*> list;
  std::vector<SkAnalyticQuadraticEdge*> quads;
  std::vector<SkAnalyticEdge*> lines;
  ~Edges(){for(auto*p:quads)delete p;for(auto*p:lines)delete p;}
- void quad(SkPoint a,SkPoint b,SkPoint c){auto*q=new SkAnalyticQuadraticEdge{};quads.push_back(q);SkPoint p[]={a,b,c};if(q->setQuadratic(p))list.push_back(q);}
- void line(SkPoint a,SkPoint b){auto*q=new SkAnalyticEdge{};lines.push_back(q);if(q->setLine(a,b))list.push_back(q);}
+ void raw_quad(SkPoint a,SkPoint b,SkPoint c){auto*q=new SkAnalyticQuadraticEdge{};quads.push_back(q);SkPoint p[]={a,b,c};if(q->setQuadratic(p))list.push_back(q);}
+ void quad(SkPoint a,SkPoint b,SkPoint c){
+  if(!clip){raw_quad(a,b,c);return;}
+  SkPoint p[]={a,b,c};SkEdgeClipper clipped;clipped.clipMonoQuad(p,*clip);
+  for(auto q:clipped.quads)raw_quad(q[0],q[1],q[2]);
+  for(auto l:clipped.lines)line(l[0],l[1]);
+ }
+ // Only vertical rrect sides reach this method. Clamping their endpoint
+ // coordinates is exactly the vertical specialization of SkLineClipper.
+ void line(SkPoint a,SkPoint b){
+  if(clip){a.fX=std::clamp(a.fX,clip->fLeft,clip->fRight);b.fX=std::clamp(b.fX,clip->fLeft,clip->fRight);a.fY=std::clamp(a.fY,clip->fTop,clip->fBottom);b.fY=std::clamp(b.fY,clip->fTop,clip->fBottom);}
+  auto*q=new SkAnalyticEdge{};lines.push_back(q);if(q->setLine(a,b))list.push_back(q);
+ }
  // SkGeometry.cpp SkConic::chop and subdivide, with scalar float2 lanes.
  void conic(SkPoint a,SkPoint b,SkPoint c,float w,int level){
   if(level==0){quad(a,b,c);return;}
@@ -32,9 +45,10 @@ struct Edges {
  }
 };
 } // namespace ask_skia154
-extern "C" size_t lumine_source_skia154_rrect(
+static size_t rrect_impl(
  float left,float top,float width,float height,float radius,
- int viewport_width,int viewport_height,ask_skia154::Span* output,size_t capacity) noexcept {
+ int viewport_width,int viewport_height,const ask_skia154::SkRect* clip,
+ ask_skia154::Span* output,size_t capacity) noexcept {
  using namespace ask_skia154;
  // The original scan algorithm uses 16.16 coordinates and short run lengths.
  // Out-of-slice geometry explicitly falls back; it never reaches unsafe casts.
@@ -46,7 +60,8 @@ extern "C" size_t lumine_source_skia154_rrect(
  try {
   float right=left+width,bottom=top+height;
   radius=std::min(radius,std::min(width,height)*0.5f);
-  Edges edges;
+  const bool contained=!clip||(clip->fLeft<=left&&clip->fTop<=top&&clip->fRight>=right&&clip->fBottom>=bottom);
+  Edges edges(contained?nullptr:clip);
   if(radius>0){
    edges.corner({left,top+radius},{left,top},{left+radius,top});
    edges.corner({right-radius,top},{right,top},{right,top+radius});
@@ -62,10 +77,27 @@ extern "C" size_t lumine_source_skia154_rrect(
   tail.fPrev=edges.list.back();
   Context context;context.width=viewport_width;context.height=viewport_height;
   AdditiveBlitter real(context,true),additive(context,false,&real);
-  aaa_walk_convex_edges(&head,&additive,floorf(top),ceilf(bottom),0,SkIntToFixed(viewport_width),false);
+  int start=std::max(int(floorf(top)),clip?int(clip->fTop):0);
+  int stop=std::min(int(ceilf(bottom)),clip?int(clip->fBottom):viewport_height);
+  aaa_walk_convex_edges(&head,&additive,start,stop,
+   SkIntToFixed(clip?int(clip->fLeft):0),SkIntToFixed(clip?int(clip->fRight):viewport_width),false);
   additive.flush();
   if(context.overflow)return 0;
   if(output&&capacity>=context.spans.size())std::copy(context.spans.begin(),context.spans.end(),output);
   return context.spans.size();
  }catch(...){return 0;}
+}
+extern "C" size_t lumine_source_skia154_rrect(
+ float left,float top,float width,float height,float radius,
+ int viewport_width,int viewport_height,ask_skia154::Span* output,size_t capacity) noexcept {
+ return rrect_impl(left,top,width,height,radius,viewport_width,viewport_height,nullptr,output,capacity);
+}
+extern "C" size_t lumine_source_skia154_rrect_clipped(
+ float left,float top,float width,float height,float radius,
+ int viewport_width,int viewport_height,int clip_left,int clip_top,int clip_right,int clip_bottom,
+ ask_skia154::Span* output,size_t capacity) noexcept {
+ if(clip_left<0||clip_top<0||clip_right>viewport_width||clip_bottom>viewport_height||
+    clip_right<=clip_left||clip_bottom<=clip_top)return 0;
+ ask_skia154::SkRect clip{float(clip_left),float(clip_top),float(clip_right),float(clip_bottom)};
+ return rrect_impl(left,top,width,height,radius,viewport_width,viewport_height,&clip,output,capacity);
 }

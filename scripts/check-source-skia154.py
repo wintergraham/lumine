@@ -29,10 +29,16 @@ for command in commands:subprocess.run(command,check=True,cwd=root,capture_outpu
 records=[];skipped=[]
 for case in contract['cases']:
  nodes=case['nodes']
- if len(nodes)!=1 or case['background'][3]!=255 or nodes[0].get('opacity',1)!=1:
-  skipped.append({'id':case['id'],'reason':'CPU replay slice covers one ordinary primitive over a known opaque backdrop only.'});continue
- node=nodes[0];x,y,w,h=node['bounds'];left=math.floor(x*2+.5);top=math.floor(y*2+.5);right=math.floor((x+w)*2+.5);bottom=math.floor((y+h)*2+.5)
+ clipped=(len(nodes)==2 and nodes[0].get('clip') and nodes[1].get('parent')==nodes[0]['id'] and nodes[0]['color'][3]==255 and not nodes[1].get('clip'))
+ if (len(nodes)!=1 and not clipped) or case['background'][3]!=255 or any(node.get('opacity',1)!=1 for node in nodes):
+  skipped.append({'id':case['id'],'reason':'CPU replay covers one primitive over opaque background, optionally under one opaque-painted rounded clip.'});continue
+ node=nodes[-1];x,y,w,h=node['bounds']
+ if clipped:x+=nodes[0]['bounds'][0];y+=nodes[0]['bounds'][1]
+ left=math.floor(x*2+.5);top=math.floor(y*2+.5);right=math.floor((x+w)*2+.5);bottom=math.floor((y+h)*2+.5)
  values=[left,top,right-left,bottom-top,node['radius']*2,*node['color'],*case['background'][:3]]
+ if clipped:
+  parent=nodes[0];px,py,pw,ph=parent['bounds'];assert all(v*2==int(v*2) for v in [px,py,pw,ph])
+  values += [px*2,py*2,pw*2,ph*2,parent['radius']*2,*parent['color']]
  result=subprocess.run([str(binary),*map(str,values)],check=True,capture_output=True)
  path=source/case['premultiplied']['path'];assert sha(path)==case['premultiplied']['sha256'],'Original source plane changed'
  expected=path.read_bytes();assert len(result.stdout)==len(expected)==192*160*4

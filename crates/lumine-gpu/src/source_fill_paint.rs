@@ -172,26 +172,26 @@ pub(super) fn resolve_interior(
     scale: f32,
     background: Color,
     viewport: Rect,
-) {
-    if let Some(resolved) = resolve_analytic_opaque(
+) -> bool {
+    if let Some((resolved, clips_resolved)) = resolve_analytic_opaque(
         quads, start, draws, known, item, clip, scale, background, viewport,
     ) {
         quads.truncate(start as usize);
         quads.extend(resolved);
-        return;
+        return clips_resolved;
     }
     if quads.len() != start as usize + 1 {
-        return;
+        return false;
     }
     let q = quads[start as usize];
     let Some(source) = bytes(q.color).filter(|c| c[3] > 0 && c[3] < 255) else {
-        return;
+        return false;
     };
     let Some(region) = core(q, item, clip, scale) else {
-        return;
+        return false;
     };
     let Some(destination) = backdrop(region, draws, quads, known, background, viewport) else {
-        return;
+        return false;
     };
     let rgb = source_fill::over_opaque(source, destination);
     quads[start as usize] = Quad {
@@ -208,13 +208,15 @@ pub(super) fn resolve_interior(
             ..q
         });
     }
+    false
 }
 
 /// Source-pinned full coverage AND analytic rims over an independently known
 /// opaque destination. Every emitted quad replaces an entire device-pixel run;
 /// source coverage and integer blit dispatch have already been evaluated.
-/// Unknown/transparent destinations, layers and partial rounded clips remain
-/// explicit unsupported cases on the unchanged fallback path.
+/// A single supported rounded ancestor is clipped by the original source
+/// edge builder and AA clip merge. Unknown/transparent destinations, layers
+/// and unsupported ancestors remain on the unchanged fallback path.
 fn resolve_analytic_opaque(
     quads: &[Quad],
     start: u32,
@@ -225,7 +227,7 @@ fn resolve_analytic_opaque(
     scale: f32,
     background: Color,
     viewport: Rect,
-) -> Option<Vec<Quad>> {
+) -> Option<(Vec<Quad>, bool)> {
     if quads.len() != start as usize + 1 || !eligible(item) || !scale.is_finite() || scale <= 0. {
         return None;
     }
@@ -276,9 +278,14 @@ fn resolve_analytic_opaque(
         (right - left) / scale,
         (bottom - top) / scale,
     );
-    if !contains(clip, painted) || !contains(viewport, painted) {
+    if !contains(viewport, painted) {
         return None;
     }
+    let pixel_viewport = [
+        (viewport.width * scale).round() as u32,
+        (viewport.height * scale).round() as u32,
+    ];
+    let mut clipped = false;
     for parent in item.clip_regions.iter() {
         let inverse = parent.inverse;
         if inverse.a != 1.
@@ -312,17 +319,63 @@ fn resolve_analytic_opaque(
                 painted.height,
             ),
         ) {
-            return None;
+            clipped = true;
         }
     }
-    let spans = source_skia154::spans(
-        physical,
-        radius.max(0.) * scale,
-        [
-            (viewport.width * scale).round() as u32,
-            (viewport.height * scale).round() as u32,
-        ],
-    )?;
+    if !contains(clip, painted) {
+        clipped = true;
+    }
+    let clip_mask = if clipped {
+        // Resolve every ancestor before suppressing native clip geometry.
+        // Multiple clips, transforms, unequal radii and subpixel clip bounds
+        // remain unsupported. No descendant can bypass an unhandled clip.
+        if item.clip_regions.len() != 1 || item.fade_transform != Affine::IDENTITY {
+            return None;
+        }
+        let parent = &item.clip_regions[0];
+        if !parent.corners.iter().all(|r| *r == parent.corners[0]) {
+            return None;
+        }
+        let world = Rect::new(
+            parent.bounds.x - parent.inverse.tx,
+            parent.bounds.y - parent.inverse.ty,
+            parent.bounds.width,
+            parent.bounds.height,
+        );
+        let region = world.intersection(viewport)?;
+        if array(region) != array(clip) {
+            return None;
+        }
+        let physical_parent = [
+            world.x * scale,
+            world.y * scale,
+            world.width * scale,
+            world.height * scale,
+        ];
+        let clip_edges = [
+            clip.x * scale,
+            clip.y * scale,
+            (clip.x + clip.width) * scale,
+            (clip.y + clip.height) * scale,
+        ];
+        if !physical_parent
+            .into_iter()
+            .chain(clip_edges)
+            .all(|v| v.is_finite() && v.fract() == 0.)
+        {
+            return None;
+        }
+        let mask =
+            source_skia154::spans(physical_parent, parent.corners[0] * scale, pixel_viewport)?;
+        Some((mask, clip_edges.map(|v| v as i32)))
+    } else {
+        None
+    };
+    let spans = if let Some((_, edges)) = &clip_mask {
+        source_skia154::spans_clipped(physical, radius.max(0.) * scale, pixel_viewport, *edges)?
+    } else {
+        source_skia154::spans(physical, radius.max(0.) * scale, pixel_viewport)?
+    };
     let mut resolved: Vec<Quad> = Vec::new();
     let mut append = |x: i32, y: i32, width: i32, rgb: [u8; 3]| {
         let region = [
@@ -353,6 +406,36 @@ fn resolve_analytic_opaque(
         });
     };
     for span in spans.iter() {
+        if let Some((mask, _)) = &clip_mask {
+            for x in span.x..span.x + span.width {
+                let index = mask.partition_point(|s| s.y < span.y || (s.y == span.y && s.x <= x));
+                let coverage = index
+                    .checked_sub(1)
+                    .and_then(|i| mask.get(i))
+                    .filter(|s| s.y == span.y && x < s.x + s.width)
+                    .map_or(0, |s| s.coverage);
+                // Exact SkAAClipBlitter merge: SkMulDiv255Round. The wrapper
+                // emits ordinary AntiH runs, including an original H2 span.
+                let coverage = (span.coverage * coverage + 127) / 255;
+                if coverage == 0 {
+                    continue;
+                }
+                let region = Rect::new(
+                    x as f32 / scale,
+                    span.y as f32 / scale,
+                    1. / scale,
+                    1. / scale,
+                );
+                let destination = backdrop(region, draws, quads, known, background, viewport)?;
+                append(
+                    x,
+                    span.y,
+                    1,
+                    source_fill::over_opaque_coverage(source, destination, coverage as u8, false),
+                );
+            }
+            continue;
+        }
         let region = Rect::new(
             span.x as f32 / scale,
             span.y as f32 / scale,
@@ -397,7 +480,7 @@ fn resolve_analytic_opaque(
         }
     }
     drop(append);
-    (resolved.len() <= 65536).then_some(resolved)
+    (resolved.len() <= 65536).then_some((resolved, clip_mask.is_some()))
 }
 
 pub(super) fn remember_opaque(

@@ -48,6 +48,19 @@ and all rounded rims. Independently replaying the upstream source algorithm
 also matched the original transparent badge cases; transparent native
 composition is not implemented by this opaque-destination adapter.
 
+The bounded clipping ABI uses the pinned `SkEdgeClipper::clipMonoQuad` and
+`SkGeometry` quadratic roots/chop functions before analytic edge conversion,
+then the original AA clip coverage merge. It accepts one axis-aligned,
+uniform-radius ancestor with complete integer device-pixel bounds. Only after
+every actual ancestor has been evaluated may the draw suppress its original
+native geometry clip, avoiding duplicate native SDF coverage. Multiple clips,
+transforms, fades, unequal corners and subpixel clip bounds fail closed.
+Actual source-fill adapter CPU replay against the original clipped fixture
+matches every pixel; a duplicate-ancestor case preserves the original child
+quad and does not authorize clip suppression. The reusable C++ ABI/Rust replay
+now covers eleven original cases with zero differing pixels. Actual GPU
+verification remains required.
+
 Additional source-only diagnostic captures exposed four low-coverage corner
 pixels for an opaque physical-radius-16 shape. Investigation found that the
 subset omitted the original `RunBasedAdditiveBlitter::flush` call to
@@ -60,7 +73,7 @@ operation, with no pixel exception or fitted correction. CPU replay still
 does not establish GPU parity or general source qualification.
 
 The code is an unqualified candidate until actual GPU checks pass. Transparent
-destinations, isolated opacity/layers, partial rounded ancestor clips, small
+destinations, isolated opacity/layers, unsupported ancestor clips, small
 mask-backed source shapes (width<=32 and mask<=1024 bytes), unequal corner
 radii, borders/filters/transforms and unknown destinations retain the existing
 path. Those source differences remain strict failures. No production host v1
