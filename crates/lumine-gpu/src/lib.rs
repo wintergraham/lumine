@@ -26,6 +26,7 @@ mod native_surface;
 mod paint_geometry;
 mod procedural;
 pub mod profiling;
+pub mod renderer_info;
 mod draw_diagnostics;
 mod source_fill;
 mod source_fill_paint;
