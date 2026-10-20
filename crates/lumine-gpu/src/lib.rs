@@ -114,21 +114,23 @@ impl Default for GlyphEvidenceLimits {
     }
 }
 
-/// Bytes from `FontSystem::get_font(id, weight).data()`, copied once per pair.
+/// Bytes from the actual retained font instance, copied once per instance.
 /// The host must hash these bytes with SHA-256 and bind the collection index.
 #[derive(Debug)]
 pub struct NativeFontEvidence {
     pub font_id: cosmic_text::fontdb::ID,
+    /// Process-local exact retained instance identity; zero is the legacy path.
+    pub font_instance_id: u64,
     pub weight: u16,
     pub collection_index: u32,
     pub bytes: Vec<u8>,
-    /// The current cosmic-text API does not expose the actual shaper/scaler
-    /// coordinates. None means strictly unknown, including for static fonts.
+    /// Actual clamped design coordinates in original font axis order.
+    /// Static fonts have no variation coordinates and retain None.
     pub variation_coordinates: Option<Vec<([u8; 4], f32)>>,
     /// Directly read from the actual Harfrust instance, raw F2Dot14 in fvar order.
     pub shaping_normalized_coords: Vec<i16>,
-    /// Derived from the same clamped weight inputs used by cosmic-text's scaler.
-    /// None means no wght axis, so no coordinate override reaches the scaler.
+    /// Exact Harfrust coordinates also passed directly to the Swash scaler.
+    /// None means a static font with no variation axes.
     pub raster_normalized_coords: Option<Vec<i16>>,
     pub variation_axes: Vec<NativeVariationAxis>,
 }
@@ -375,11 +377,12 @@ impl GlyphEvidenceCollector {
             .frame
             .fonts
             .iter()
-            .position(|f| f.font_id == key.font_id && f.weight == key.font_weight.0)
+            .position(|f| f.font_id == key.font_id && f.weight == key.font_weight.0
+                && f.font_instance_id == key.font_instance_id)
         {
             return Some(index);
         }
-        let Some(font) = fonts.get_font(key.font_id, key.font_weight) else {
+        let Some(font) = fonts.get_font_instance(key.font_id, key.font_weight, key.font_instance_id) else {
             self.fail("actual glyph font unavailable");
             return None;
         };
@@ -395,25 +398,22 @@ impl GlyphEvidenceCollector {
         }
         let index = self.frame.fonts.len();
         self.font_bytes += font.data().len();
-        let shaping_normalized_coords = font.shaper().normalized_coords().iter()
-            .map(|coord| coord.to_bits()).collect();
+        let shaping_normalized_coords = font.normalized_coords().to_vec();
         let swash_font = font.as_swash();
-        let wght = u32::from_be_bytes(*b"wght");
-        let raster_normalized_coords = swash_font.variations().find_by_tag(wght).map(|axis| {
-            swash_font.variations().normalized_coords([(
-                wght, f32::from(key.font_weight.0).clamp(axis.min_value(), axis.max_value()),
-            )]).collect()
-        });
-        let variation_axes = swash_font.variations().map(|axis| NativeVariationAxis {
+        let variation_axes: Vec<_> = swash_font.variations().map(|axis| NativeVariationAxis {
             index: usize::from(axis.index()), tag: axis.tag().to_be_bytes(),
             min: axis.min_value(), default: axis.default_value(), max: axis.max_value(),
         }).collect();
+        let variable = !variation_axes.is_empty();
+        let variation_coordinates = variable.then(|| font.variation_coordinates().to_vec());
+        let raster_normalized_coords = variable.then(|| shaping_normalized_coords.clone());
         self.frame.fonts.push(NativeFontEvidence {
             font_id: key.font_id,
+            font_instance_id: key.font_instance_id,
             weight: key.font_weight.0,
             collection_index: face.index,
             bytes: font.data().to_vec(),
-            variation_coordinates: None,
+            variation_coordinates,
             shaping_normalized_coords,
             raster_normalized_coords,
             variation_axes,
@@ -1272,19 +1272,39 @@ struct Glyph {
 }
 impl Glyph {
     fn at(&self, origin: (f32, f32)) -> (CacheKey, i32, i32) {
-        CacheKey::new(
+        let (mut key, x, y) = CacheKey::new(
             self.key.font_id,
             self.key.glyph_id,
             f32::from_bits(self.key.font_size_bits),
             (self.x + origin.0, self.y + origin.1),
             self.key.font_weight,
             self.key.flags,
-        )
+        );
+        // Placement changes cannot select another optical/variation instance.
+        key.font_instance_id = self.key.font_instance_id;
+        (key, x, y)
     }
 }
 #[cfg(test)]
 mod glyph_baseline_tests {
     use super::*;
+    #[test]
+    fn rephasing_preserves_exact_retained_variation_instance() {
+        let (mut key, _, _) = CacheKey::new(
+            cosmic_text::fontdb::ID::dummy(), 1, 17., (0.,0.),
+            cosmic_text::Weight::NORMAL, cosmic_text::CacheKeyFlags::empty(),
+        );
+        key.font_instance_id = 71;
+        let glyph = Glyph { key, color: None, run: 0, x: 2.25, y: 17. };
+        for phase in [(0.,0.),(0.25,0.5),(-1.5,-17.5)] {
+            let (actual, _, _) = glyph.at(phase);
+            assert_eq!(actual.font_instance_id,71);
+            assert_eq!(actual.font_id,key.font_id);
+            assert_eq!(actual.font_weight,key.font_weight);
+            assert_eq!(actual.font_size_bits,key.font_size_bits);
+            assert_eq!(actual.flags,key.flags);
+        }
+    }
     #[test]
     fn rounded_logical_baselines_preserve_scaled_origin_phase() {
         let (key, _, _) = CacheKey::new(
