@@ -1,8 +1,17 @@
 //! Shared, opt-in CPU-source constant fills. Expectations come from actual
 //! independent Linux Chromium154 software readbacks, never this GPU renderer.
 //! AA rims and unproven/layered paint remain strict and retain existing pixels.
+use lumine::source_paint::{SourcePaintCapability, SourcePaintPolicy, SourcePaintScope};
 use lumine::{affine::Affine, scene::*};
 use lumine_gpu::{GpuRenderer, SourceFillCompositing};
+
+fn source_scope(owner: u64) -> SourcePaintScope {
+    SourcePaintScope::Capability(SourcePaintCapability {
+        owner: std::num::NonZeroU64::new(owner).unwrap(),
+        contract_sha256: [owner as u8; 32],
+        policy: SourcePaintPolicy::SkiaSoftwareSrgb8OpaqueBackdrop,
+    })
+}
 
 fn serial() -> std::sync::MutexGuard<'static, ()> {
     static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
@@ -51,6 +60,94 @@ fn pixels(gpu: &mut GpuRenderer, scene: &mut Scene, enabled: bool) -> Vec<u8> {
 }
 fn pixel(bytes: &[u8], x: usize, y: usize) -> &[u8] {
     &bytes[(y * 192 + x) * 4..(y * 192 + x + 1) * 4]
+}
+
+#[test]
+fn source_root_scope_preserves_native_chrome_and_retained_toggle() {
+    let _serial = serial();
+    let mut gpu = gpu();
+    let mut scene = scene();
+    let root = scene.root();
+    let source = scene.append(root, NodeKind::Container(Layout::Overlay), fixed(96., 80.));
+    fill(&mut scene, source, Color(169, 190, 230, 20));
+    let chrome = fill(&mut scene, root, Color(169, 190, 230, 20));
+    scene.set_transform(chrome, Transform { x: 8., y: 40. });
+    let error = fill(&mut scene, root, Color(169, 190, 230, 20));
+    scene.set_transform(error, Transform { x: 64., y: 8. });
+    let ordinary = pixels(&mut gpu, &mut scene, false);
+    scene.set_source_paint_scope(source, Some(source_scope(1)));
+    let scoped = pixels(&mut gpu, &mut scene, false);
+    assert_eq!(pixel(&scoped, 48, 32), [36, 38, 40, 255]);
+    for y in 0..160 {
+        for x in 0..192 {
+            if x >= 112 || y >= 64 {
+                assert_eq!(
+                    pixel(&scoped, x, y),
+                    pixel(&ordinary, x, y),
+                    "native ({x},{y})"
+                );
+            }
+        }
+    }
+    // The explicit renderer-wide diagnostic switch remains available, and is
+    // separately observable from the default per-source-root behavior.
+    let diagnostic = pixels(&mut gpu, &mut scene, true);
+    assert_eq!(pixel(&diagnostic, 48, 96), [36, 38, 40, 255]);
+    assert_eq!(pixels(&mut gpu, &mut scene, false), scoped);
+    scene.set_source_paint_scope(source, None);
+    assert_eq!(pixels(&mut gpu, &mut scene, false), ordinary);
+}
+
+#[test]
+fn source_root_backdrop_still_observes_unmarked_native_draws() {
+    let _serial = serial();
+    let mut gpu = gpu();
+    for partial in [false, true] {
+        let mut scene = scene();
+        let root = scene.root();
+        let native = scene.append(
+            root,
+            NodeKind::Rect(Color(64, 128, 192, 255)),
+            if partial {
+                fixed(6., 6.)
+            } else {
+                fixed(96., 80.)
+            },
+        );
+        if partial {
+            scene.set_transform(native, Transform { x: 20., y: 15. });
+        }
+        let source = fill(&mut scene, root, Color(169, 190, 230, 20));
+        let ordinary = pixels(&mut gpu, &mut scene, false);
+        scene.set_source_paint_scope(source, Some(source_scope(1)));
+        let scoped = pixels(&mut gpu, &mut scene, false);
+        if partial {
+            assert_eq!(scoped, ordinary, "native partial blocker cannot be omitted");
+        } else {
+            assert_eq!(pixel(&scoped, 48, 32), [72, 133, 195, 255]);
+        }
+    }
+}
+
+#[test]
+fn nested_source_root_conflicts_and_preserve_barriers_keep_default_pixels() {
+    let _serial = serial();
+    let mut gpu = gpu();
+    for boundary in [source_scope(2), SourcePaintScope::PreserveExisting] {
+        let mut scene = scene();
+        let root = scene.root();
+        let source = scene.append(root, NodeKind::Container(Layout::Overlay), fixed(96., 80.));
+        let child = fill(&mut scene, source, Color(169, 190, 230, 20));
+        let ordinary = pixels(&mut gpu, &mut scene, false);
+        scene.set_source_paint_scope(source, Some(source_scope(1)));
+        scene.set_source_paint_scope(child, Some(boundary));
+        assert_eq!(pixels(&mut gpu, &mut scene, false), ordinary);
+        scene.set_source_paint_scope(child, None);
+        assert_eq!(
+            pixel(&pixels(&mut gpu, &mut scene, false), 48, 32),
+            [36, 38, 40, 255]
+        );
+    }
 }
 
 #[test]

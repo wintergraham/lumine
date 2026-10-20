@@ -333,6 +333,7 @@ const LAYOUT: u8 = 1;
 const PAINT: u8 = 2;
 const COMPOSITE: u8 = 4;
 struct Node {
+    source_paint_scope: Option<crate::source_paint::SourcePaintScope>,
     cursor: Option<crate::cursor::Cursor>,
     parent: Option<NodeId>,
     children: Vec<NodeId>,
@@ -551,6 +552,8 @@ impl PaintClip {
 }
 #[derive(Clone)]
 pub struct PaintItem<'a> {
+    /// Inherited native-host metadata, never reconstructed from authored style.
+    pub source_paint_capability: Option<crate::source_paint::SourcePaintCapability>,
     /// An explicit isolated subtree represented by its cached layer image.
     pub isolated: bool,
     pub id: NodeId,
@@ -572,6 +575,7 @@ pub struct PaintItem<'a> {
 type FontMeasurer =
     dyn Fn(&std::sync::Arc<str>, f32, Option<f32>, &crate::text_layout::FontStyle) -> (f32, f32);
 pub struct Scene {
+    source_paint_scope_count: usize,
     profiler: crate::profiling::Profiler,
     identity: u64,
     tree_revision: u64,
@@ -632,6 +636,7 @@ impl Scene {
         let profiler = crate::profiling::Profiler::default();
         profiler.register_root(root);
         Self {
+            source_paint_scope_count: 0,
             profiler,
             identity: NEXT_SCENE_ID
                 .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| id.checked_add(1))
@@ -639,6 +644,7 @@ impl Scene {
             slots: vec![Slot {
                 generation: 0,
                 node: Some(Node {
+                    source_paint_scope: None,
                     cursor: None,
                     parent: None,
                     children: Vec::new(),
@@ -1334,6 +1340,7 @@ impl Scene {
         }
         self.node(parent);
         let node = Node {
+            source_paint_scope: None,
             cursor: None,
             parent: Some(parent),
             children: Vec::new(),
@@ -1409,6 +1416,7 @@ impl Scene {
     fn free_subtree(&mut self, id: NodeId) {
         self.profiler.remove(id);
         let node = self.slots[id.index as usize].node.take().unwrap();
+        self.source_paint_scope_count -= usize::from(node.source_paint_scope.is_some());
         self.cursor_styles -= usize::from(node.cursor.is_some());
         if node.isolated {
             self.isolation_count -= 1;
@@ -3046,6 +3054,49 @@ impl Scene {
         self.node_mut(id).isolated = isolated;
         self.invalidate(id, PAINT);
     }
+    /// Install a native host's source-root policy decision. This is not a CSS
+    /// property and does not itself validate the source/backend contract.
+    /// The trusted host must validate its immutable source/build lookup first.
+    pub fn set_source_paint_scope(
+        &mut self,
+        id: NodeId,
+        scope: Option<crate::source_paint::SourcePaintScope>,
+    ) {
+        if self.node(id).source_paint_scope == scope {
+            return;
+        }
+        self.source_paint_scope_count = self.source_paint_scope_count
+            - usize::from(self.node(id).source_paint_scope.is_some())
+            + usize::from(scope.is_some());
+        self.node_mut(id).source_paint_scope = scope;
+        // Descendant policy and cached layer content can change without any
+        // authored paint/layout changing. Invalidate all affected raster
+        // revisions, including nested isolated and scroll-cache roots.
+        let mut pending = vec![id];
+        while let Some(node) = pending.pop() {
+            pending.extend_from_slice(&self.node(node).children);
+            self.invalidate(node, PAINT);
+        }
+        self.content_revision = self.content_revision.wrapping_add(1);
+        // Old retained copies were rendered under another capability. A full
+        // repaint also handles backdrop-dependent corrections outside this root.
+        self.pending_moves.clear();
+        self.moves.clear();
+        self.add_damage(self.viewport);
+    }
+    pub fn source_paint_scope(&self, id: NodeId) -> Option<crate::source_paint::SourcePaintScope> {
+        self.node(id).source_paint_scope
+    }
+    pub fn has_source_paint_scopes(&self) -> bool {
+        self.source_paint_scope_count > 0
+    }
+    fn source_paint_parent_state(&self, id: NodeId) -> crate::source_paint::SourcePaintState {
+        let mut parents = self.ancestors(id).collect::<Vec<_>>();
+        parents.reverse();
+        parents.into_iter().fold(Default::default(), |state: crate::source_paint::SourcePaintState, parent| {
+            state.descend(self.node(parent).source_paint_scope)
+        })
+    }
     pub fn is_isolated(&self, id: NodeId) -> bool {
         self.node(id).isolated
     }
@@ -3188,6 +3239,7 @@ impl Scene {
             None::<FadeMask>,
             std::rc::Rc::<[PaintClip]>::from([]),
             Affine::IDENTITY,
+            self.source_paint_parent_state(start),
         )];
         let mut result = Vec::new();
         while let Some((
@@ -3198,9 +3250,11 @@ impl Scene {
             mask,
             regions,
             fade_transform,
+            source_paint_state,
         )) = stack.pop()
         {
             let node = self.node(id);
+            let source_paint_state = source_paint_state.descend(node.source_paint_scope);
             let matrix = self.node_matrix(id).then(parent_transform);
             let (bounds, transform) = primitive_coordinates(node.bounds, matrix);
             let is_root = root == Some(id);
@@ -3236,11 +3290,13 @@ impl Scene {
                                 child_mask,
                                 regions.clone(),
                                 child_fade_transform,
+                                source_paint_state,
                             )
                         }),
                 );
             }
             result.push(PaintItem {
+                source_paint_capability: source_paint_state.capability(),
                 isolated,
                 id,
                 bounds,
@@ -3284,6 +3340,7 @@ impl Scene {
                 None,
                 std::rc::Rc::from([]),
                 Affine::IDENTITY,
+                crate::source_paint::SourcePaintState::default(),
             )],
         }
     }
@@ -3352,16 +3409,20 @@ type PaintState = (
     Option<FadeMask>,
     std::rc::Rc<[PaintClip]>,
     Affine,
+    crate::source_paint::SourcePaintState,
 );
 struct PaintIter<'a> {
     scene: &'a Scene,
     hit_point: Option<(f32, f32)>,
     stack: Vec<PaintState>,
 }
+#[cfg(test)]
+#[path = "source_paint_scene_tests.rs"]
+mod source_paint_scene_tests;
 impl<'a> Iterator for PaintIter<'a> {
     type Item = PaintItem<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        let (id, parent_transform, parent_opacity, parent_clip, mask, regions, fade_transform) = loop {
+        let (id, parent_transform, parent_opacity, parent_clip, mask, regions, fade_transform, source_paint_state) = loop {
             let state = self.stack.pop()?;
             if let Some((x, y)) = self.hit_point {
                 let node = self.scene.node(state.0);
@@ -3379,6 +3440,7 @@ impl<'a> Iterator for PaintIter<'a> {
             break state;
         };
         let node = self.scene.node(id);
+        let source_paint_state = source_paint_state.descend(node.source_paint_scope);
         let matrix = self.scene.node_matrix(id).then(parent_transform);
         let (bounds, transform) = primitive_coordinates(node.bounds, matrix);
         let mut effects = node.effects;
@@ -3408,9 +3470,11 @@ impl<'a> Iterator for PaintIter<'a> {
                     child_mask,
                     regions.clone(),
                     child_fade_transform,
+                    source_paint_state,
                 )
             }));
         Some(PaintItem {
+            source_paint_capability: source_paint_state.capability(),
             isolated: false,
             id,
             bounds,

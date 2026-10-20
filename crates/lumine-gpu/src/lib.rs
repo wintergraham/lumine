@@ -3263,8 +3263,9 @@ impl GpuRenderer {
         let mut draws = Vec::new();
         // The contract is restricted to this RGBA8-equivalent retained target.
         // Alternate/HDR drawable formats and isolated textures keep the old path.
-        let source_fills = self.source_fill_compositing
-            == SourceFillCompositing::SkiaSoftwareSrgb8OpaqueBackdrop
+        let diagnostic_source_fills = self.source_fill_compositing
+            == SourceFillCompositing::SkiaSoftwareSrgb8OpaqueBackdrop;
+        let source_fills = (diagnostic_source_fills || scene.has_source_paint_scopes())
             && !self.in_layer
             && self.config.as_ref().is_none_or(|c| {
                 matches!(c.format, wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Rgba8Unorm)
@@ -4188,17 +4189,23 @@ impl GpuRenderer {
                 }
             }
             if source_fills {
-                source_fill_paint::resolve_interior(
-                    &mut quads,
-                    start,
-                    &draws,
-                    &known_source_backdrops,
-                    &item,
-                    clip,
-                    self.scale,
-                    self.background,
-                    viewport,
-                );
+                if diagnostic_source_fills || item.source_paint_capability.is_some_and(|cap| {
+                    cap.policy == lumine::source_paint::SourcePaintPolicy::SkiaSoftwareSrgb8OpaqueBackdrop
+                }) {
+                    source_fill_paint::resolve_interior(
+                        &mut quads,
+                        start,
+                        &draws,
+                        &known_source_backdrops,
+                        &item,
+                        clip,
+                        self.scale,
+                        self.background,
+                        viewport,
+                    );
+                }
+                // Native/unmarked draws still participate in the actual ordered
+                // backdrop proof, and can block a later source-root correction.
                 source_fill_paint::remember_opaque(
                     &quads,
                     start,
