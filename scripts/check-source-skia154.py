@@ -18,7 +18,7 @@ cxx=tool(args.cxx);rustc=tool(args.rustc)
 source=args.source.resolve();manifest=source/'manifest.json'
 assert sha(manifest)==args.manifest_sha256,'Original manifest identity changed'
 contract=json.loads(manifest.read_text());assert contract['sourceOnly'] and not contract['nativeComparisonPerformed']
-assert contract['kind']=='independent-source-rounded-paint-fixture'
+assert contract['kind'] in ['independent-source-rounded-paint-fixture','independent-source-rounded-paint-diagnostic']
 assert contract['logicalViewport']==[96,80] and contract['dpr']==2
 args.output.mkdir(parents=True,exist_ok=False);output=args.output.resolve()
 cpp=root/'crates/lumine-gpu/src/source_skia154.cpp';obj=output/'source-skia154.o';archive=output/'libsource_skia154.a';binary=output/'source-skia154-replay'

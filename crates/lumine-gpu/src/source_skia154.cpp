@@ -46,6 +46,7 @@ template<class T,class F> void SkTQSort(T*a,T*b,F f){std::sort(a,b+1,f);}
 struct SkPoint {float fX,fY;};
 
 namespace ask_skia154 {
+static SkAlpha snapAlpha(SkAlpha alpha) { return alpha > 247 ? 0xFF : alpha < 8 ? 0x00 : alpha; }
 void safely_add_alpha(SkAlpha*a,SkAlpha b){*a=std::min(255,int(*a)+b);}
 struct Span {int32_t x,y,width,coverage,blend;};
 struct Context {std::vector<Span> spans;int width,height;bool overflow=false;
@@ -58,7 +59,9 @@ struct AdditiveBlitter {
  Context& context;int row=-1;std::vector<int> alphas;bool real;AdditiveBlitter* other;
  AdditiveBlitter(Context&c,bool r,AdditiveBlitter*o=nullptr):context(c),alphas(c.width),real(r),other(o){}
  AdditiveBlitter* getRealBlitter(bool=false){return real?this:other;}
- void flush(){if(row>=0){for(int x=0;x<context.width;x++)if(alphas[x])context.emit(x,row,1,alphas[x],0);std::fill(alphas.begin(),alphas.end(),0);}}
+ // Original RunBasedAdditiveBlitter::flush applies snapAlpha to accumulated
+ // coverage before calling the real blitter. Direct H2/V/rect paths bypass it.
+ void flush(){if(row>=0){for(int x=0;x<context.width;x++){SkAlpha alpha=snapAlpha(alphas[x]);if(alpha)context.emit(x,row,1,alpha,0);}std::fill(alphas.begin(),alphas.end(),0);}}
  void blitAntiH(int x,int y,SkAlpha alpha){if(real)context.emit(x,y,1,alpha,0);else{if(row!=y){flush();row=y;}if(x>=0&&x<context.width)alphas[x]=std::min(255,alphas[x]+alpha);}}
  void blitAntiH(int x,int y,int n,SkAlpha alpha){if(real)context.emit(x,y,n,alpha,0);else for(int i=0;i<n;i++)blitAntiH(x+i,y,alpha);}
  void blitAntiH(int x,int y,const SkAlpha*alpha,int n){for(int i=0;i<n;i++)blitAntiH(x+i,y,alpha[i]);}

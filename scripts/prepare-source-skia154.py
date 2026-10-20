@@ -12,6 +12,8 @@ for item in manifest['files']+manifest.get('blinkPaintDerivation',[]):
 assert '#define SK_SUPPORT_LEGACY_CONIC_CHOP' in (source/'ChromiumSkUserConfig.h').read_text()
 h=(source/'SkAnalyticEdge.h').read_text();e=(source/'SkAnalyticEdge.cpp').read_text();a=(source/'SkScan_AAAPath.cpp').read_text()
 compat=(root/'vendor/skia154-source-paint/compat.inc').read_text()
+snap_start=a.index('SkAlpha snapAlpha(')
+compat=compat.replace('// SOURCE_RUN_BASED_ALPHA_SNAP','static '+a[snap_start:a.index('\n',snap_start)])
 header=h[h.index('struct SkAnalyticEdge {'):h.index('\n#endif',h.index('struct SkAnalyticCubicEdge'))]
 start=e.index('bool SkAnalyticQuadraticEdge::updateQuadratic()');end=e.index('\n}',start)+2
 edge=e[e.index('static constexpr int kInverseTableSize'):end]

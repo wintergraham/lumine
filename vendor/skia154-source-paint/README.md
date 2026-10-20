@@ -49,11 +49,15 @@ also matched the original transparent badge cases; transparent native
 composition is not implemented by this opaque-destination adapter.
 
 Additional source-only diagnostic captures exposed four low-coverage corner
-pixels for an opaque physical-radius-16 shape that this subset does not yet
-reproduce. The ten original supported cases passing CPU replay therefore do
-not establish general coverage parity. This diagnostic remains a strict
-unresolved discrepancy; no threshold, pixel exception, or fitted correction
-is applied.
+pixels for an opaque physical-radius-16 shape. Investigation found that the
+subset omitted the original `RunBasedAdditiveBlitter::flush` call to
+`snapAlpha`. The generator now copies that exact function from the verified
+original source, and dense accumulated rows apply it before the real blit.
+Direct real-blitter paths retain their original dispatch. The prior failing
+diagnostic is retained independently; all six supported opaque diagnostic
+cases now match every source pixel in CPU replay. This is an upstream raster
+operation, with no pixel exception or fitted correction. CPU replay still
+does not establish GPU parity or general source qualification.
 
 The code is an unqualified candidate until actual GPU checks pass. Transparent
 destinations, isolated opacity/layers, partial rounded ancestor clips, small
