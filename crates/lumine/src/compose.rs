@@ -294,6 +294,13 @@ pub enum ScrollbarStyle {
     Classic,
 }
 
+/// Optional author colors for retained scrollbar paint. None preserves native chrome.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ScrollbarColors {
+    pub thumb: crate::scene::Color,
+    pub track: crate::scene::Color,
+}
+
 /// A mount description, consumed into owned retained nodes and subscriptions.
 /// `.child`/`.children` compose views; `.style` and fluent methods apply to their root.
 pub struct View {
@@ -316,6 +323,7 @@ pub struct View {
     focusable: Option<bool>,
     id: Option<String>,
     scrollbar: Option<ScrollbarStyle>,
+    scrollbar_colors: Option<Signal<Option<ScrollbarColors>>>,
     scroll_fit_cross_axis: Option<bool>,
     horizontal_wheel: Option<bool>,
     slider_chrome: Option<bool>,
@@ -416,6 +424,7 @@ impl View {
             focusable: None,
             id: None,
             scrollbar: None,
+            scrollbar_colors: None,
             scroll_fit_cross_axis: None,
             horizontal_wheel: None,
             slider_chrome: None,
@@ -452,6 +461,12 @@ impl View {
     /// Select persistent classic chrome or the default fading overlay.
     pub fn scrollbar_style(mut self, style: ScrollbarStyle) -> Self {
         self.scrollbar = Some(style);
+        self
+    }
+    /// Retained author colors; setting the signal to None restores native chrome.
+    /// Color changes do not replace scroll ownership, geometry or input state.
+    pub fn scrollbar_colors(mut self, colors: Signal<Option<ScrollbarColors>>) -> Self {
+        self.scrollbar_colors = Some(colors);
         self
     }
     /// Keep slider input and semantics while the caller supplies its paint.
@@ -800,6 +815,7 @@ impl View {
         if self.scrollbar.is_some() {
             inner.scrollbar = self.scrollbar;
         }
+        inner.scrollbar_colors = self.scrollbar_colors.or(inner.scrollbar_colors);
         inner.events.extend(self.events);
         inner.keymap.extend(self.keymap);
         if self.drag_preview.is_some() {
@@ -1312,6 +1328,7 @@ pub fn virtual_list<K: Eq + std::hash::Hash + Clone + 'static>(
                     extent.clone(),
                     false,
                     scrollbar,
+                    None,
                 );
             }
             let weak = ui.downgrade();
@@ -1858,6 +1875,8 @@ fn mount_element(
         view.scrollbar.is_none() || matches!(kind, Kind::Scroll { .. } | Kind::VirtualList(_)),
         "scrollbar is only supported on scroll, scroll_x, and virtual_list views"
     );
+    assert!(view.scrollbar_colors.is_none() || matches!(kind, Kind::Scroll { .. }),
+        "scrollbar_colors is only supported on scroll and scroll_x views");
     let scrollbar = view.scrollbar.unwrap_or_default();
     // Decorated/padded text gets an actual layout box. Plain text stays a single
     // node, keeping common reactive labels small. Dynamic/state styles may add
@@ -2578,6 +2597,7 @@ fn mount_element(
             offset,
             horizontal,
             scrollbar,
+            view.scrollbar_colors,
             view.scroll_progress,
             view.scroll_fades,
             view.scroll_fit_cross_axis.unwrap_or(false),
@@ -2671,6 +2691,7 @@ fn mount_scroll(
     offset: Signal<f32>,
     horizontal: bool,
     scrollbar: ScrollbarStyle,
+    colors: Option<Signal<Option<ScrollbarColors>>>,
     progress: Option<Signal<f32>>,
     fade_band: Option<(f32, Rc<dyn Fn() -> std::time::Duration>)>,
     fit_cross_axis: bool,
@@ -2714,6 +2735,7 @@ fn mount_scroll(
             main_extent,
             horizontal,
             scrollbar,
+            colors,
         );
     }
     let fades = fade_band.map(|(band, duration)| {
@@ -3431,7 +3453,7 @@ impl Ui {
 /// Common imports for component application code.
 pub mod prelude {
     pub use super::{
-        CompiledMorphAnimation, CompiledMorphEffect, CompiledMorphTiming, compiled_morph, Context, ScrollbarStyle, Slot, VariableHeights, View, button, checkbox, column, component, div, image,
+        CompiledMorphAnimation, CompiledMorphEffect, CompiledMorphTiming, compiled_morph, Context, ScrollbarColors, ScrollbarStyle, Slot, VariableHeights, View, button, checkbox, column, component, div, image,
         image_signal, keyed, measured_rows, measured_virtual_list, menu, menu_item, modal, overlay,
         popover, progress, provide, provide_with, row, scroll, scroll_x, slider, submenu, submenu_with_anchor, switch,
         text, text_area, text_input, text_signal, variable_virtual_list, virtual_list,
@@ -3926,10 +3948,11 @@ fn mount_scrollbar(
     extent: Signal<f32>,
     horizontal: bool,
     style: ScrollbarStyle,
+    colors: Option<Signal<Option<ScrollbarColors>>>,
 ) {
     let mut cx = Context::new(ui.runtime.clone(), environment.clone());
     crate::compose_scrollbar::mount_with_style(
-        ui, &mut cx, owner, offset, size, extent, horizontal, style,
+        ui, &mut cx, owner, offset, size, extent, horizontal, style, colors,
     );
     cx.finish(ui, owner);
 }

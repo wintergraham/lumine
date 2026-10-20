@@ -1,6 +1,6 @@
 //! Shared retained scrollbar controls for ordinary and virtual viewports.
 use crate::{
-    compose::{Context, ScrollbarStyle},
+    compose::{Context, ScrollbarColors, ScrollbarStyle},
     input::{EventPhase, InputEvent, Key, PointerButton},
     motion::{Easing, Keyframe, Keyframes, MotionValue, Playback, Transition},
     reactive::Signal,
@@ -27,6 +27,7 @@ pub(crate) fn mount(
         extent,
         horizontal,
         ScrollbarStyle::Overlay,
+        None,
     );
 }
 
@@ -40,6 +41,7 @@ pub(crate) fn mount_with_style(
     extent: Signal<f32>,
     horizontal: bool,
     style: ScrollbarStyle,
+    colors: Option<Signal<Option<ScrollbarColors>>>,
 ) {
     if style == ScrollbarStyle::Hidden {
         return;
@@ -47,18 +49,6 @@ pub(crate) fn mount_with_style(
     let classic = style == ScrollbarStyle::Classic;
     let overlay = ui.container(owner, Layout::Overlay, Style::default());
     let track = ui.container(overlay, Layout::Overlay, Style::default());
-    if classic {
-        ui.scene.borrow_mut().set_kind(
-            track,
-            NodeKind::Panel {
-                layout: Layout::Overlay,
-                quad: QuadStyle {
-                    fill: Color(44, 44, 44, 255),
-                    ..Default::default()
-                },
-            },
-        );
-    }
     // Overlay keeps its trackless pill; Classic uses the same track and input.
     let thumb = ui.scene.borrow_mut().append(
         track,
@@ -270,6 +260,7 @@ pub(crate) fn mount_with_style(
         let Some(mut ui) = weak.upgrade() else {
             return;
         };
+        let colors = colors.as_ref().and_then(Signal::get);
         let (width, height) = size.get();
         let total = extent.get();
         if ![width, height, total].into_iter().all(f32::is_finite) {
@@ -349,24 +340,9 @@ pub(crate) fn mount_with_style(
             (pill_width, thumb_length)
         };
         scene.set_style(thumb, fixed(thumb_size.0, thumb_size.1));
-        scene.set_kind(
-            thumb,
-            NodeKind::Quad(QuadStyle {
-                fill: if classic {
-                    Color(107, 107, 107, 255)
-                } else {
-                    Color(255, 255, 255, alpha.get().round() as u8)
-                },
-                radius: if classic { 0. } else { pill_width / 2. },
-                border_width: if classic { 1. } else { 0. },
-                border_color: if classic {
-                    Color(81, 81, 81, 255)
-                } else {
-                    Color(0, 0, 0, 0)
-                },
-                ..Default::default()
-            }),
-        );
+        let (track_kind, thumb_quad) = paint(classic, colors, alpha.get().round() as u8, pill_width);
+        scene.set_kind(track, track_kind);
+        scene.set_kind(thumb, NodeKind::Quad(thumb_quad));
         let requested = offset.get();
         let value = if requested.is_nan() {
             0.
@@ -415,4 +391,47 @@ pub(crate) fn mount_with_style(
             ui.semantics.borrow_mut().remove(track);
         }
     });
+}
+
+// The same typed paint function is used by every retained scroll/hover/drag update.
+fn paint(classic: bool, colors: Option<ScrollbarColors>, alpha: u8, pill_width: f32) -> (NodeKind, QuadStyle) {
+    let track = if classic || colors.is_some() {
+        NodeKind::Panel { layout: Layout::Overlay, quad: QuadStyle {
+            fill: colors.map_or(Color(44, 44, 44, 255), |colors| colors.track),
+            ..Default::default()
+        }}
+    } else { NodeKind::Container(Layout::Overlay) };
+    let thumb = QuadStyle {
+        fill: colors.map_or(if classic { Color(107, 107, 107, 255) } else { Color(255, 255, 255, alpha) }, |colors| colors.thumb),
+        radius: if classic { 0. } else { pill_width / 2. },
+        border_width: if classic && colors.is_none() { 1. } else { 0. },
+        border_color: if classic && colors.is_none() { Color(81, 81, 81, 255) } else { Color(0, 0, 0, 0) },
+        ..Default::default()
+    };
+    (track, thumb)
+}
+
+#[cfg(test)]
+mod color_tests {
+    use super::*;
+    #[test]
+    fn authored_colors_survive_hover_alpha_geometry_and_clear_to_native_paint() {
+        let colors = Some(ScrollbarColors { thumb: Color(11, 22, 33, 44), track: Color(55, 66, 77, 88) });
+        for classic in [false, true] {
+            for (alpha, width) in [(0, 4.), (51, 4.), (89, 6.), (128, 6.)] {
+                let (track, thumb) = paint(classic, colors, alpha, width);
+                assert_eq!(thumb.fill, colors.unwrap().thumb);
+                assert_eq!(thumb.border_width, 0.);
+                assert!(matches!(track, NodeKind::Panel { quad, .. } if quad.fill == colors.unwrap().track));
+            }
+        }
+        let (track, thumb) = paint(false, None, 89, 6.);
+        assert!(matches!(track, NodeKind::Container(Layout::Overlay)));
+        assert_eq!(thumb.fill, Color(255, 255, 255, 89));
+        assert_eq!(thumb.radius, 3.);
+        let (track, thumb) = paint(true, None, 0, 8.);
+        assert!(matches!(track, NodeKind::Panel { quad, .. } if quad.fill == Color(44, 44, 44, 255)));
+        assert_eq!(thumb.fill, Color(107, 107, 107, 255));
+        assert_eq!(thumb.border_width, 1.);
+    }
 }
