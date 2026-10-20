@@ -215,10 +215,23 @@ fn actual_order_selects_last_complete_opaque_backdrop() {
 fn opaque_partial_backdrops_resolve_per_pixel_and_unknown_translucency_falls_back() {
     let _serial = serial();
     let mut gpu = gpu();
-    for color in [Color(255, 0, 0, 255), Color(255, 0, 0, 91)] {
+    for (color, square_quad) in [
+        (Color(255, 0, 0, 255), false),
+        (Color(255, 0, 0, 255), true),
+        (Color(255, 0, 0, 91), false),
+        (Color(255, 0, 0, 91), true),
+    ] {
         let mut scene = scene();
         let root = scene.root();
-        let blocker = scene.append(root, NodeKind::Rect(color), fixed(6., 6.));
+        let kind = if square_quad {
+            NodeKind::Quad(QuadStyle {
+                fill: color,
+                ..Default::default()
+            })
+        } else {
+            NodeKind::Rect(color)
+        };
+        let blocker = scene.append(root, kind, fixed(6., 6.));
         scene.set_transform(blocker, Transform { x: 20., y: 15. });
         if color.3 < 255 {
             // Keep this earlier paint explicitly unqualified too. Otherwise

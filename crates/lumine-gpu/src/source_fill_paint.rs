@@ -69,7 +69,15 @@ fn core(q: Quad, item: &PaintItem<'_>, clip: Rect, scale: f32) -> Option<Rect> {
         } else {
             q.shape[0].max(0.)
         };
-        let inset = radius + q.shape[1].max(0.) + (1. / scale).max(0.5);
+        // A borderless square has no curved/shaded edge outside its bounds.
+        // pixel_core rounds inward to complete device pixels itself. Adding
+        // the rounded-shape safety band would incorrectly discard known
+        // opaque boundary pixels of small square Quad/Panel backdrops.
+        let inset = if radius <= 0. && q.shape[1] <= 0. {
+            0.
+        } else {
+            radius + q.shape[1].max(0.) + (1. / scale).max(0.5)
+        };
         rect(source_fill::pixel_core(q.fade, inset, scale)?)
     } else {
         rect(source_fill::pixel_core(q.rect, 0., scale)?)
