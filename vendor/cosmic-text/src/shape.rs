@@ -44,6 +44,9 @@ pub enum Shaping {
     /// Advanced shaping of complete bidi spans, for text laid out without wrapping.
     /// Retains kerning across potential line breaks such as a slash.
     AdvancedUnwrapped,
+    /// Advanced shaping with Blink's printable-ASCII normal CSS line-break
+    /// compatibility rules. Non-ASCII pairs retain Unicode line breaking.
+    AdvancedCssWord,
 }
 
 impl Shaping {
@@ -61,7 +64,7 @@ impl Shaping {
             #[cfg(feature = "swash")]
             Self::Basic => shape_skip(font_system, glyphs, line, attrs_list, start_run, end_run),
             #[cfg(not(feature = "shape-run-cache"))]
-            Self::Advanced | Self::AdvancedUnwrapped => shape_run(
+            Self::Advanced | Self::AdvancedUnwrapped | Self::AdvancedCssWord => shape_run(
                 glyphs,
                 font_system,
                 line,
@@ -71,7 +74,7 @@ impl Shaping {
                 span_rtl,
             ),
             #[cfg(feature = "shape-run-cache")]
-            Self::Advanced | Self::AdvancedUnwrapped => shape_run_cached(
+            Self::Advanced | Self::AdvancedUnwrapped | Self::AdvancedCssWord => shape_run_cached(
                 glyphs,
                 font_system,
                 line,
@@ -923,6 +926,60 @@ impl ShapeWord {
     }
 }
 
+// Chromium 154.0.8037.57: LineBreakData::FillAscii() in
+// platform/text/character_property_data_generator.cc and the hyphen-digit
+// override in LazyLineBreakIterator::Context::ShouldBreakFast(). These ordered
+// ASCII compatibility rules deliberately differ from untailored UAX #14 (for
+// example, URLs do not break after a solidus). Keep native shaping opt-in.
+fn css_ascii_break(previous: Option<char>, left: char, right: char) -> Option<bool> {
+    if !('!'..='\u{7f}').contains(&left) || !('!'..='\u{7f}').contains(&right) {
+        return None;
+    }
+    if left == '-' && right.is_ascii_digit() {
+        return Some(previous.is_some_and(|ch| ch.is_ascii_alphanumeric()));
+    }
+    let mut allowed = matches!(right, '(' | '<' | '[' | '{') || matches!(left, '-' | '?');
+    if left == '-' && right == '$'
+        || matches!(
+            right,
+            '!' | ')' | ',' | '.' | '/' | ':' | ';' | '?' | ']' | '}'
+        )
+        || left == '?' && matches!(right, '"' | '\'')
+        || left.is_ascii_alphanumeric()
+        || matches!(
+            left,
+            '$' | '\'' | '(' | '/' | '<' | '@' | '[' | '^' | '_' | '`' | '{' | '\u{7f}'
+        )
+    {
+        allowed = false;
+    }
+    Some(allowed)
+}
+
+fn css_word_breaks(span: &str) -> Vec<usize> {
+    let mut unicode = unicode_linebreak::linebreaks(span)
+        .map(|(end, _)| end)
+        .peekable();
+    let mut result = Vec::new();
+    let mut previous = None;
+    let mut left = None;
+    for (index, right) in span.char_indices() {
+        while unicode.peek().is_some_and(|end| *end < index) {
+            unicode.next();
+        }
+        if let Some(left_ch) = left {
+            let unicode_break = unicode.peek() == Some(&index);
+            if css_ascii_break(previous, left_ch, right).unwrap_or(unicode_break) {
+                result.push(index);
+            }
+        }
+        previous = left;
+        left = Some(right);
+    }
+    result.push(span.len());
+    result
+}
+
 /// A shaped span (for bidirectional processing)
 #[derive(Clone, Debug)]
 pub struct ShapeSpan {
@@ -1005,12 +1062,18 @@ impl ShapeSpan {
         let mut start_word = 0;
         // lumine patch: unwrapped text has no soft boundaries at which to split shaping.
         let unwrapped = shaping == Shaping::AdvancedUnwrapped;
+        let css_breaks = (shaping == Shaping::AdvancedCssWord).then(|| css_word_breaks(span));
         let breaks = core::iter::once(span.len())
             .take(usize::from(unwrapped))
+            .chain(css_breaks.iter().flat_map(|breaks| breaks.iter().copied()))
             .chain(
                 unicode_linebreak::linebreaks(span)
                     .map(|(end, _)| end)
-                    .take(if unwrapped { 0 } else { usize::MAX }),
+                    .take(if unwrapped || css_breaks.is_some() {
+                        0
+                    } else {
+                        usize::MAX
+                    }),
             );
         for end_lb in breaks {
             // Check if this break opportunity splits a likely ligature (e.g. "|>" or "!=")

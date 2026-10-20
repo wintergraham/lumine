@@ -207,6 +207,14 @@ pub(crate) fn wrap(policy: lumine::text_layout::WordWrap, unwrapped: bool) -> co
     }
 }
 
+fn css_word_shaping(shaping: Shaping, font: &lumine::text_layout::FontStyle) -> Shaping {
+    if shaping == Shaping::Advanced && font.word_wrap == lumine::text_layout::WordWrap::Word {
+        Shaping::AdvancedCssWord
+    } else {
+        shaping
+    }
+}
+
 pub(crate) fn set_buffer_text_shaping(
     fonts: &mut FontSystem,
     buffer: &mut Buffer,
@@ -215,6 +223,7 @@ pub(crate) fn set_buffer_text_shaping(
     size: f32,
     shaping: Shaping,
 ) {
+    let shaping = css_word_shaping(shaping, font);
     let base = attrs(font, size);
     if font.fallbacks.is_empty() {
         buffer.set_text(text, &base, shaping, alignment(font));
@@ -1584,7 +1593,10 @@ pub(crate) fn rich_buffer_unshaped(
     buffer.set_rich_text(
         spans,
         &default_attrs,
-        shaping(unwrapped),
+        css_word_shaping(
+            shaping(unwrapped),
+            base.map_or(&default_font, |run| &run.font),
+        ),
         alignment(base.map_or(&default_font, |run| &run.font)),
     );
     buffer
