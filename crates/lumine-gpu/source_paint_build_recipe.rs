@@ -521,8 +521,15 @@ pub fn finish(mut snapshot: Snapshot, tool: &Tool, out_dir: &Path) {
             "Per-source cc output/source operands are not captured as an executed command log".into(),
             "Actual Cargo resolver/cc package and system headers/compiler subprograms/standard libraries require independent build verification".into()])),
     ]).encode()+"\n";
-    fs::write(out_dir.join("source-paint-build-recipe.json"), result)
-        .expect("write source paint build observation");
+    let file = out_dir.join("source-paint-build-recipe.json");
+    fs::write(&file, result).expect("write source paint build observation");
+    let digest = snapshot
+        .hasher
+        .as_ref()
+        .and_then(|hasher| hasher.hash(&file).ok())
+        .unwrap_or_default();
+    fs::write(out_dir.join("source-paint-build-recipe.sha256"), digest)
+        .expect("write source paint build observation digest");
 }
 
 #[cfg(test)]
