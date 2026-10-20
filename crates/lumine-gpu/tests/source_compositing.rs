@@ -120,6 +120,18 @@ fn intervening_partial_or_translucent_draw_blocks_uniform_backdrop() {
         let root = scene.root();
         let blocker = scene.append(root, NodeKind::Rect(color), fixed(6., 6.));
         scene.set_transform(blocker, Transform { x: 20., y: 15. });
+        if color.3 < 255 {
+            // Keep this earlier paint explicitly unqualified too. Otherwise
+            // its own proven Rect core may correctly change before the badge
+            // is conservatively rejected for partial backdrop overlap.
+            scene.set_effects(
+                blocker,
+                Effects {
+                    opacity: 0.5,
+                    ..Default::default()
+                },
+            );
+        }
         fill(&mut scene, root, Color(169, 190, 230, 20));
         let ordinary = pixels(&mut gpu, &mut scene, false);
         assert_eq!(pixels(&mut gpu, &mut scene, true), ordinary);
