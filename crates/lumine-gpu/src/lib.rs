@@ -685,6 +685,9 @@ enum Shading {
     /// An opaque flat colour: `basic` without blending, which reads every
     /// pixel it writes. Same pixels.
     Opaque,
+    /// A complete source-resolved target RGBA pixel run. Copying is required
+    /// for correctness, including transparent overlapping destinations.
+    PremultipliedCopy,
 }
 fn selected_shading(shading: Shading, regular_full: bool, nearest_image: bool) -> Shading {
     match shading {
@@ -716,7 +719,7 @@ fn shading(quad: &Quad, _scale: f32) -> Shading {
     if source_rgba_paint::resolved(quad) {
         // Private source-resolved runs carry the complete known target RGBA.
         // The existing basic shader retains alpha; blend=None copies bytes.
-        return Shading::Opaque;
+        return Shading::PremultipliedCopy;
     }
     // The basic shader preserves square-panel coverage at fractional pixels,
     // so smooth scrolling does not force backgrounds through the full shader.
@@ -768,7 +771,7 @@ impl QuadPipelines {
             Shading::RegularFull => (&self.regular_full[variant], true),
             Shading::NearestImage => (&self.nearest_image[variant], true),
             Shading::Basic => (&self.basic, true),
-            Shading::Opaque => (&self.basic_clear, false),
+            Shading::Opaque | Shading::PremultipliedCopy => (&self.basic_clear, false),
         };
         cell.get_or_init(|| {
             quad_pipeline(
@@ -3402,7 +3405,7 @@ impl GpuRenderer {
                         geometry_offset: 0,
                         geometry_hash: 0,
                         geometry: None,
-                        shading: Shading::Opaque,
+                        shading: Shading::PremultipliedCopy,
                         blur_mask: None,
                         layer: None,
                         blur: None,
@@ -6328,7 +6331,7 @@ fn quad_pipeline(
     shading: Shading,
     clip_interiors: bool,
 ) -> wgpu::RenderPipeline {
-    let basic = matches!(shading, Shading::Basic | Shading::Opaque);
+    let basic = matches!(shading, Shading::Basic | Shading::Opaque | Shading::PremultipliedCopy);
     let shader_constants = [
         ("gaussian_shadows", if shading == Shading::Full { 1. } else { 0. }),
         ("nearest_images", if shading == Shading::NearestImage { 1. } else { 0. }),
@@ -6364,8 +6367,8 @@ fn quad_pipeline(
         fragment: Some(wgpu::FragmentState {
             module: shader,
             entry_point: Some(match (shading, drawable.is_some()) {
-                (Shading::Basic | Shading::Opaque, true) => "fs_basic_both",
-                (Shading::Basic | Shading::Opaque, false) => "fs_basic",
+                (Shading::Basic | Shading::Opaque | Shading::PremultipliedCopy, true) => "fs_basic_both",
+                (Shading::Basic | Shading::Opaque | Shading::PremultipliedCopy, false) => "fs_basic",
                 (Shading::RegularFull | Shading::NearestImage, true) => "fs_regular_both",
                 (Shading::RegularFull | Shading::NearestImage, false) => "fs_regular",
                 (Shading::Full, true) => "fs_both",

@@ -267,6 +267,9 @@ pub(super) fn batches(
                 continue;
             };
             let shading = match draw.shading {
+                // Opaque is an optional framebuffer-read optimization. Source
+                // PremultipliedCopy must retain unblended target replacement
+                // for every damage size; blending it composes the backdrop twice.
                 Shading::Opaque if !unblended => Shading::Basic,
                 shading => shading,
             };
@@ -349,6 +352,7 @@ impl GpuRenderer {
                 Shading::NearestImage => "nearest_image",
                 Shading::Basic => "basic",
                 Shading::Opaque => "opaque",
+                Shading::PremultipliedCopy => "premultiplied_copy",
             },
             image: batch.source.0,
             image_size: batch
@@ -686,6 +690,28 @@ mod tests {
                 .shading,
             Shading::Basic
         );
+    }
+    #[test]
+    fn premultiplied_copy_cannot_be_downgraded_for_small_damage() {
+        // Actual failing source fixture is 30,720 device pixels, below the
+        // ordinary Opaque optimization threshold. Source-resolved RGBA already
+        // includes the earlier translucent draw and must replace it exactly.
+        let region = Rect::new(0., 0., 96., 80.);
+        let mut draws = vec![draw(0, 2), draw(2, 5), draw(5, 6)];
+        draws[0].shading = Shading::PremultipliedCopy;
+        draws[1].shading = Shading::PremultipliedCopy;
+        draws[2].shading = Shading::Opaque;
+        for merge in [false, true] {
+            for unblended in [false, true] {
+                let planned = batches(&draws, region, 0, unblended, merge)
+                    .map(|batch| (batch.start, batch.end, batch.shading))
+                    .collect::<Vec<_>>();
+                assert_eq!(planned, vec![
+                    (0, 5, Shading::PremultipliedCopy),
+                    (5, 6, if unblended { Shading::Opaque } else { Shading::Basic }),
+                ]);
+            }
+        }
     }
     #[test]
     fn indexed_geometry_merges_only_geometry_preserving_all_other_boundaries() {

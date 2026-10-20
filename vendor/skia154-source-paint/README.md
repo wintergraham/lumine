@@ -147,3 +147,25 @@ this restriction is necessary: a half-opacity single draw has center
 `[6,7,9,10]`; nested groups differ again. The candidate matches both supported
 leaf source frames exactly and explicitly rejects all seven group cases.
 The complete twenty-case GPU test remains pending, with no production grant.
+
+## Actual GPU small-batch copy regression
+
+The first genuine GPU run of the premultiplied policy matched nineteen whole
+source frames but differed at 2,062 pixels in the transparent two-draw overlap.
+Geometry and all twenty frozen native default controls matched exactly. The
+native mismatch equalled the already-composed target RGBA being blended over
+its earlier destination again. The production batching iterator changed
+`Shading::Opaque` to `Basic` for damage below 32,768 device pixels; the actual
+fixture has 30,720 pixels. That ordinary optimization is valid for opaque
+colors but cannot represent mandatory target replacement.
+
+The private `Shading::PremultipliedCopy` now distinguishes that semantic
+requirement. It uses the existing basic shader and blend-disabled pipeline,
+retains alpha, and stays a copy for every damage size and batching mode.
+Ordinary opaque paint retains its existing optimization. Production unit
+regressions cover the actual private-quad classifier, small/large batch
+selection and preservation of ordinary opaque behavior. The CPU-only
+`scripts/check-source-copy-batching.py` extracts those exact functions/tests
+unchanged, represents only unused GPU handles with stubs, records all source
+and compiler hashes, and renders no pixels. Its three passing tests do not
+substitute for a fresh actual GPU comparison or grant qualification.

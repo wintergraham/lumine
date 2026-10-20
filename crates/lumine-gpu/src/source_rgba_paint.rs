@@ -296,3 +296,55 @@ pub(super) fn resolve_singleton_opacity(
         None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn resolved_transparent_rgba_keeps_copy_semantics_through_batching() {
+        use super::super::{Shading, draw_diagnostics, shading};
+        let rect = Rect::new(0., 0., 96., 80.);
+        let quad = Quad {
+            rect: [0., 0., 96., 80.],
+            uv: [0.; 4],
+            color: [26. / 38., 27. / 38., 35. / 38., 38. / 255.],
+            fade: [0.; 4],
+            options: [0., 0., 0., RESOLVED],
+            shape: [0.; 4],
+            border: [0.; 4],
+            mask: NO_MASK,
+        };
+        let selected = shading(&quad, 2.);
+        assert_eq!(selected, Shading::PremultipliedCopy);
+        let draw = Draw {
+            diagnostic_source: None,
+            transform: Affine::IDENTITY,
+            geometry_offset: 0,
+            geometry_hash: 0,
+            geometry: None,
+            shading: selected,
+            blur: None,
+            blur_mask: None,
+            start: 0,
+            end: 1,
+            clip: rect,
+            bounds: rect,
+            image: None,
+            layer: None,
+        };
+        for unblended in [false, true] {
+            for merged in [false, true] {
+                let planned = draw_diagnostics::batches(
+                    std::slice::from_ref(&draw),
+                    rect,
+                    0,
+                    unblended,
+                    merged,
+                )
+                .next()
+                .unwrap();
+                assert_eq!(planned.shading, Shading::PremultipliedCopy);
+            }
+        }
+    }
+}
