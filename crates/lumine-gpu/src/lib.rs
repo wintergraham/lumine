@@ -2,7 +2,7 @@
 //! The output is premultiplied BGRA8 (read back as RGBA8). Text uses cosmic-text shaping and a bounded
 //! GPU glyph atlas; stable text never reshapes on paint or compositor updates.
 use cosmic_text::{Buffer, CacheKey, FontSystem, Metrics, SwashCache, SwashContent};
-use lumine::scene::{Affine, Color, NodeId, NodeKind, Rect, Scene};
+use lumine::scene::{Color, NodeId, NodeKind, Rect, Scene};
 use rustc_hash::FxHashMap;
 use std::{
     cell::RefCell,
@@ -3398,7 +3398,7 @@ impl GpuRenderer {
                     // outstanding geometry/effects. Other groups stay layers.
                     let draw = Draw {
                         diagnostic_source: diagnose.then(|| draw_diagnostics::Source::new(&item, 0)),
-                        transform: Affine::IDENTITY,
+                        transform: lumine::affine::Affine::IDENTITY,
                         geometry_offset: 0,
                         geometry_hash: 0,
                         geometry: None,
